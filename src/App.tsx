@@ -8,15 +8,13 @@ import PropertiesPanel from "@/components/sidebar/properties-panel";
 const App: React.FC = () => {
     return (
         <ToolProvider>
-          <div className="flex flex-col h-screen bg-[#2a2a2a] text-gray-200">
+          <div className="flex flex-col h-screen bg-[#292C31FF] text-gray-200 overflow-hidden">
             <Header />
+            <PropertiesPanel />
             <div className="flex flex-1 overflow-hidden">
               <Toolbar />
-              <div className="flex flex-col flex-1">
-                <PropertiesPanel />
-                <div className="flex-1 overflow-hidden bg-[#1e1e1e] relative">
-                  <Canvas />
-                </div>
+              <div className="flex-1 overflow-hidden bg-[#1e1e1e] relative">
+                <Canvas />
               </div>
             </div>
           </div>

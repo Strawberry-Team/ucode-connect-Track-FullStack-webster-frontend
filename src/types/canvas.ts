@@ -12,20 +12,33 @@ export interface Tool {
   }
   
   export interface LineData {
-    tool: string
+    tool: "brush" | "eraser"
     points: number[]
     color: string
     strokeWidth: number
-    opacity?: number
+    opacity: number
   }
   
   export interface ElementData {
     type: string
     x: number
     y: number
-    color: string
     width: number
     height: number
-    opacity?: number
+    color: string
+    opacity: number
+  }
+  
+  export interface ToolSettings {
+    brush: {
+      size: number
+      opacity: number
+      color: string
+    }
+    eraser: {
+      size: number
+      opacity: number
+      hardness: number
+    }
   }
   

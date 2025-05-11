@@ -1,30 +1,63 @@
-import { createContext, useState, useContext, type ReactNode } from "react"
-import type { Tool, Element } from "@/types/canvas"
+import React, { createContext, useContext, useState } from "react"
+import type { Tool, Element, ToolSettings } from "@/types/canvas"
 
-interface ToolContextType {
+interface ToolContextValue {
   activeTool: Tool | null
   setActiveTool: (tool: Tool | null) => void
   activeElement: Element | null
   setActiveElement: (element: Element | null) => void
   color: string
   setColor: (color: string) => void
+  secondaryColor: string
+  setSecondaryColor: (color: string) => void
+  swapColors: () => void
   brushSize: number
   setBrushSize: (size: number) => void
+  eraserSize: number
+  setEraserSize: (size: number) => void
   opacity: number
   setOpacity: (opacity: number) => void
+  eraserOpacity: number
+  setEraserOpacity: (opacity: number) => void
+  eraserHardness: number
+  setEraserHardness: (hardness: number) => void
   zoom: number
   setZoom: (zoom: number) => void
+  toolSettings: ToolSettings
 }
 
-const ToolContext = createContext<ToolContextType | undefined>(undefined)
+const ToolContext = createContext<ToolContextValue | undefined>(undefined)
 
-export function ToolProvider({ children }: { children: ReactNode }) {
-  const [activeTool, setActiveTool] = useState<Tool | null>({ id: "brush", name: "Brush", type: "brush" })
+export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeTool, setActiveTool] = useState<Tool | null>(null)
   const [activeElement, setActiveElement] = useState<Element | null>(null)
   const [color, setColor] = useState("#000000")
-  const [brushSize, setBrushSize] = useState(5)
+  const [secondaryColor, setSecondaryColor] = useState("#ffffff")
+  const [brushSize, setBrushSize] = useState(10)
+  const [eraserSize, setEraserSize] = useState(20)
   const [opacity, setOpacity] = useState(100)
+  const [eraserOpacity, setEraserOpacity] = useState(100)
+  const [eraserHardness, setEraserHardness] = useState(50)
   const [zoom, setZoom] = useState(100)
+
+  const swapColors = () => {
+    const tempColor = color
+    setColor(secondaryColor)
+    setSecondaryColor(tempColor)
+  }
+
+  const toolSettings: ToolSettings = {
+    brush: {
+      size: brushSize,
+      opacity: opacity,
+      color: color
+    },
+    eraser: {
+      size: eraserSize,
+      opacity: eraserOpacity,
+      hardness: eraserHardness
+    }
+  }
 
   return (
     <ToolContext.Provider
@@ -35,12 +68,22 @@ export function ToolProvider({ children }: { children: ReactNode }) {
         setActiveElement,
         color,
         setColor,
+        secondaryColor,
+        setSecondaryColor,
+        swapColors,
         brushSize,
         setBrushSize,
+        eraserSize,
+        setEraserSize,
         opacity,
         setOpacity,
+        eraserOpacity,
+        setEraserOpacity,
+        eraserHardness,
+        setEraserHardness,
         zoom,
         setZoom,
+        toolSettings
       }}
     >
       {children}
@@ -48,7 +91,7 @@ export function ToolProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useTool() {
+export const useTool = () => {
   const context = useContext(ToolContext)
   if (context === undefined) {
     throw new Error("useTool must be used within a ToolProvider")

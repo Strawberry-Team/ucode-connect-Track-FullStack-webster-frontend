@@ -20,7 +20,7 @@ const Header: React.FC = () => {
   ]
 
   return (
-    <header className="bg-[#2a2a2a] border-b border-[#1a1a1a] flex flex-col">
+    <header className="bg-[#202225FF] border-b-2 border-[#44474AFF] flex flex-col">
       <div className="flex items-center px-2 h-9">
         <div className="flex items-center space-x-1">
           {menus.map((menu) => (

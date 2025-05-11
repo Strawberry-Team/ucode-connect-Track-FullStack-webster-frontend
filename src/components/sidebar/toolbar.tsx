@@ -19,36 +19,51 @@ import {
   Pipette,
   Wand,
   Lasso,
+  Brush,
+  ArrowUpDown,
+  MousePointer2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Input } from "@/components/ui/input"
+
+// Вспомогательная функция для осветления HEX-цвета
+const lightenColor = (hex: string, percent: number): string => {
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(s => s + s).join('');
+  }
+
+  let r = parseInt(hex.slice(0, 2), 16);
+  let g = parseInt(hex.slice(2, 4), 16);
+  let b = parseInt(hex.slice(4, 6), 16);
+
+  r = Math.min(255, Math.floor(r + (255 - r) * (percent / 100)));
+  g = Math.min(255, Math.floor(g + (255 - g) * (percent / 100)));
+  b = Math.min(255, Math.floor(b + (255 - b) * (percent / 100)));
+
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
 
 const Toolbar: React.FC = () => {
-  const { activeTool, setActiveTool, activeElement, setActiveElement } = useTool()
+  const { 
+    activeTool, 
+    setActiveTool, 
+    activeElement, 
+    setActiveElement,
+    color,
+    setColor,
+    secondaryColor,
+    setSecondaryColor,
+    swapColors
+  } = useTool()
 
   const tools = [
-    { id: "move", name: "Move Tool", type: "move", icon: MoveHorizontal },
-    { id: "lasso", name: "Lasso Tool", type: "lasso", icon: Lasso },
-    { id: "wand", name: "Magic Wand", type: "wand", icon: Wand },
-    { id: "crop", name: "Crop Tool", type: "crop", icon: Crop },
-    { id: "pipette", name: "Eyedropper", type: "pipette", icon: Pipette },
-    { id: "brush", name: "Brush Tool", type: "brush", icon: Paintbrush },
+    { id: "cursor", name: "Cursor Tool", type: "cursor", icon: MousePointer2 },
+    { id: "brush", name: "Brush Tool", type: "brush", icon: Brush },
     { id: "eraser", name: "Eraser Tool", type: "eraser", icon: Eraser },
     { id: "text", name: "Text Tool", type: "text", icon: Type },
     { id: "shape", name: "Shape Tool", type: "shape", icon: Square },
-    { id: "hand", name: "Hand Tool", type: "hand", icon: Hand },
-  ]
-
-  const shapes = [
-    { id: "rectangle", type: "rectangle", icon: Square },
-    { id: "circle", type: "circle", icon: Circle },
-    { id: "triangle", type: "triangle", icon: Triangle },
-    { id: "star", type: "star", icon: Star },
-    { id: "hexagon", type: "hexagon", icon: Hexagon },
-    { id: "diamond", type: "diamond", icon: Diamond },
-    { id: "heart", type: "heart", icon: Heart },
-    { id: "moon", type: "moon", icon: Moon },
-    { id: "cloud", type: "cloud", icon: Cloud },
   ]
 
   const handleToolClick = (tool: any) => {
@@ -56,14 +71,12 @@ const Toolbar: React.FC = () => {
     setActiveElement(null)
   }
 
-  const handleShapeClick = (shape: any) => {
-    setActiveElement(shape)
-    setActiveTool(null)
-  }
+  const primaryLightBorder = lightenColor(color, 50); // Осветляем на 50%
+  const secondaryLightBorder = lightenColor(secondaryColor, 50); // Осветляем на 50%
 
   return (
     <TooltipProvider>
-      <div className="w-[60px] bg-[#2a2a2a] border-r border-[#1a1a1a] flex flex-col items-center py-2">
+      <div className="w-15 h-full bg-[#292C31FF] border-t-2 border-[#44474AFF] flex flex-col items-center py-2">
         <div className="space-y-1">
           {tools.map((tool) => {
             const Icon = tool.icon
@@ -71,40 +84,22 @@ const Toolbar: React.FC = () => {
 
             return (
               <div key={tool.id} className="relative">
-                {tool.id === "shape" && activeElement && (
-                  <div className="absolute left-10 top-0 bg-[#2a2a2a] border border-[#1a1a1a] rounded p-1 z-10 w-[120px]">
-                    <div className="grid grid-cols-3 gap-1">
-                      {shapes.map((shape) => {
-                        const ShapeIcon = shape.icon
-                        return (
-                          <Tooltip key={shape.id}>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                className={`w-8 h-8 ${activeElement?.id === shape.id ? "bg-[#3a3a3a]" : ""}`}
-                                onClick={() => handleShapeClick(shape)}
-                              >
-                                <ShapeIcon size={16} />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              <p>{shape.id.charAt(0).toUpperCase() + shape.id.slice(1)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
-                      className={`w-10 h-10 ${isActive || (tool.id === "shape" && activeElement) ? "bg-[#3a3a3a]" : ""}`}
+                      className={`w-10 h-10 group hover:bg-[#383A3EFF] ${isActive || (tool.id === "shape" && activeElement) ? "bg-[#414448FF]" : ""}`}
                       onClick={() => handleToolClick(tool)}
                     >
-                      <Icon size={20} />
+                      <Icon 
+                        className={
+                          `!w-4.5 !h-4.5 ${
+                            isActive || (tool.id === "shape" && activeElement) 
+                              ? "text-white" 
+                              : "text-[#A8AAACFF] group-hover:text-white"
+                          }`
+                        }
+                      />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -114,6 +109,76 @@ const Toolbar: React.FC = () => {
               </div>
             )
           })}
+        </div>
+        
+        {/* Селектор цветов как в Photoshop */}
+        <div className="-ml-3 pt-2">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="relative">
+              <div className="relative z-10">
+                  <div>
+                    <Input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="cursor-pointer w-8 h-8 p-0 opacity-0 absolute"
+                    />
+                    <div 
+                      className="w-8 h-8 rounded-full border-2" 
+                      style={{ backgroundColor: color, borderColor: primaryLightBorder }} 
+                    />
+                  </div>
+              </div>
+              <div className="absolute -bottom-4 -right-3 z-0">
+                  <div>
+                    <Input
+                      type="color"
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="cursor-pointer w-8 h-8 p-0 opacity-0 absolute"
+                    />
+                    <div 
+                      className="w-8 h-8 rounded-full border-2" 
+                      style={{ backgroundColor: secondaryColor, borderColor: secondaryLightBorder }} 
+                    />
+                  </div>
+              </div>
+              
+              
+              <div className="absolute top-0 right-0 transform translate-x-4.5 -translate-y-1/5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="w-5 h-5 p-0 flex items-center justify-center rounded-none border-0 hover:bg-transparent bg-transparent" 
+                      onClick={swapColors}
+                    >
+                      {/* Кастомный SVG элемент с одной изогнутой линией */}
+                      <svg 
+                        width="18" 
+                        height="18" 
+                        viewBox="0 0 15 15" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        stroke="#ffffff" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        transform="rotate(45)"
+                      >
+                        <path d="M2 7.5 Q7.5 1 13 7.5" />
+                        <polyline points="3 4 2 7.5 4 8.5" />
+                        <polyline points="12 4 13 7.5 11 8.5" />
+                      </svg>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Поменять цвета местами</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </TooltipProvider>
