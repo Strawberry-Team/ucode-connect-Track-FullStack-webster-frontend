@@ -6,7 +6,7 @@ interface EraserCursorProps {
   position: { x: number; y: number } | null;
 }
 
-const CURSOR_SIZE_THRESHOLD = 30;
+const CURSOR_SIZE_THRESHOLD = 25;
 
 const EraserCursor: React.FC<EraserCursorProps> = ({
   size,

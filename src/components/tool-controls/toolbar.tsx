@@ -9,7 +9,9 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Input } from "@/components/ui/input"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import ColorPicker from "../color-picker/color-picker"
+import { useState } from "react"
 
 const lightenColor = (hex: string, percent: number): string => {
   hex = hex.replace(/^#/, '');
@@ -40,6 +42,9 @@ const Toolbar: React.FC = () => {
     setSecondaryColor,
     swapColors
   } = useTool()
+
+  const [isPrimaryPickerOpen, setIsPrimaryPickerOpen] = useState(false)
+  const [isSecondaryPickerOpen, setIsSecondaryPickerOpen] = useState(false)
 
   const tools = [
     { id: "cursor", name: "Cursor Tool", type: "cursor", icon: MousePointer2 },
@@ -98,32 +103,40 @@ const Toolbar: React.FC = () => {
           <div className="flex flex-col items-center space-y-2">
             <div className="relative">
               <div className="relative z-10">
-                  <div>
-                    <Input
-                      type="color"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="cursor-pointer w-8 h-8 p-0 opacity-0 absolute"
-                    />
-                    <div 
-                      className="w-8 h-8 rounded-full border-2" 
-                      style={{ backgroundColor: color, borderColor: primaryLightBorder }} 
-                    />
-                  </div>
+                <Popover open={isPrimaryPickerOpen} onOpenChange={setIsPrimaryPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button 
+                      className="cursor-pointer w-8 h-8 p-0 border-0 rounded-full relative block"
+                      aria-label="Выбрать основной цвет"
+                    >
+                      <div 
+                        className="w-full h-full rounded-full border-2"
+                        style={{ backgroundColor: color, borderColor: primaryLightBorder }}
+                      />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" className="w-auto p-0 border-0 bg-transparent shadow-none">
+                    <ColorPicker color={color} setColor={setColor} onClose={() => setIsPrimaryPickerOpen(false)} />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="absolute -bottom-4 -right-3 z-0">
-                  <div>
-                    <Input
-                      type="color"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="cursor-pointer w-8 h-8 p-0 opacity-0 absolute"
-                    />
-                    <div 
-                      className="w-8 h-8 rounded-full border-2" 
-                      style={{ backgroundColor: secondaryColor, borderColor: secondaryLightBorder }} 
-                    />
-                  </div>
+                <Popover open={isSecondaryPickerOpen} onOpenChange={setIsSecondaryPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button 
+                      className="cursor-pointer w-8 h-8 p-0 border-0 rounded-full relative block"
+                      aria-label="Выбрать вторичный цвет"
+                    >
+                      <div 
+                        className="w-full h-full rounded-full border-2"
+                        style={{ backgroundColor: secondaryColor, borderColor: secondaryLightBorder }}
+                      />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" className="w-auto p-0 border-0 bg-transparent shadow-none">
+                    <ColorPicker color={secondaryColor} setColor={setSecondaryColor} onClose={() => setIsSecondaryPickerOpen(false)} />
+                  </PopoverContent>
+                </Popover>
               </div>
               
               

@@ -18,8 +18,8 @@ const BrushOptions: React.FC = () => {
     setBrushSize, 
     opacity, 
     setOpacity,
-    mirrorMode,
-    setMirrorMode
+    brushMirrorMode,
+    setBrushMirrorMode
   } = useTool();
   
   const [brushMenuOpen, setBrushMenuOpen] = useState(false);
@@ -58,7 +58,7 @@ const BrushOptions: React.FC = () => {
         suffix="%"
       />
       
-      <MirrorSelector value={mirrorMode} onChange={setMirrorMode} />
+      <MirrorSelector value={brushMirrorMode} onChange={setBrushMirrorMode} />
     </div>
   );
 };

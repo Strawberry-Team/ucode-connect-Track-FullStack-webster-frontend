@@ -26,8 +26,10 @@ interface ToolContextValue {
   zoom: number
   setZoom: (zoom: number) => void
   toolSettings: ToolSettings
-  mirrorMode: MirrorMode
-  setMirrorMode: (mode: MirrorMode) => void
+  brushMirrorMode: MirrorMode
+  setBrushMirrorMode: (mode: MirrorMode) => void
+  eraserMirrorMode: MirrorMode
+  setEraserMirrorMode: (mode: MirrorMode) => void
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -37,13 +39,14 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeElement, setActiveElement] = useState<Element | null>(null)
   const [color, setColor] = useState("#000000")
   const [secondaryColor, setSecondaryColor] = useState("#ffffff")
-  const [brushSize, setBrushSize] = useState(10)
+  const [brushSize, setBrushSize] = useState(20)
   const [eraserSize, setEraserSize] = useState(20)
   const [opacity, setOpacity] = useState(100)
   const [eraserOpacity, setEraserOpacity] = useState(100)
-  const [eraserHardness, setEraserHardness] = useState(50)
+  const [eraserHardness, setEraserHardness] = useState(100)
   const [zoom, setZoom] = useState(100)
-  const [mirrorMode, setMirrorMode] = useState<MirrorMode>("None")
+  const [brushMirrorMode, setBrushMirrorMode] = useState<MirrorMode>("None")
+  const [eraserMirrorMode, setEraserMirrorMode] = useState<MirrorMode>("None")
 
   const swapColors = () => {
     const tempColor = color
@@ -89,8 +92,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         zoom,
         setZoom,
         toolSettings,
-        mirrorMode,
-        setMirrorMode
+        brushMirrorMode,
+        setBrushMirrorMode,
+        eraserMirrorMode,
+        setEraserMirrorMode
       }}
     >
       {children}

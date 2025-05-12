@@ -11,7 +11,9 @@ export interface DrawingProps {
   opacity: number;
   eraserOpacity: number;
   eraserHardness: number;
-  mirrorMode: MirrorMode;
+  brushMirrorMode: MirrorMode;
+  eraserMirrorMode: MirrorMode;
+  activeToolType: string | null;
   canvasWidth: number;
   canvasHeight: number;
 }
@@ -23,7 +25,9 @@ const useDrawing = ({
   eraserSize,
   opacity,
   eraserHardness,
-  mirrorMode,
+  brushMirrorMode,
+  eraserMirrorMode,
+  activeToolType,
   canvasWidth,
   canvasHeight
 }: DrawingProps) => {
@@ -32,10 +36,21 @@ const useDrawing = ({
   const centerX = canvasWidth / 2;
   const centerY = canvasHeight / 2;
 
+  const getCurrentMirrorMode = (): MirrorMode => {
+    if (activeToolType === 'brush') {
+      return brushMirrorMode;
+    }
+    if (activeToolType === 'eraser') {
+      return eraserMirrorMode;
+    }
+    return 'None';
+  };
+
   const getMirroredPoints = (x: number, y: number): { x: number, y: number }[] => {
     const points: { x: number, y: number }[] = [{ x, y }];
+    const currentMirrorMode = getCurrentMirrorMode();
 
-    switch (mirrorMode) {
+    switch (currentMirrorMode) {
       case "Vertical":
         points.push({ x: 2 * centerX - x, y });
         break;
@@ -63,6 +78,8 @@ const useDrawing = ({
   ) => {
     isDrawing.current = true;
 
+    const currentMirrorMode = getCurrentMirrorMode();
+
     if (tool === "brush") {
       const currentColor = isRightClick ? secondaryColor : color;
       
@@ -76,7 +93,7 @@ const useDrawing = ({
         opacity: opacity / 100,
       });
       
-      if (mirrorMode !== "None") {
+      if (currentMirrorMode !== "None") {
         const mirroredPoints = getMirroredPoints(pos.x, pos.y);
         
         for (let i = 1; i < mirroredPoints.length; i++) {
@@ -107,7 +124,7 @@ const useDrawing = ({
         opacity: eraserPressure,
       });
       
-      if (mirrorMode !== "None") {
+      if (currentMirrorMode !== "None") {
         const mirroredPoints = getMirroredPoints(pos.x, pos.y);
         
         for (let i = 1; i < mirroredPoints.length; i++) {
@@ -129,10 +146,11 @@ const useDrawing = ({
   const continueDrawing = (pos: { x: number; y: number }) => {
     if (!isDrawing.current) return;
 
+    const currentMirrorMode = getCurrentMirrorMode();
     let linesToUpdate = 1;
-    if (mirrorMode === "Vertical" || mirrorMode === "Horizontal") {
+    if (currentMirrorMode === "Vertical" || currentMirrorMode === "Horizontal") {
       linesToUpdate = 2;
-    } else if (mirrorMode === "Four-way") {
+    } else if (currentMirrorMode === "Four-way") {
       linesToUpdate = 4;
     }
 
@@ -144,7 +162,7 @@ const useDrawing = ({
     mainLine.points = mainLine.points.concat([pos.x, pos.y]);
     updatedLines.push(mainLine);
     
-    if (mirrorMode !== "None" && linesToModify.length > 1) {
+    if (currentMirrorMode !== "None" && linesToModify.length > 1) {
       const mirroredPoints = getMirroredPoints(pos.x, pos.y);
       
       for (let i = 1; i < linesToModify.length; i++) {

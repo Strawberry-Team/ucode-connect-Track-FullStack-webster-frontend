@@ -17,8 +17,8 @@ const EraserOptions: React.FC = () => {
     setEraserSize,
     eraserHardness,
     setEraserHardness,
-    mirrorMode,
-    setMirrorMode
+    eraserMirrorMode,
+    setEraserMirrorMode
   } = useTool();
 
   return (
@@ -45,12 +45,12 @@ const EraserOptions: React.FC = () => {
         label="Hardness"
         value={eraserHardness}
         onChange={setEraserHardness}
-        min={0}
+        min={1}
         max={100}
         suffix="%"
       />
       
-      <MirrorSelector value={mirrorMode} onChange={setMirrorMode} />
+      <MirrorSelector value={eraserMirrorMode} onChange={setEraserMirrorMode} />
     </div>
   );
 };

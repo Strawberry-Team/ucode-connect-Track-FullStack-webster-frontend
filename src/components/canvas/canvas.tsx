@@ -27,7 +27,8 @@ const Canvas: React.FC = () => {
     eraserHardness,
     zoom,
     setZoom,
-    mirrorMode
+    brushMirrorMode,
+    eraserMirrorMode
   } = useTool();
 
   const [stageSize, setStageSize] = useState(calculateCanvasSize());
@@ -40,7 +41,9 @@ const Canvas: React.FC = () => {
     opacity,
     eraserOpacity,
     eraserHardness,
-    mirrorMode,
+    brushMirrorMode,
+    eraserMirrorMode,
+    activeToolType: activeTool?.type ?? null,
     canvasWidth: stageSize.width,
     canvasHeight: stageSize.height
   });
@@ -60,6 +63,9 @@ const Canvas: React.FC = () => {
   const [showEraserCursor, setShowEraserCursor] = useState(false);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [isHoveringZoomControls, setIsHoveringZoomControls] = useState(false);
+  const zoomControlsRef = useRef<HTMLDivElement>(null);
+  const zoomStep = 20;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -123,8 +129,8 @@ const Canvas: React.FC = () => {
 
   const handleScroll = (direction: "horizontal" | "vertical", newPosition: number) => {
     setStagePosition((prev: { x: number, y: number }) => ({
-      x: direction === "horizontal" ? newPosition : prev.x,
-      y: direction === "vertical" ? newPosition : prev.y
+      x: direction === "horizontal" ? -newPosition : prev.x,
+      y: direction === "vertical" ? -newPosition : prev.y
     }));
   };
 
@@ -180,7 +186,55 @@ const Canvas: React.FC = () => {
     centerCanvas();
   };
 
+  const handleZoomButtonClick = (zoomChange: number) => {
+    const newZoom = Math.min(Math.max(zoom + zoomChange, 10), 500);
+    if (newZoom === zoom) return;
+
+    
+    setZoom(newZoom);
+
+
+    setStagePosition(prevPosition => {
+      const currentScale = zoom / 100;
+      const newScale = newZoom / 100;
+      const { width: containerWidth, height: containerHeight } = containerSize;
+
+      const canvasPointXAtContainerCenter = (containerWidth / 2 - prevPosition.x) / currentScale;
+      const canvasPointYAtContainerCenter = (containerHeight / 2 - prevPosition.y) / currentScale;
+
+      let newX = containerWidth / 2 - canvasPointXAtContainerCenter * newScale;
+      let newY = containerHeight / 2 - canvasPointYAtContainerCenter * newScale;
+
+      const newContentWidth = stageSize.width * newScale;
+      const newContentHeight = stageSize.height * newScale;
+
+      if (newContentWidth <= containerWidth && newContentHeight <= containerHeight) {
+        newX = (containerWidth - newContentWidth) / 2;
+        newY = (containerHeight - newContentHeight) / 2;
+      } else {
+        newX = Math.max(containerWidth - newContentWidth, Math.min(0, newX));
+        newY = Math.max(containerHeight - newContentHeight, Math.min(0, newY));
+      }
+
+      return { x: newX, y: newY };
+    });
+  };
+
+  const handleZoomInClick = () => handleZoomButtonClick(zoomStep);
+  const handleZoomOutClick = () => handleZoomButtonClick(-zoomStep);
+
   const handleMouseMoveOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (zoomControlsRef.current && zoomControlsRef.current.contains(e.target as Node)) {
+      if (containerRef.current) {
+        containerRef.current.style.cursor = 'default';
+      }
+      setShowBrushCursor(false);
+      setShowEraserCursor(false);
+      setIsHoveringZoomControls(true);
+      return;
+    }
+    setIsHoveringZoomControls(false);
+
     if (isDragging.current && activeTool?.type === "cursor") {
       handleMouseMove(e);
     }
@@ -205,11 +259,11 @@ const Canvas: React.FC = () => {
 
     if (isOverCanvas) {
       setCursorPosition({ x: xOnCanvas, y: yOnCanvas });
-      if (activeTool?.type === "brush") {
+      if (!isHoveringZoomControls && activeTool?.type === "brush") {
         container.style.cursor = "none";
         setShowBrushCursor(true);
         setShowEraserCursor(false);
-      } else if (activeTool?.type === "eraser") {
+      } else if (!isHoveringZoomControls && activeTool?.type === "eraser") {
         container.style.cursor = "none";
         setShowBrushCursor(false);
         setShowEraserCursor(true);
@@ -231,6 +285,7 @@ const Canvas: React.FC = () => {
     }
     setShowBrushCursor(false);
     setShowEraserCursor(false);
+    setIsHoveringZoomControls(false);
   };
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -322,7 +377,8 @@ const Canvas: React.FC = () => {
           top: stagePosition.y,
         }}
       >
-        {mirrorMode !== "None" && (
+        {((activeTool?.type === 'brush' && brushMirrorMode !== 'None') || 
+          (activeTool?.type === 'eraser' && eraserMirrorMode !== 'None')) && (
           <div
             className="absolute top-0 left-0 pointer-events-none"
             style={{
@@ -331,7 +387,8 @@ const Canvas: React.FC = () => {
               zIndex: 500
             }}
           >
-            {(mirrorMode === "Vertical" || mirrorMode === "Four-way") && (
+            {((activeTool?.type === 'brush' && (brushMirrorMode === 'Vertical' || brushMirrorMode === 'Four-way')) ||
+              (activeTool?.type === 'eraser' && (eraserMirrorMode === 'Vertical' || eraserMirrorMode === 'Four-way'))) && (
               <div
                 className="absolute top-0 bottom-0 border-dashed border-l border-white/40"
                 style={{
@@ -340,7 +397,8 @@ const Canvas: React.FC = () => {
                 }}
               />
             )}
-            {(mirrorMode === "Horizontal" || mirrorMode === "Four-way") && (
+            {((activeTool?.type === 'brush' && (brushMirrorMode === 'Horizontal' || brushMirrorMode === 'Four-way')) ||
+              (activeTool?.type === 'eraser' && (eraserMirrorMode === 'Horizontal' || eraserMirrorMode === 'Four-way'))) && (
               <div
                 className="absolute left-0 right-0 border-dashed border-t border-white/40"
                 style={{
@@ -408,10 +466,32 @@ const Canvas: React.FC = () => {
         </Stage>
       </div>
       <div
-        className="absolute bottom-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-md select-none"
+        ref={zoomControlsRef}
+        className="absolute bottom-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-md select-none flex items-center gap-2"
         style={{ zIndex: 1000 }}
       >
-        {stageSize.width} x {stageSize.height} | {zoom}%
+        
+        <span>
+          {stageSize.width} x {stageSize.height} | 
+          <button 
+          onClick={handleZoomOutClick} 
+          className="cursor-pointer px-1.5 ml-1 mr-1 hover:bg-white/20 rounded" 
+          aria-label="Уменьшить масштаб"
+          tabIndex={0}
+        >
+          -
+        </button>
+        {zoom}%
+        <button 
+          onClick={handleZoomInClick} 
+          className="cursor-pointer px-1 ml-1 hover:bg-white/20 rounded" 
+          aria-label="Увеличить масштаб"
+          tabIndex={0}
+        >
+          +
+        </button>
+        </span>
+        
       </div>
       <ScrollBar 
         orientation="horizontal"
