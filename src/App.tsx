@@ -2,8 +2,8 @@ import React from 'react';
 import Header from "@/components/header/header";
 import Canvas from "@/components/canvas/canvas";
 import { ToolProvider } from "@/context/tool-context";
-import Toolbar from "@/components/sidebar/toolbar";
-import PropertiesPanel from "@/components/sidebar/properties-panel";
+import Toolbar from "@/components/tool-controls/toolbar";
+import PropertiesPanel from "@/components/tool-controls/properties-panel";
 
 const App: React.FC = () => {
     return (
