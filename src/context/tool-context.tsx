@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState } from "react"
 import type { Tool, Element, ToolSettings } from "@/types/canvas"
 
+export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
+
 interface ToolContextValue {
   activeTool: Tool | null
   setActiveTool: (tool: Tool | null) => void
@@ -24,6 +26,8 @@ interface ToolContextValue {
   zoom: number
   setZoom: (zoom: number) => void
   toolSettings: ToolSettings
+  mirrorMode: MirrorMode
+  setMirrorMode: (mode: MirrorMode) => void
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -39,6 +43,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [eraserOpacity, setEraserOpacity] = useState(100)
   const [eraserHardness, setEraserHardness] = useState(50)
   const [zoom, setZoom] = useState(100)
+  const [mirrorMode, setMirrorMode] = useState<MirrorMode>("None")
 
   const swapColors = () => {
     const tempColor = color
@@ -83,7 +88,9 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setEraserHardness,
         zoom,
         setZoom,
-        toolSettings
+        toolSettings,
+        mirrorMode,
+        setMirrorMode
       }}
     >
       {children}

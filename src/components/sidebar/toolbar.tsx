@@ -1,33 +1,16 @@
 import type React from "react"
 import { useTool } from "@/context/tool-context"
 import {
-  Paintbrush,
   Eraser,
   Square,
-  Circle,
-  Triangle,
-  Star,
-  Hexagon,
-  Diamond,
-  Heart,
-  Moon,
-  Cloud,
   Type,
-  Hand,
-  MoveHorizontal,
-  Crop,
-  Pipette,
-  Wand,
-  Lasso,
   Brush,
-  ArrowUpDown,
   MousePointer2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 
-// Вспомогательная функция для осветления HEX-цвета
 const lightenColor = (hex: string, percent: number): string => {
   hex = hex.replace(/^#/, '');
   if (hex.length === 3) {
@@ -71,8 +54,8 @@ const Toolbar: React.FC = () => {
     setActiveElement(null)
   }
 
-  const primaryLightBorder = lightenColor(color, 50); // Осветляем на 50%
-  const secondaryLightBorder = lightenColor(secondaryColor, 50); // Осветляем на 50%
+  const primaryLightBorder = lightenColor(color, 50);
+  const secondaryLightBorder = lightenColor(secondaryColor, 50);
 
   return (
     <TooltipProvider>
@@ -110,8 +93,7 @@ const Toolbar: React.FC = () => {
             )
           })}
         </div>
-        
-        {/* Селектор цветов как в Photoshop */}
+
         <div className="-ml-3 pt-2">
           <div className="flex flex-col items-center space-y-2">
             <div className="relative">
@@ -153,7 +135,6 @@ const Toolbar: React.FC = () => {
                       className="w-5 h-5 p-0 flex items-center justify-center rounded-none border-0 hover:bg-transparent bg-transparent" 
                       onClick={swapColors}
                     >
-                      {/* Кастомный SVG элемент с одной изогнутой линией */}
                       <svg 
                         width="18" 
                         height="18" 
