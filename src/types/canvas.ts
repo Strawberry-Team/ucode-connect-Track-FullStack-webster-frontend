@@ -19,14 +19,58 @@ export interface Tool {
     opacity: number
   }
   
+  export type TextAlignment = "left" | "center" | "right" | "justify";
+  export type TextCase = "none" | "uppercase" | "lowercase" | "capitalize";
+  export type BorderStyle = "solid" | "dashed" | "dotted" | "double" | "hidden";
+  export type ShapeType = 
+    | "rectangle" 
+    | "square" 
+    | "rounded-rectangle" 
+    | "squircle"
+    | "circle" 
+    | "line" 
+    | "triangle" 
+    | "pentagon" 
+    | "hexagon" 
+    | "star" 
+    | "heart" 
+    | "arrow" 
+    | "custom-image";
+
+  export interface FontStyles {
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    strikethrough: boolean;
+  }
+  
   export interface ElementData {
-    type: string
-    x: number
-    y: number
-    width: number
-    height: number
-    color: string
-    opacity: number
+    type: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+    opacity: number;
+    // Additional properties for text elements
+    text?: string;
+    fontSize?: number;
+    fontFamily?: string;
+    fontStyles?: FontStyles;
+    textCase?: TextCase;
+    textAlignment?: TextAlignment;
+    lineHeight?: number;
+    backgroundColor?: string;
+    backgroundOpacity?: number;
+    // Additional properties for shapes
+    borderColor?: string;
+    borderWidth?: number;
+    borderStyle?: BorderStyle;
+    cornerRadius?: number;
+    // General properties for transformations
+    rotation?: number;
+    scaleX?: number;
+    scaleY?: number;
   }
   
   export interface ToolSettings {

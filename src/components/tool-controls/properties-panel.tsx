@@ -10,23 +10,24 @@ import {
 } from "./option-panels"
 
 const PropertiesPanel: React.FC = () => {
-  const { activeTool, activeElement } = useTool()
+  const { activeTool } = useTool()
 
   const renderToolOptions = () => {
-    if (activeTool?.id === "brush") {
-      return <BrushOptions />
-    } else if (activeTool?.id === "eraser") {
-      return <EraserOptions />
-    } else if (activeTool?.id === "text") {
-      return <TextOptions />
-    } else if (activeElement || activeTool?.id === "shape") {
-      return <ShapeOptions />
-    } else if (activeTool?.id === "crop") {
-      return <CropOptions />
+    switch (activeTool?.id) {
+      case "brush":
+        return <BrushOptions />
+      case "eraser":
+        return <EraserOptions />
+      case "text":
+        return <TextOptions />
+      case "shape":
+        return <ShapeOptions />
+      case "crop":
+        return <CropOptions />
+      default:
+        return null
     }
-
-    return null
-  }
+  };
 
   return (
     <div className="h-12 w-full bg-[#292C31FF] p-2">

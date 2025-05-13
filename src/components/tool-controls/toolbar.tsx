@@ -2,11 +2,11 @@ import type React from "react"
 import { useTool } from "@/context/tool-context"
 import {
   Eraser,
-  Square,
   Type,
   Brush,
   MousePointer2,
-  Crop
+    Shapes,
+    Crop
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -56,7 +56,7 @@ const Toolbar: React.FC = () => {
     { id: "brush", name: "Brush Tool", type: "brush", icon: Brush },
     { id: "eraser", name: "Eraser Tool", type: "eraser", icon: Eraser },
     { id: "text", name: "Text Tool", type: "text", icon: Type },
-    { id: "shape", name: "Shape Tool", type: "shape", icon: Square },
+    { id: "shape", name: "Shape Tool", type: "shape", icon: Shapes },
     { id: "crop", name: "Crop Tool", type: "crop", icon: Crop },
   ]
 
@@ -74,7 +74,7 @@ const Toolbar: React.FC = () => {
     } else {
       if (isCropping) {
         setIsCropping(false);
-        setCropRect(null); 
+        setCropRect(null);
       }
     }
   }
@@ -125,17 +125,17 @@ const Toolbar: React.FC = () => {
               <div className="relative z-10">
                 <Popover open={isPrimaryPickerOpen} onOpenChange={setIsPrimaryPickerOpen}>
                   <PopoverTrigger asChild>
-                    <button 
+                    <button
                       className="cursor-pointer w-8 h-8 p-0 border-0 rounded-full relative block"
                       aria-label="Выбрать основной цвет"
                     >
-                      <div 
+                      <div
                         className="w-full h-full rounded-full border-2"
                         style={{ backgroundColor: color, borderColor: primaryLightBorder }}
                       />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent side="right" align="start" className="w-auto p-0 bg-transparent shadow-none">
+                  <PopoverContent side="right" align="start" className="w-auto p-0 bg-transparent border-0 shadow-none">
                     <ColorPicker color={color} setColor={setColor} onClose={() => setIsPrimaryPickerOpen(false)} />
                   </PopoverContent>
                 </Popover>
@@ -143,11 +143,11 @@ const Toolbar: React.FC = () => {
               <div className="absolute -bottom-4 -right-3 z-0">
                 <Popover open={isSecondaryPickerOpen} onOpenChange={setIsSecondaryPickerOpen}>
                   <PopoverTrigger asChild>
-                    <button 
+                    <button
                       className="cursor-pointer w-8 h-8 p-0 border-0 rounded-full relative block"
                       aria-label="Выбрать вторичный цвет"
                     >
-                      <div 
+                      <div
                         className="w-full h-full rounded-full border-2"
                         style={{ backgroundColor: secondaryColor, borderColor: secondaryLightBorder }}
                       />

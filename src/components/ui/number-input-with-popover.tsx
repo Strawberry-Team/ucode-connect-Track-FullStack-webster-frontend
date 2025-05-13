@@ -17,6 +17,7 @@ interface NumberInputWithPopoverProps {
   max: number;
   step?: number;
   suffix?: string;
+  decimals?: number;
 }
 
 const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
@@ -26,11 +27,14 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
   min,
   max,
   step = 1,
-  suffix = "%"
+  suffix = "%",
+  decimals = 0
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [tempInput, setTempInput] = useState<string>(() => 
-    typeof value === 'number' && !isNaN(value) ? String(value) : "1"
+    typeof value === 'number' && !isNaN(value) 
+      ? decimals > 0 ? value.toFixed(decimals) : String(value) 
+      : "1"
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverTriggerRef = useRef<HTMLDivElement>(null);
@@ -38,26 +42,48 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
   useEffect(() => {
     if (document.activeElement !== inputRef.current) {
       if (typeof value === 'number' && !isNaN(value)) {
-        setTempInput(String(value));
+        setTempInput(decimals > 0 ? value.toFixed(decimals) : String(value));
       } else {
         setTempInput("1"); 
       }
     }
-  }, [value]);
+  }, [value, decimals]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let inputValue = e.target.value.replace(/[^\d]/g, "");
+    let inputValue = e.target.value;
+    // Validate for decimal number if decimals > 0
+    const regex = decimals > 0 ? new RegExp(`^\\d*\\.?\\d{0,${decimals}}$`) : /^\d*$/;
+    
+    if (!regex.test(inputValue)) {
+      // Keep valid part
+      if (decimals > 0) {
+        const parts = inputValue.split('.');
+        if (parts.length > 1) {
+          inputValue = `${parts[0]}.${parts[1].slice(0, decimals)}`;
+        }
+      } else {
+        inputValue = inputValue.replace(/[^\d]/g, "");
+      }
+    }
+    
     if (inputValue === "") {
       setTempInput("");
       onChange(NaN);
       return;
     }
-    let num = parseInt(inputValue, 10);
-    if (num > max) inputValue = String(max);
-    else if (inputValue.length > 3) inputValue = inputValue.slice(0, 3);
-    else if (num < min && inputValue.length > 0) inputValue = String(min);
     
-    num = parseInt(inputValue,10);
+    let num = parseFloat(inputValue);
+    if (num > max) {
+      inputValue = decimals > 0 ? max.toFixed(decimals) : String(max);
+      num = max;
+    } else if (inputValue.length > (decimals > 0 ? 5 + decimals : 3) && !inputValue.includes('.')) {
+      inputValue = inputValue.slice(0, decimals > 0 ? 5 + decimals : 3);
+      num = parseFloat(inputValue);
+    } else if (num < min && inputValue.length > 0 && !inputValue.endsWith('.')) {
+      inputValue = decimals > 0 ? min.toFixed(decimals) : String(min);
+      num = min;
+    }
+    
     setTempInput(inputValue);
     if (!isNaN(num)) {
       onChange(Math.max(min, Math.min(max, num)));
@@ -67,19 +93,19 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
   };
 
   const handleInputBlur = () => {
-    if (tempInput.trim() === "" || isNaN(parseInt(tempInput, 10))) {
+    if (tempInput.trim() === "" || isNaN(parseFloat(tempInput))) {
       onChange(min);
-      setTempInput(String(min));
+      setTempInput(decimals > 0 ? min.toFixed(decimals) : String(min));
     } else {
-      const currentNum = Math.max(min, Math.min(max, parseInt(tempInput, 10)));
+      const currentNum = Math.max(min, Math.min(max, parseFloat(tempInput)));
       onChange(currentNum);
-      setTempInput(String(currentNum));
+      setTempInput(decimals > 0 ? currentNum.toFixed(decimals) : String(currentNum));
     }
   };
 
   return (
     <>
-      <Label className="text-[14px] text-[#D4D4D5FF] pl-3">{label}:</Label>
+      <Label className="text-xs text-[#D4D4D5FF] pl-3">{label}:</Label>
       <Popover open={menuOpen} onOpenChange={setMenuOpen}>
         <PopoverTrigger asChild>
           <div 
@@ -97,8 +123,8 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
               }}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
-              className="w-6 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0 m-0"
-              maxLength={3}
+              className="w-10 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0 m-0"
+              maxLength={decimals > 0 ? 5 + decimals : 3}
             />
             <span className="text-xs text-white">{suffix}</span>
             <ChevronDown size={12} className="text-white ml-0.5"/>
@@ -107,7 +133,7 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
         <PopoverContent 
           side="bottom" 
           align="start" 
-          className="w-52 p-3 bg-[#292C31FF] shadow-md ml-2 border-2"
+          className="w-52 p-3 bg-[#292C31FF] shadow-md border-2"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(event) => {
             if (popoverTriggerRef.current?.contains(event.target as Node)) {
@@ -124,7 +150,7 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
               value={[typeof value === 'number' && !isNaN(value) ? value : min]}
               onValueChange={(newValue) => {
                 onChange(newValue[0]);
-                setTempInput(String(newValue[0]));
+                setTempInput(decimals > 0 ? newValue[0].toFixed(decimals) : String(newValue[0]));
                 inputRef.current?.focus();
               }}
               className="flex-1"

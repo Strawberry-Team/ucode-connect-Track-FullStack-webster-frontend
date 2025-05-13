@@ -3,8 +3,8 @@ import { useTool } from "@/context/tool-context";
 import { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect } from "react-konva";
 import Konva from "konva";
-import { 
-  createCheckerboardPattern, 
+import {
+  createCheckerboardPattern,
   calculateCanvasSize
 } from "@/utils/canvas-utils.ts";
 import { useDrawing, useElementsManagement, useCropping } from "@/hooks";
@@ -16,14 +16,14 @@ import CropTool from "@/components/canvas/tools/crop-tool";
 import { formatDimensionDisplay } from "@/utils/format-utils";
 
 const Canvas: React.FC = () => {
-  const { 
-    activeTool, 
-    activeElement, 
-    color, 
+  const {
+    activeTool,
+    activeElement,
+    color,
     secondaryColor,
-    brushSize, 
-    eraserSize, 
-    opacity, 
+    brushSize,
+    eraserSize,
+    opacity,
     eraserOpacity,
     eraserHardness,
     zoom,
@@ -117,8 +117,8 @@ const Canvas: React.FC = () => {
       }
       if (!isCanvasManuallyResized) {
         const newCalculatedStageSize = calculateCanvasSize();
-        if (!contextStageSize || 
-            contextStageSize.width !== newCalculatedStageSize.width || 
+        if (!contextStageSize ||
+            contextStageSize.width !== newCalculatedStageSize.width ||
             contextStageSize.height !== newCalculatedStageSize.height) {
           setContextStageSize(newCalculatedStageSize);
         }
@@ -156,9 +156,9 @@ const Canvas: React.FC = () => {
       } else {
         newY = Math.max(containerHeight - scaledContentHeight, Math.min(0, stagePosition.y));
       }
-      
+
       if (newX !== stagePosition.x || newY !== stagePosition.y) {
-          setStagePosition({ x: newX, y: newY });
+        setStagePosition({ x: newX, y: newY });
       }
     }
   }, [contextStageSize, containerSize.width, containerSize.height, zoom]);
@@ -190,7 +190,7 @@ const Canvas: React.FC = () => {
     const newContentHeight = contextStageSize.height * boundedScale;
 
     const scrollbarsWillBeVisible =
-      newContentWidth > currentContainerWidth || newContentHeight > currentContainerHeight;
+        newContentWidth > currentContainerWidth || newContentHeight > currentContainerHeight;
 
     let newPosition;
 
@@ -220,14 +220,14 @@ const Canvas: React.FC = () => {
 
   const handleDoubleClick = () => {
     const newZoom = 100;
-    setZoom(newZoom); 
+    setZoom(newZoom);
 
     if (!containerRef.current || !contextStageSize) return;
-    
+
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
     const scaleValue = newZoom / 100;
-    
+
     const scaledContentWidth = contextStageSize.width * scaleValue;
     const scaledContentHeight = contextStageSize.height * scaleValue;
 
@@ -236,15 +236,15 @@ const Canvas: React.FC = () => {
     if (scaledContentWidth <= containerWidth) {
       newX = (containerWidth - scaledContentWidth) / 2;
     } else {
-      newX = 0; 
+      newX = 0;
     }
 
     if (scaledContentHeight <= containerHeight) {
       newY = (containerHeight - scaledContentHeight) / 2;
     } else {
-      newY = 0; 
+      newY = 0;
     }
-    
+
     setStagePosition({ x: newX, y: newY });
   };
 
@@ -252,24 +252,24 @@ const Canvas: React.FC = () => {
     if (!containerRef.current || !stageRef.current || !contextStageSize) return;
 
     const currentScale = zoom / 100;
-    
+
     const containerCenterX = containerSize.width / 2;
     const containerCenterY = containerSize.height / 2;
-    
+
     const canvasPointBefore = {
       x: (containerCenterX - stagePosition.x) / currentScale,
       y: (containerCenterY - stagePosition.y) / currentScale,
     };
-    
+
     const newZoom = Math.min(Math.max(zoom + zoomChange, 10), 500);
     if (newZoom === zoom) return;
     const newScale = newZoom / 100;
-    
+
     const newPosition = {
       x: containerCenterX - canvasPointBefore.x * newScale,
       y: containerCenterY - canvasPointBefore.y * newScale,
     };
-    
+
     setZoom(newZoom);
     setStagePosition(newPosition);
   };
@@ -320,9 +320,9 @@ const Canvas: React.FC = () => {
           x: stagePosition.x + dx,
           y: stagePosition.y + dy,
         });
-      } else if ((activeTool?.type === 'brush' || activeTool?.type === 'eraser') && 
-                 (e.buttons === 1 || e.buttons === 2) &&
-                 drawingManager.getIsDrawing()) {
+      } else if ((activeTool?.type === 'brush' || activeTool?.type === 'eraser') &&
+          (e.buttons === 1 || e.buttons === 2) &&
+          drawingManager.getIsDrawing()) {
         drawingManager.continueDrawing({ x: mouseX, y: mouseY });
       }
     }
@@ -338,13 +338,13 @@ const Canvas: React.FC = () => {
     setShowEraserCursor(false);
     setCursorPosition(null);
     isDragging.current = false;
-    setIsHoveringZoomControls(false); 
+    setIsHoveringZoomControls(false);
   };
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!containerRef.current || !stageRef.current) return;
     const evt = e.evt;
-    
+
     if (evt.button === 1) {
       isDragging.current = true;
       return;
@@ -353,11 +353,11 @@ const Canvas: React.FC = () => {
     if (activeTool?.type === 'brush' || activeTool?.type === 'eraser') {
       const stage = stageRef.current;
       const position = stage.getPointerPosition();
-      
+
       if (position) {
         isDragging.current = true;
         const isRightClick = evt.button === 2;
-        
+
         if (activeTool?.type === 'brush') {
           drawingManager.startDrawing('brush', position, isRightClick);
         } else if (activeTool?.type === 'eraser') {
@@ -367,7 +367,7 @@ const Canvas: React.FC = () => {
     } else if (activeTool?.type === 'shape') {
       const stage = stageRef.current;
       const position = stage.getPointerPosition();
-      
+
       if (position && activeElement) {
         elementsManager.addElement(activeElement.type, position, evt.button === 2);
       }
@@ -406,166 +406,166 @@ const Canvas: React.FC = () => {
   }, [triggerApplyCrop, croppingManager]);
 
   return (
-    <div
-      className="w-full h-full bg-[#171719FF] overflow-hidden relative"
-      ref={containerRef}
-      onMouseMove={handleMouseMoveOnContainer}
-      onMouseLeave={handleMouseLeave}
-      onMouseUp={handleMouseUp}
-      onMouseDown={(e) => activeTool?.type === "cursor" && handleMouseDown({ evt: e } as any)}
-      onContextMenu={handleContextMenu}
-      onWheel={handleWheel}
-      onDoubleClick={handleDoubleClick}
-    >
       <div
-        className="relative"
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "0 0",
-          width: contextStageSize?.width ?? 0,
-          height: contextStageSize?.height ?? 0,
-          position: "absolute",
-          left: stagePosition.x,
-          top: stagePosition.y,
-        }}
+          className="w-full h-full bg-[#171719FF] overflow-hidden relative"
+          ref={containerRef}
+          onMouseMove={handleMouseMoveOnContainer}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseDown={(e) => activeTool?.type === "cursor" && handleMouseDown({ evt: e } as any)}
+          onContextMenu={handleContextMenu}
+          onWheel={handleWheel}
+          onDoubleClick={handleDoubleClick}
       >
-        {((activeTool?.type === 'brush' && brushMirrorMode !== 'None') || 
-          (activeTool?.type === 'eraser' && eraserMirrorMode !== 'None')) && (
-          <div
-            className="absolute top-0 left-0 pointer-events-none"
+        <div
+            className="relative"
             style={{
+              transform: `scale(${scale})`,
+              transformOrigin: "0 0",
               width: contextStageSize?.width ?? 0,
               height: contextStageSize?.height ?? 0,
-              zIndex: 500
+              position: "absolute",
+              left: stagePosition.x,
+              top: stagePosition.y,
             }}
-          >
-            {((activeTool?.type === 'brush' && (brushMirrorMode === 'Vertical' || brushMirrorMode === 'Four-way')) ||
-              (activeTool?.type === 'eraser' && (eraserMirrorMode === 'Vertical' || eraserMirrorMode === 'Four-way'))) && (
-              <div
-                className="absolute top-0 bottom-0 border-dashed border-l border-white/40"
-                style={{
-                  left: (contextStageSize?.width ?? 0) / 2,
-                  height: "100%",
-                }}
-              />
-            )}
-            {((activeTool?.type === 'brush' && (brushMirrorMode === 'Horizontal' || brushMirrorMode === 'Four-way')) ||
-              (activeTool?.type === 'eraser' && (eraserMirrorMode === 'Horizontal' || eraserMirrorMode === 'Four-way'))) && (
-              <div
-                className="absolute left-0 right-0 border-dashed border-t border-white/40"
-                style={{
-                  top: (contextStageSize?.height ?? 0) / 2,
-                  width: "100%",
-                }}
-              />
-            )}
-          </div>
-        )}
-      
-        <BrushCursor 
-          brushSize={brushSize}
-          color={color}
-          opacity={opacity}
-          isVisible={showBrushCursor}
-          position={cursorPosition}
-        />
-        <EraserCursor 
-          size={eraserSize}
-          isVisible={showEraserCursor}
-          position={cursorPosition}
-        />
-        <Stage
-          width={contextStageSize?.width ?? 0}
-          height={contextStageSize?.height ?? 0}
-          onMouseDown={handleMouseDown}
-          onMousemove={handleMouseMove}
-          onMouseup={handleMouseUp}
-          ref={stageRef}
         >
-          <Layer>
-            <Rect
-              x={0}
-              y={0}
+          {((activeTool?.type === 'brush' && brushMirrorMode !== 'None') ||
+              (activeTool?.type === 'eraser' && eraserMirrorMode !== 'None')) && (
+              <div
+                  className="absolute top-0 left-0 pointer-events-none"
+                  style={{
+                    width: contextStageSize?.width ?? 0,
+                    height: contextStageSize?.height ?? 0,
+                    zIndex: 500
+                  }}
+              >
+                {((activeTool?.type === 'brush' && (brushMirrorMode === 'Vertical' || brushMirrorMode === 'Four-way')) ||
+                    (activeTool?.type === 'eraser' && (eraserMirrorMode === 'Vertical' || eraserMirrorMode === 'Four-way'))) && (
+                    <div
+                        className="absolute top-0 bottom-0 border-dashed border-l border-white/40"
+                        style={{
+                          left: (contextStageSize?.width ?? 0) / 2,
+                          height: "100%",
+                        }}
+                    />
+                )}
+                {((activeTool?.type === 'brush' && (brushMirrorMode === 'Horizontal' || brushMirrorMode === 'Four-way')) ||
+                    (activeTool?.type === 'eraser' && (eraserMirrorMode === 'Horizontal' || eraserMirrorMode === 'Four-way'))) && (
+                    <div
+                        className="absolute left-0 right-0 border-dashed border-t border-white/40"
+                        style={{
+                          top: (contextStageSize?.height ?? 0) / 2,
+                          width: "100%",
+                        }}
+                    />
+                )}
+              </div>
+          )}
+
+          <BrushCursor
+              brushSize={brushSize}
+              color={color}
+              opacity={opacity}
+              isVisible={showBrushCursor}
+              position={cursorPosition}
+          />
+          <EraserCursor
+              size={eraserSize}
+              isVisible={showEraserCursor}
+              position={cursorPosition}
+          />
+          <Stage
               width={contextStageSize?.width ?? 0}
               height={contextStageSize?.height ?? 0}
-              fillPatternImage={createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF")}
-            />
-          </Layer>
-          <Layer>
-            {drawingManager.lines.map((line, i) => (
-              <Line
-                key={`line-${i}`}
-                points={line.points}
-                stroke={line.tool === "eraser" ? "#ffffff" : line.color}
-                strokeWidth={line.strokeWidth}
-                tension={0.5}
-                lineCap="round"
-                lineJoin="round"
-                opacity={line.opacity}
-                globalCompositeOperation={line.tool === "eraser" ? "destination-out" : "source-over"}
+              onMouseDown={handleMouseDown}
+              onMousemove={handleMouseMove}
+              onMouseup={handleMouseUp}
+              ref={stageRef}
+          >
+            <Layer>
+              <Rect
+                  x={0}
+                  y={0}
+                  width={contextStageSize?.width ?? 0}
+                  height={contextStageSize?.height ?? 0}
+                  fillPatternImage={createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF")}
               />
-            ))}
-            {elementsManager.renderElements().map(({ key, element, index }) => (
-              <ElementRenderer 
-                key={key}
-                element={element}
-                index={index}
-                onDragEnd={elementsManager.handleDragEnd}
-                onClick={elementsManager.handleElementClick}
+            </Layer>
+            <Layer>
+              {drawingManager.lines.map((line, i) => (
+                  <Line
+                      key={`line-${i}`}
+                      points={line.points}
+                      stroke={line.tool === "eraser" ? "#ffffff" : line.color}
+                      strokeWidth={line.strokeWidth}
+                      tension={0.5}
+                      lineCap="round"
+                      lineJoin="round"
+                      opacity={line.opacity}
+                      globalCompositeOperation={line.tool === "eraser" ? "destination-out" : "source-over"}
+                  />
+              ))}
+              {elementsManager.renderElements().map(({ key, element, index }) => (
+                  <ElementRenderer
+                      key={key}
+                      element={element}
+                      index={index}
+                      onDragEnd={elementsManager.handleDragEnd}
+                      onClick={elementsManager.handleElementClick}
+                  />
+              ))}
+              <CropTool
+                  stageSize={contextStageSize}
+                  scale={scale}
+                  cropRectRef={croppingManager.cropRectRef as any}
+                  transformerRef={croppingManager.transformerRef as any}
+                  handleCropRectDragEnd={croppingManager.handleCropRectDragEnd}
+                  handleCropRectTransformEnd={croppingManager.handleCropRectTransformEnd}
               />
-            ))}
-            <CropTool
-              stageSize={contextStageSize}
-              scale={scale}
-              cropRectRef={croppingManager.cropRectRef as any}
-              transformerRef={croppingManager.transformerRef as any}
-              handleCropRectDragEnd={croppingManager.handleCropRectDragEnd}
-              handleCropRectTransformEnd={croppingManager.handleCropRectTransformEnd}
-            />
-          </Layer>
-        </Stage>
-      </div>
-      <div
-        ref={zoomControlsRef}
-        className="absolute bottom-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-md select-none flex items-center gap-2"
-        style={{ zIndex: 1000 }}
-      >
+            </Layer>
+          </Stage>
+        </div>
+        <div
+            ref={zoomControlsRef}
+            className="absolute bottom-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-md select-none flex items-center gap-2"
+            style={{ zIndex: 1000 }}
+        >
         <span>
-          {(contextStageSize ? formatDimensionDisplay(contextStageSize.width) : "0")} x {(contextStageSize ? formatDimensionDisplay(contextStageSize.height) : "0")} | 
-          <button 
-            onClick={handleZoomOutClick} 
-            className="cursor-pointer px-1.5 ml-1 mr-1 hover:bg-white/20 rounded" 
-            aria-label="Уменьшить масштаб"
-            tabIndex={0}
+          {(contextStageSize ? formatDimensionDisplay(contextStageSize.width) : "0")} x {(contextStageSize ? formatDimensionDisplay(contextStageSize.height) : "0")} |
+          <button
+              onClick={handleZoomOutClick}
+              className="cursor-pointer px-1.5 ml-1 mr-1 hover:bg-white/20 rounded"
+              aria-label="Уменьшить масштаб"
+              tabIndex={0}
           >
             -
           </button>
           {zoom}%
-          <button 
-            onClick={handleZoomInClick} 
-            className="cursor-pointer px-1 ml-1 hover:bg-white/20 rounded" 
-            aria-label="Увеличить масштаб"
-            tabIndex={0}
+          <button
+              onClick={handleZoomInClick}
+              className="cursor-pointer px-1 ml-1 hover:bg-white/20 rounded"
+              aria-label="Увеличить масштаб"
+              tabIndex={0}
           >
             +
           </button>
         </span>
+        </div>
+        <ScrollBar
+            orientation="horizontal"
+            containerSize={containerSize.width}
+            contentSize={contentWidth}
+            position={-stagePosition.x}
+            onScroll={(newPos) => handleScroll("horizontal", newPos)}
+        />
+        <ScrollBar
+            orientation="vertical"
+            containerSize={containerSize.height}
+            contentSize={contentHeight}
+            position={-stagePosition.y}
+            onScroll={(newPos) => handleScroll("vertical", newPos)}
+        />
       </div>
-      <ScrollBar 
-        orientation="horizontal"
-        containerSize={containerSize.width}
-        contentSize={contentWidth}
-        position={-stagePosition.x}
-        onScroll={(newPos) => handleScroll("horizontal", newPos)}
-      />
-      <ScrollBar 
-        orientation="vertical"
-        containerSize={containerSize.height}
-        contentSize={contentHeight}
-        position={-stagePosition.y}
-        onScroll={(newPos) => handleScroll("vertical", newPos)}
-      />
-    </div>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react"
-import type { Tool, Element, ToolSettings } from "@/types/canvas"
+import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle } from "@/types/canvas"
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 
@@ -33,10 +33,39 @@ interface ToolContextValue {
   zoom: number
   setZoom: (zoom: number) => void
   toolSettings: ToolSettings
+
+  // Additional parameters for text
+  fontSize: number
+  setFontSize: (size: number) => void
+  fontFamily: string
+  setFontFamily: (family: string) => void
+  fontStyles: FontStyles
+  setFontStyles: (styles: FontStyles) => void
+  textCase: TextCase
+  setTextCase: (textCase: TextCase) => void
+  textAlignment: TextAlignment
+  setTextAlignment: (alignment: TextAlignment) => void
+  lineHeight: number
+  setLineHeight: (height: number) => void
+  backgroundColor: string
+  setBackgroundColor: (color: string) => void
+  backgroundOpacity: number
+  setBackgroundOpacity: (opacity: number) => void
+  // Additional parameters for shapes
+  borderColor: string
+  setBorderColor: (color: string) => void
+  borderWidth: number
+  setBorderWidth: (width: number) => void
+  borderStyle: BorderStyle
+  setBorderStyle: (style: BorderStyle) => void
+  cornerRadius: number
+  setCornerRadius: (radius: number) => void
+
   brushMirrorMode: MirrorMode
   setBrushMirrorMode: (mode: MirrorMode) => void
   eraserMirrorMode: MirrorMode
   setEraserMirrorMode: (mode: MirrorMode) => void
+
   isCropping: boolean;
   setIsCropping: (isCropping: boolean) => void;
   cropRect: Rect | null;
@@ -75,6 +104,27 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [triggerApplyCrop, setTriggerApplyCropState] = useState<boolean>(false);
   const [isCanvasManuallyResized, setIsCanvasManuallyResized] = useState<boolean>(false);
 
+  //  States for text
+  const [fontSize, setFontSize] = useState(16)
+  const [fontFamily, setFontFamily] = useState("Arial")
+  const [fontStyles, setFontStyles] = useState<FontStyles>({
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false
+  })
+  const [textCase, setTextCase] = useState<TextCase>("none")
+  const [textAlignment, setTextAlignment] = useState<TextAlignment>("left")
+  const [lineHeight, setLineHeight] = useState(1)
+  const [backgroundColor, setBackgroundColor] = useState("transparent")
+  const [backgroundOpacity, setBackgroundOpacity] = useState(100)
+
+  // States for shapes
+  const [borderColor, setBorderColor] = useState("#000000")
+  const [borderWidth, setBorderWidth] = useState(2)
+  const [borderStyle, setBorderStyle] = useState<BorderStyle>("solid")
+  const [cornerRadius, setCornerRadius] = useState(0)
+
   const swapColors = () => {
     const tempColor = color
     setColor(secondaryColor)
@@ -85,7 +135,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTriggerApplyCropState(true);
     // Automatically reset the trigger after a short delay or after processing
     // This depends on how you want to handle the trigger consumption
-    setTimeout(() => setTriggerApplyCropState(false), 100); 
+    setTimeout(() => setTriggerApplyCropState(false), 100);
   };
 
   const toolSettings: ToolSettings = {
@@ -126,6 +176,35 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         zoom,
         setZoom,
         toolSettings,
+
+        // Additional parameters for text
+        fontSize,
+        setFontSize,
+        fontFamily,
+        setFontFamily,
+        fontStyles,
+        setFontStyles,
+        textCase,
+        setTextCase,
+        textAlignment,
+        setTextAlignment,
+        lineHeight,
+        setLineHeight,
+        backgroundColor,
+        setBackgroundColor,
+        backgroundOpacity,
+        setBackgroundOpacity,
+
+        // Additional parameters for shapes
+        borderColor,
+        setBorderColor,
+        borderWidth,
+        setBorderWidth,
+        borderStyle,
+        setBorderStyle,
+        cornerRadius,
+        setCornerRadius,
+
         brushMirrorMode,
         setBrushMirrorMode,
         eraserMirrorMode,
