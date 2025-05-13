@@ -182,13 +182,18 @@ const useDrawing = ({
 
   const getIsDrawing = () => isDrawing.current;
 
+  const clearLines = () => {
+    setLines([]);
+  };
+
   return {
     lines,
     setLines,
     getIsDrawing,
     startDrawing,
     continueDrawing,
-    endDrawing
+    endDrawing,
+    clearLines
   };
 };
 

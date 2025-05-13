@@ -43,7 +43,7 @@ export const MirrorSelector: React.FC<{
       <Label className="text-[14px] text-[#D4D4D5FF] pl-3">Mirror mode:</Label>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
+          <Button variant="ghost" className="flex items-center h-7 px-2 gap-2  text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <Copy size={14} className="text-[#A8AAACFF]" />
             {mirrorModeLabels[value]}
             <ChevronDown size={12} className="text-white ml-0.5" />

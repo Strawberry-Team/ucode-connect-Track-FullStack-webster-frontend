@@ -5,7 +5,8 @@ import {
   BrushOptions, 
   EraserOptions, 
   ShapeOptions, 
-  TextOptions 
+  TextOptions,
+  CropOptions
 } from "./option-panels"
 
 const PropertiesPanel: React.FC = () => {
@@ -20,6 +21,8 @@ const PropertiesPanel: React.FC = () => {
       return <TextOptions />
     } else if (activeElement || activeTool?.id === "shape") {
       return <ShapeOptions />
+    } else if (activeTool?.id === "crop") {
+      return <CropOptions />
     }
 
     return null

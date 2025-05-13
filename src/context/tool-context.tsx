@@ -3,6 +3,13 @@ import type { Tool, Element, ToolSettings } from "@/types/canvas"
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface ToolContextValue {
   activeTool: Tool | null
   setActiveTool: (tool: Tool | null) => void
@@ -30,6 +37,18 @@ interface ToolContextValue {
   setBrushMirrorMode: (mode: MirrorMode) => void
   eraserMirrorMode: MirrorMode
   setEraserMirrorMode: (mode: MirrorMode) => void
+  isCropping: boolean;
+  setIsCropping: (isCropping: boolean) => void;
+  cropRect: Rect | null;
+  setCropRect: (rect: Rect | null) => void;
+  stageSize: { width: number; height: number } | null;
+  setStageSize: (size: { width: number; height: number } | null) => void;
+  selectedAspectRatio: string;
+  setSelectedAspectRatio: (aspectRatio: string) => void;
+  triggerApplyCrop: boolean;
+  setTriggerApplyCrop: () => void;
+  isCanvasManuallyResized: boolean;
+  setIsCanvasManuallyResized: (isResized: boolean) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -48,11 +67,26 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [brushMirrorMode, setBrushMirrorMode] = useState<MirrorMode>("None")
   const [eraserMirrorMode, setEraserMirrorMode] = useState<MirrorMode>("None")
 
+  // Crop related state
+  const [isCropping, setIsCropping] = useState<boolean>(false);
+  const [cropRect, setCropRect] = useState<Rect | null>(null);
+  const [stageSize, setStageSize] = useState<{ width: number; height: number } | null>(null);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("custom");
+  const [triggerApplyCrop, setTriggerApplyCropState] = useState<boolean>(false);
+  const [isCanvasManuallyResized, setIsCanvasManuallyResized] = useState<boolean>(false);
+
   const swapColors = () => {
     const tempColor = color
     setColor(secondaryColor)
     setSecondaryColor(tempColor)
   }
+
+  const handleSetTriggerApplyCrop = () => {
+    setTriggerApplyCropState(true);
+    // Automatically reset the trigger after a short delay or after processing
+    // This depends on how you want to handle the trigger consumption
+    setTimeout(() => setTriggerApplyCropState(false), 100); 
+  };
 
   const toolSettings: ToolSettings = {
     brush: {
@@ -95,7 +129,19 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         brushMirrorMode,
         setBrushMirrorMode,
         eraserMirrorMode,
-        setEraserMirrorMode
+        setEraserMirrorMode,
+        isCropping,
+        setIsCropping,
+        cropRect,
+        setCropRect,
+        stageSize,
+        setStageSize,
+        selectedAspectRatio,
+        setSelectedAspectRatio,
+        triggerApplyCrop,
+        setTriggerApplyCrop: handleSetTriggerApplyCrop,
+        isCanvasManuallyResized,
+        setIsCanvasManuallyResized,
       }}
     >
       {children}

@@ -81,6 +81,11 @@ const useElementsManagement = ({ color, secondaryColor, opacity }: ElementsManag
     }
   };
 
+  const clearElements = () => {
+    setElements([]);
+    setSelectedElementIndex(null);
+  };
+
   return {
     elements,
     setElements,
@@ -93,7 +98,8 @@ const useElementsManagement = ({ color, secondaryColor, opacity }: ElementsManag
     handleDragEnd,
     handleElementClick,
     resizeSelectedElement,
-    removeSelectedElement
+    removeSelectedElement,
+    clearElements
   };
 };
 

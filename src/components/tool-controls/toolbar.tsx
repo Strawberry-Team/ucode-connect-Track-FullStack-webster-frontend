@@ -5,7 +5,8 @@ import {
   Square,
   Type,
   Brush,
-  MousePointer2
+  MousePointer2,
+  Crop
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -40,7 +41,11 @@ const Toolbar: React.FC = () => {
     setColor,
     secondaryColor,
     setSecondaryColor,
-    swapColors
+    swapColors,
+    isCropping,
+    setIsCropping,
+    setCropRect,
+    stageSize
   } = useTool()
 
   const [isPrimaryPickerOpen, setIsPrimaryPickerOpen] = useState(false)
@@ -52,11 +57,26 @@ const Toolbar: React.FC = () => {
     { id: "eraser", name: "Eraser Tool", type: "eraser", icon: Eraser },
     { id: "text", name: "Text Tool", type: "text", icon: Type },
     { id: "shape", name: "Shape Tool", type: "shape", icon: Square },
+    { id: "crop", name: "Crop Tool", type: "crop", icon: Crop },
   ]
 
   const handleToolClick = (tool: any) => {
     setActiveTool(tool)
     setActiveElement(null)
+
+    if (tool.type === 'crop') {
+      setIsCropping(true);
+      if (stageSize) {
+        setCropRect({ x: 0, y: 0, width: stageSize.width, height: stageSize.height });
+      } else {
+        setCropRect(null);
+      }
+    } else {
+      if (isCropping) {
+        setIsCropping(false);
+        setCropRect(null); 
+      }
+    }
   }
 
   const primaryLightBorder = lightenColor(color, 50);
@@ -115,7 +135,7 @@ const Toolbar: React.FC = () => {
                       />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent side="right" align="start" className="w-auto p-0 border-0 bg-transparent shadow-none">
+                  <PopoverContent side="right" align="start" className="w-auto p-0 bg-transparent shadow-none">
                     <ColorPicker color={color} setColor={setColor} onClose={() => setIsPrimaryPickerOpen(false)} />
                   </PopoverContent>
                 </Popover>
