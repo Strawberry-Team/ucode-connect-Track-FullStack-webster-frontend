@@ -3,11 +3,11 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { 
-  RotateCcw, 
-  Square, 
-  ChevronDown, 
-  Circle, 
+import {
+  RotateCcw,
+  Square,
+  ChevronDown,
+  Circle,
   Image as ImageIcon,
   FileUp,
   MousePointerSquareDashed,
@@ -44,21 +44,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { lightenColor } from "./common";
-import { TooltipContent, TooltipTrigger, Tooltip } from "@/components/ui/tooltip";
+import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import type { ShapeType, BorderStyle, Element } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
-  .shape-list-container::-webkit-scrollbar {
+  ::-webkit-scrollbar {
     width: 8px;
     background-color: #292C31;
   }
-  .shape-list-container::-webkit-scrollbar-thumb {
+  ::-webkit-scrollbar-thumb {
     background-color: #44474A;
     border-radius: 4px;
   }
-  .shape-list-container::-webkit-scrollbar-track {
+  ::-webkit-scrollbar-track {
     background-color: #292C31;
     border-radius: 4px;
   }
@@ -71,8 +72,8 @@ interface ColorPickerProps {
 
 const ColorPicker: React.FC<ColorPickerProps> = ({ color, setColor }) => {
   const presetColors = [
-    "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", 
-    "#ffff00", "#00ffff", "#ff00ff", "#c0c0c0", "#808080", 
+    "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff",
+    "#ffff00", "#00ffff", "#ff00ff", "#c0c0c0", "#808080",
     "#800000", "#808000", "#008000", "#800080", "#008080", "#000080",
   ];
 
@@ -98,19 +99,19 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ color, setColor }) => {
 
 // Component for displaying a line style example
 const BorderStylePreview: React.FC<{ style: BorderStyle }> = ({ style }) => {
-  const borderStyle = style === 'solid' ? 'border-solid'   :
-                      style === 'dashed' ? 'border-dashed' :
-                      style === 'dotted' ? 'border-dotted' :
-                      style === 'hidden'   ? 'border-hidden'   :
-                      style === 'double' ? 'border-double' : 'border-solid'; // Fallback to solid for other types
+  const borderStyle = style === 'solid' ? 'border-solid' :
+    style === 'dashed' ? 'border-dashed' :
+      style === 'dotted' ? 'border-dotted' :
+        style === 'hidden' ? 'border-hidden' :
+          style === 'double' ? 'border-double' : 'border-solid'; // Fallback to solid for other types
 
   return (
-    <div className="w-8 h-0 border-t-2 border-white" style={{ 
+    <div className="w-8 h-0 border-t-2 border-white" style={{
       borderStyle: borderStyle === 'border-solid' ? 'solid' :
-                   borderStyle === 'border-dashed' ? 'dashed' :
-                   borderStyle === 'border-dotted' ? 'dotted' :
-                   borderStyle === 'border-double' ? 'double' :
-                   borderStyle === 'border-hidden' ? 'hidden' : 'solid',
+        borderStyle === 'border-dashed' ? 'dashed' :
+          borderStyle === 'border-dotted' ? 'dotted' :
+            borderStyle === 'border-double' ? 'double' :
+              borderStyle === 'border-hidden' ? 'hidden' : 'solid',
     }} />
   );
 };
@@ -190,24 +191,11 @@ const ShapeSelector: React.FC<{
             <ChevronDown size={12} className="text-white ml-0.5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent 
+        <DropdownMenuContent
           className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0"
-          style={{ 
-            maxHeight: "250px", 
-            overflowY: "auto",
-            scrollbarWidth: "thin",
-            scrollbarColor: "#44474A #292C31"
-          }}
         >
           <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
-          <div 
-            className="shape-list-container overflow-y-auto" 
-            style={{ 
-              maxHeight: "200px", 
-              scrollbarWidth: "thin",
-              scrollbarColor: "#44474A #292C31"
-            }}
-          >
+          <ScrollArea className="h-[110px]">
             <div className="grid grid-cols-4 gap-1 p-2">
               {(Object.keys(shapeNames) as ShapeType[]).filter(s => s !== "custom-image").map((type) => (
                 <Button
@@ -221,11 +209,11 @@ const ShapeSelector: React.FC<{
                 </Button>
               ))}
             </div>
-          </div>
+          </ScrollArea>
           <div className="sticky bottom-0 bg-[#292C31FF] pt-1 border-t border-[#44474AFF] mt-0">
             <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer">
               <label className="flex items-center w-full cursor-pointer">
-                <FileUp size={14} className="mx-2" color="white"/>
+                <FileUp size={14} className="mx-2" color="white" />
                 Upload Image
                 <input
                   type="file"
@@ -265,17 +253,19 @@ const BorderStyleSelector: React.FC<{
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0">
-          {Object.entries(borderStyleNames).map(([styleKey, styleName]) => (
-            <DropdownMenuItem
-              key={styleKey}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-[#3F434AFF] cursor-pointer "
-              onClick={() => onChange(styleKey as BorderStyle)}
-            >
-              <BorderStylePreview style={styleKey as BorderStyle} />
-              <span>{styleName}</span>
-              {value === styleKey && <Check size={14} className="ml-auto text-blue-400" />}
-            </DropdownMenuItem>
-          ))}
+          <ScrollArea>
+            {Object.entries(borderStyleNames).map(([styleKey, styleName]) => (
+              <DropdownMenuItem
+                key={styleKey}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-[#3F434AFF] cursor-pointer "
+                onClick={() => onChange(styleKey as BorderStyle)}
+              >
+                <BorderStylePreview style={styleKey as BorderStyle} />
+                <span>{styleName}</span>
+                {value === styleKey && <Check size={14} className="ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+            ))}
+          </ScrollArea>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -290,8 +280,8 @@ declare global {
 }
 
 const ShapeOptions: React.FC = () => {
-  const { 
-    setActiveElement, 
+  const {
+    setActiveElement,
     activeElement,
     color,
     setColor,
@@ -303,7 +293,7 @@ const ShapeOptions: React.FC = () => {
     setBorderStyle,
     cornerRadius,
     setCornerRadius,
-    opacity, 
+    opacity,
     setOpacity
   } = useTool();
 
@@ -314,7 +304,7 @@ const ShapeOptions: React.FC = () => {
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
 
   const defaultShapes: ShapeType[] = [
-    "rectangle", "square", "rounded-rectangle", "squircle", "circle", 
+    "rectangle", "square", "rounded-rectangle", "squircle", "circle",
     "line", "triangle", "pentagon", "hexagon", "star", "heart", "arrow"
   ];
 
@@ -379,12 +369,12 @@ const ShapeOptions: React.FC = () => {
   };
 
   return (
-    <div className="flex space-x-2 items-center h-full text-xs overflow-x-auto no-scrollbar">
+    <div className="flex space-x-2 items-center h-full text-xs">
       {/* Add shape button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded"
             onClick={handleAddShape}>
             <PlusCircle size={14} />
@@ -398,8 +388,8 @@ const ShapeOptions: React.FC = () => {
       {/* Duplicate button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={duplicateSelectedElement}
             disabled={selectedElementIndex === null}>
@@ -414,8 +404,8 @@ const ShapeOptions: React.FC = () => {
       {/* Delete button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={removeSelectedElement}
             disabled={selectedElementIndex === null}>
@@ -432,9 +422,7 @@ const ShapeOptions: React.FC = () => {
       {/* Shape selector */}
       <ShapeSelector value={activeElement?.type as ShapeType || "rectangle"} onChange={handleShapeSelect} />
 
-      <div className="h-6 border-l border-[#44474AFF]"></div>
-
-      {/* Fill color */}
+      {/* Fill color
       <Popover open={colorMenuOpen} onOpenChange={setColorMenuOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
@@ -445,9 +433,52 @@ const ShapeOptions: React.FC = () => {
         <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
           <ColorPicker color={color} setColor={setColor} />
         </PopoverContent>
+      </Popover> */}
+
+      {/* Fill color picker */}
+      <Popover open={colorMenuOpen} onOpenChange={setColorMenuOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
+          <p className="text-xs text-[#D4D4D5FF]">Fill</p>
+            <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: color === 'transparent' ? '#ffffff' : color }} />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
+          <div className="space-y-5">
+
+            {/* Fill color opacity slider */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
+                <span className="text-xs text-[#D4D4D5FF]">{opacity}%</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={opacity ?? 100}
+                  onChange={(e) => handleOpacityChange(parseInt(e.target.value))}
+                  className="h-1.5 w-full p-0 m-0"
+                />
+              </div>
+            </div>
+
+            {/* Transparent option */}
+            <Button
+              variant="ghost"
+              className="text-xs text-white rounded hover:bg-[#3F434AFF] w-full h-7 border-2 border-[#44474AFF]"
+              onClick={() => setColor('transparent')}
+            >
+              Transparent background
+            </Button>
+
+            <ColorPicker color={color === 'transparent' ? '#ffffff' : color} setColor={setColor} />
+          </div>
+        </PopoverContent>
       </Popover>
 
-      {/* Opacity */}
+      {/* Opacity
       <NumberInputWithPopover 
         label="Opacity" 
         value={opacity} 
@@ -456,7 +487,7 @@ const ShapeOptions: React.FC = () => {
         max={100} 
         step={1} 
         suffix="%" 
-      />
+      /> */}
 
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
@@ -464,8 +495,8 @@ const ShapeOptions: React.FC = () => {
       <Popover open={borderColorMenuOpen} onOpenChange={setBorderColorMenuOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
+            <p className="text-xs text-[#D4D4D5FF]">Border</p>
             <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: borderColor }} />
-            <span>Border</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
@@ -474,14 +505,14 @@ const ShapeOptions: React.FC = () => {
       </Popover>
 
       {/* Border width */}
-      <NumberInputWithPopover 
-        label="Width" 
-        value={borderWidth} 
-        onChange={setBorderWidth} 
-        min={0} 
-        max={20} 
-        step={1} 
-        suffix="px" 
+      <NumberInputWithPopover
+        label="Width"
+        value={borderWidth}
+        onChange={setBorderWidth}
+        min={0}
+        max={20}
+        step={1}
+        suffix="px"
       />
 
       {/* Border style */}
@@ -489,66 +520,77 @@ const ShapeOptions: React.FC = () => {
 
       {/* Corner radius (only for rounded rectangle) */}
       {(activeElement?.type === "rounded-rectangle") && (
-        <NumberInputWithPopover 
-          label="Radius" 
-          value={cornerRadius} 
-          onChange={setCornerRadius} 
-          min={0} 
-          max={50} 
-          step={1} 
-          suffix="px" 
+        <NumberInputWithPopover
+          label="Radius"
+          value={cornerRadius}
+          onChange={setCornerRadius}
+          min={0}
+          max={50}
+          step={1}
+          suffix="px"
         />
       )}
 
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
-      {/* Transform controls */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className={`w-8 h-7 p-0 hover:bg-[#3F434AFF] ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={flipSelectedElementHorizontal}
-            disabled={selectedElementIndex === null}>
-            <FlipHorizontal size={14} />
+      {/* Text alignment */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className={`flex items-center h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <Label className="text-xs text-[#D4D4D5FF]">Transform</Label>
+            {/* <Type size={14} /> */}
+            <ChevronDown size={12} className="text-white" />
           </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Flip horizontally</p>
-        </TooltipContent>
-      </Tooltip>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[100px] grid grid-cols-3">
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className={`w-8 h-7 p-0 hover:bg-[#3F434AFF] ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={flipSelectedElementVertical}
-            disabled={selectedElementIndex === null}>
-            <FlipVertical size={14} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Flip vertically</p>
-        </TooltipContent>
-      </Tooltip>
+          {/* Transform controls */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              
+              <DropdownMenuItem
+                className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={flipSelectedElementHorizontal}
+                disabled={selectedElementIndex !== null}>
+                <FlipHorizontal size={14} color="white" />
+              </DropdownMenuItem>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Flip horizontally</p>
+            </TooltipContent>
+          </Tooltip>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className={`w-8 h-7 p-0 hover:bg-[#3F434AFF] ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => rotateSelectedElement(90)}
-            disabled={selectedElementIndex === null}>
-            <RotateCcw size={14} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Rotate</p>
-        </TooltipContent>
-      </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuItem
+                className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={flipSelectedElementVertical}
+                disabled={selectedElementIndex !== null}>
+                <FlipVertical size={14} color="white" />
+              </DropdownMenuItem>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Flip vertically</p>
+            </TooltipContent>
+          </Tooltip>
 
-      {/* Upload custom image */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuItem
+                className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => rotateSelectedElement(90)}
+                disabled={selectedElementIndex !== null}>
+                <RotateCcw size={14} color="white" />
+              </DropdownMenuItem>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Rotate</p>
+            </TooltipContent>
+          </Tooltip>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Upload custom image
       <Tooltip>
         <TooltipTrigger asChild>
           <Button 
@@ -568,7 +610,7 @@ const ShapeOptions: React.FC = () => {
         <TooltipContent>
           <p>Upload image</p>
         </TooltipContent>
-      </Tooltip>
+      </Tooltip> */}
     </div>
   );
 };

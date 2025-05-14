@@ -82,9 +82,9 @@ const useDrawing = ({
 
     if (tool === "brush") {
       const currentColor = isRightClick ? secondaryColor : color;
-      
+
       const newLines: LineData[] = [];
-      
+
       newLines.push({
         tool: "brush",
         points: [pos.x, pos.y, pos.x, pos.y],
@@ -92,10 +92,10 @@ const useDrawing = ({
         strokeWidth: brushSize,
         opacity: opacity / 100,
       });
-      
+
       if (currentMirrorMode !== "None") {
         const mirroredPoints = getMirroredPoints(pos.x, pos.y);
-        
+
         for (let i = 1; i < mirroredPoints.length; i++) {
           const mirrorPos = mirroredPoints[i];
           newLines.push({
@@ -107,15 +107,15 @@ const useDrawing = ({
           });
         }
       }
-      
+
       setLines([...lines, ...newLines]);
-      
+
     } else if (tool === "eraser") {
       const effectiveEraserSize = calculateEffectiveEraserSize(eraserSize, eraserHardness);
       const eraserPressure = calculateEraserPressure(eraserHardness);
-      
+
       const newLines: LineData[] = [];
-      
+
       newLines.push({
         tool: "eraser",
         points: [pos.x, pos.y, pos.x, pos.y],
@@ -123,10 +123,10 @@ const useDrawing = ({
         strokeWidth: effectiveEraserSize,
         opacity: eraserPressure,
       });
-      
+
       if (currentMirrorMode !== "None") {
         const mirroredPoints = getMirroredPoints(pos.x, pos.y);
-        
+
         for (let i = 1; i < mirroredPoints.length; i++) {
           const mirrorPos = mirroredPoints[i];
           newLines.push({
@@ -138,7 +138,7 @@ const useDrawing = ({
           });
         }
       }
-      
+
       setLines([...lines, ...newLines]);
     }
   };
@@ -155,16 +155,16 @@ const useDrawing = ({
     }
 
     const updatedLines = [...lines.slice(0, -linesToUpdate)];
-    
+
     const linesToModify = lines.slice(-linesToUpdate);
-    
+
     const mainLine = linesToModify[0];
     mainLine.points = mainLine.points.concat([pos.x, pos.y]);
     updatedLines.push(mainLine);
-    
+
     if (currentMirrorMode !== "None" && linesToModify.length > 1) {
       const mirroredPoints = getMirroredPoints(pos.x, pos.y);
-      
+
       for (let i = 1; i < linesToModify.length; i++) {
         const mirrorLine = linesToModify[i];
         const mirrorPos = mirroredPoints[i];
@@ -172,7 +172,7 @@ const useDrawing = ({
         updatedLines.push(mirrorLine);
       }
     }
-    
+
     setLines(updatedLines);
   };
 

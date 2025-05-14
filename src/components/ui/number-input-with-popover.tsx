@@ -133,7 +133,7 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
         <PopoverContent 
           side="bottom" 
           align="start" 
-          className="w-52 p-3 bg-[#292C31FF] shadow-md border-2"
+          className="w-52 p-3 bg-[#292C31FF] shadow-md !border-2"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(event) => {
             if (popoverTriggerRef.current?.contains(event.target as Node)) {

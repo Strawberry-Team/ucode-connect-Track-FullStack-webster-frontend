@@ -34,10 +34,10 @@ const applyTextCase = (text: string, textCase: TextCase = "none"): string => {
 const getFontStyle = (element: ElementData): string => {
   const fontStyles = element.fontStyles || { bold: false, italic: false, underline: false, strikethrough: false };
   const styles = [];
-  
+
   if (fontStyles.bold) styles.push("bold");
   if (fontStyles.italic) styles.push("italic");
-  
+
   return styles.join(" ");
 };
 
@@ -45,15 +45,15 @@ const getFontStyle = (element: ElementData): string => {
 const getTextDecoration = (element: ElementData): string => {
   const fontStyles = element.fontStyles || { bold: false, italic: false, underline: false, strikethrough: false };
   const decorations = [];
-  
+
   if (fontStyles.underline) decorations.push("underline");
   if (fontStyles.strikethrough) decorations.push("line-through");
-  
+
   return decorations.join(" ");
 };
 
 // Function to get border/stroke style
-const getBorderStyle = (borderStyle: BorderStyle = "solid", borderWidth: number = 1): { dash?: number[], dashEnabled?: boolean, shadowOffset?: {x: number, y: number}, shadowColor?: string, shadowBlur?: number } => {
+const getBorderStyle = (borderStyle: BorderStyle = "solid", borderWidth: number = 1): { dash?: number[], dashEnabled?: boolean, shadowOffset?: { x: number, y: number }, shadowColor?: string, shadowBlur?: number } => {
   switch (borderStyle) {
     case "dashed":
       return { dash: [10, 5], dashEnabled: true };
@@ -75,9 +75,9 @@ const getBorderStyle = (borderStyle: BorderStyle = "solid", borderWidth: number 
   }
 };
 
-const ElementRenderer: React.FC<ElementRendererProps> = ({ 
-  element, 
-  index, 
+const ElementRenderer: React.FC<ElementRendererProps> = ({
+  element,
+  index,
   onDragEnd,
   onClick,
   onTextEdit,
@@ -108,8 +108,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
       targetNode = textRef.current;
     } else if (element.type === "heart" && groupRef.current) {
       targetNode = groupRef.current;
-    } else if (element.type === "rectangle" || element.type === "square" || 
-               element.type === "rounded-rectangle" || element.type === "squircle") {
+    } else if (element.type === "rectangle" || element.type === "square" ||
+      element.type === "rounded-rectangle" || element.type === "squircle") {
       targetNode = rectRef.current;
     } else if (element.type === "circle") {
       targetNode = circleRef.current;
@@ -129,96 +129,39 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     transformerRef.current.getLayer()?.batchDraw();
   }, [isSelected, element.type]);
 
-  // Effect for text editor
-  useEffect(() => {
-    if (isEditing && textAreaRef.current && textRef.current) {
-      const textNode = textRef.current;
-      const textareaElement = textAreaRef.current;
-      
-      // Position textarea over text element
-      const position = textNode.getAbsolutePosition();
-      const stage = textNode.getStage();
-      
-      if (stage) {
-        const stageContainer = stage.container();
-        const stageBox = stageContainer.getBoundingClientRect();
-        
-        const areaPosition = {
-          x: stageBox.left + position.x,
-          y: stageBox.top + position.y,
-        };
-
-        // Set position and size of textarea
-        textareaElement.style.position = 'absolute';
-        textareaElement.style.top = `${areaPosition.y}px`;
-        textareaElement.style.left = `${areaPosition.x}px`;
-        textareaElement.style.width = `${textNode.width() * stage.scaleX()}px`;
-        textareaElement.style.height = `${textNode.height() * stage.scaleY()}px`;
-        textareaElement.style.fontSize = `${element.fontSize || 16}px`;
-        textareaElement.style.fontFamily = element.fontFamily || 'Arial';
-        textareaElement.style.lineHeight = `${element.lineHeight || 1}`;
-        textareaElement.style.color = element.color;
-        
-        // Apply background with opacity
-        const bgColor = element.backgroundColor || 'transparent';
-        const bgOpacity = element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1;
-        
-        if (bgColor !== 'transparent') {
-          // Convert hex to rgba
-          const hexToRgba = (hex: string, alpha: number): string => {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-          };
-          
-          textareaElement.style.background = hexToRgba(bgColor, bgOpacity);
-        } else {
-          textareaElement.style.background = 'transparent';
-        }
-        
-        textareaElement.style.padding = '0';
-        textareaElement.style.margin = '0';
-        textareaElement.style.border = 'none';
-        textareaElement.style.outline = '1px dashed #0096FF';
-        textareaElement.style.resize = 'none';
-        textareaElement.style.transformOrigin = 'left top';
-        
-        // Apply font styles
-        if (element.fontStyles?.bold) {
-          textareaElement.style.fontWeight = 'bold';
-        }
-        if (element.fontStyles?.italic) {
-          textareaElement.style.fontStyle = 'italic';
-        }
-        if (element.fontStyles?.underline) {
-          textareaElement.style.textDecoration = textareaElement.style.textDecoration + ' underline';
-        }
-        if (element.fontStyles?.strikethrough) {
-          textareaElement.style.textDecoration = textareaElement.style.textDecoration + ' line-through';
-        }
-        
-        // Apply text alignment
-        textareaElement.style.textAlign = element.textAlignment || 'left';
-        
-        textareaElement.focus();
-      }
-    }
-  }, [isEditing, element]);
-  
   // Handler for end of transformation
   const handleTransformEnd = () => {
     if (!onTransform) return;
-    
+
     let newAttrs: Partial<ElementData> = {};
     let node: any = null;
-    
+
     if (element.type === "text" && textRef.current) {
       node = textRef.current;
+      
+      // For text elements, we update container dimensions but keep text size the same
+      // This ensures that text doesn't get distorted when resizing
+      newAttrs = {
+        x: node.x(),
+        y: node.y(),
+        width: Math.max(50, node.width() * Math.abs(node.scaleX())),
+        height: Math.max(20, node.height() * Math.abs(node.scaleY())),
+        rotation: node.rotation(),
+        // Always reset scale to 1 for text elements
+        scaleX: 1,
+        scaleY: 1,
+        // Preserve font size and other text properties
+        fontSize: element.fontSize,
+        fontFamily: element.fontFamily,
+        fontStyles: element.fontStyles,
+        textCase: element.textCase,
+        textAlignment: element.textAlignment,
+        lineHeight: element.lineHeight
+      };
     } else if (element.type === "heart" && groupRef.current) {
       node = groupRef.current;
-    } else if (element.type === "rectangle" || element.type === "square" || 
-               element.type === "rounded-rectangle" || element.type === "squircle") {
+    } else if (element.type === "rectangle" || element.type === "square" ||
+      element.type === "rounded-rectangle" || element.type === "squircle") {
       node = rectRef.current;
     } else if (element.type === "circle") {
       node = circleRef.current;
@@ -231,19 +174,19 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     } else {
       node = shapeRef.current;
     }
-    
+
     if (!node) return;
-    
-    if (element.type === "circle" || element.type === "triangle" || 
-        element.type === "pentagon" || element.type === "hexagon" || 
-        element.type === "star") {
+
+    if (element.type === "circle" || element.type === "triangle" ||
+      element.type === "pentagon" || element.type === "hexagon" ||
+      element.type === "star") {
       // For shapes that use radius
       const scale = Math.max(Math.abs(node.scaleX()), Math.abs(node.scaleY()));
       const width = element.width * scale;
       const height = element.height * scale;
       const centerX = node.x();
       const centerY = node.y();
-      
+
       newAttrs = {
         x: centerX - width / 2,
         y: centerY - height / 2,
@@ -265,10 +208,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         scaleY: node.scaleY() < 0 ? -1 : 1
       };
     }
-    
+
     onTransform(index, newAttrs);
   };
-  
+
   // Common properties for all element types
   const commonProps = {
     draggable: true,
@@ -276,7 +219,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     fill: element.color,
     stroke: element.borderColor,
     strokeWidth: element.borderWidth || 0,
-    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => onClick?.(index, e),
+    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      // Stop event propagation to prevent clicking on the stage
+      e.cancelBubble = true;
+      
+      // For text elements, start editing with a single click
+      if (element.type === "text" && !isEditing) {
+        handleTextEdit(e);
+      }
+      
+      // Handle click on the element
+      onClick?.(index, e);
+    },
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
       if (onDragEnd) {
         const node = e.target;
@@ -289,10 +243,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     scaleY: element.scaleY || 1
   };
 
+  // For text elements, we create a separate set of properties to ensure proper scaling
+  const textProps = {
+    ...commonProps,
+    // Override scaleX and scaleY to always be 1 for text to prevent distortion
+    scaleX: 1,
+    scaleY: 1,
+  };
+
   // Handle border styles
   const getStrokeStyles = () => {
     const borderStyleProps = getBorderStyle(element.borderStyle, element.borderWidth);
-    
+
     if (element.borderStyle === "hidden") {
       return {
         dash: borderStyleProps.dash,
@@ -329,54 +291,176 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     }
   };
 
-  // Double click handler for text
-  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (element.type === "text") {
-      setIsEditing(true);
-      setEditText(element.text || "");
-      
-      // Add textarea for editing
-      if (!textAreaRef.current) {
-        const textarea = document.createElement('textarea');
-        document.body.appendChild(textarea);
-        textAreaRef.current = textarea;
+  // Handler for text editing (used for both single and double click)
+  const handleTextEdit = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (element.type !== "text") return;
+    
+    // Stop event propagation
+    e.cancelBubble = true;
+    
+    setIsEditing(true);
+    
+    // Clear the placeholder text on first edit
+    const currentText = element.text || "";
+    const isPlaceholder = currentText === "Type text here...";
+    setEditText(isPlaceholder ? "" : currentText);
+
+    // Add textarea for editing
+    if (!textAreaRef.current) {
+      const textarea = document.createElement('textarea');
+      document.body.appendChild(textarea);
+      textAreaRef.current = textarea;
+    }
+
+    const textarea = textAreaRef.current;
+    textarea.value = isPlaceholder ? "" : currentText;
+    textarea.style.display = 'block';
+
+    // Event listeners for textarea
+    const handleBlur = () => {
+      textarea.style.display = 'none';
+      setIsEditing(false);
+      if (onTextEdit) {
+        // Don't save empty text, revert to placeholder
+        let newText = textarea.value.trim() === "" ? "Type text here..." : textarea.value;
+        
+        // Store the raw text without applying case transformations
+        // The text case will be applied during rendering by the applyTextCase function
+        onTextEdit(index, newText);
       }
-      
-      const textarea = textAreaRef.current;
-      textarea.value = element.text || "";
-      textarea.style.display = 'block';
-      
-      // Event listeners for textarea
-      const handleBlur = () => {
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        textarea.style.display = 'none';
+        setIsEditing(false);
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
         textarea.style.display = 'none';
         setIsEditing(false);
         if (onTextEdit) {
-          onTextEdit(index, textarea.value);
+          // Don't save empty text, revert to placeholder
+          let newText = textarea.value.trim() === "" ? "Type text here..." : textarea.value;
+          
+          // Store the raw text without applying case transformations
+          // The text case will be applied during rendering by the applyTextCase function
+          onTextEdit(index, newText);
         }
+      }
+    };
+
+    textarea.addEventListener('blur', handleBlur);
+    textarea.addEventListener('keydown', handleKeyDown);
+
+    // Position the textarea with a small delay to ensure it's correctly positioned
+    setTimeout(() => {
+      if (textRef.current && textarea) {
+        positionTextarea(textRef.current, textarea);
+      }
+    }, 0);
+
+    // Return cleanup function
+    return () => {
+      textarea.removeEventListener('blur', handleBlur);
+      textarea.removeEventListener('keydown', handleKeyDown);
+    };
+  };
+
+  // Position textarea over the text element
+  const positionTextarea = (textNode: Konva.Text, textarea: HTMLTextAreaElement) => {
+    const position = textNode.getAbsolutePosition();
+    const stage = textNode.getStage();
+
+    if (stage) {
+      const stageContainer = stage.container();
+      const stageBox = stageContainer.getBoundingClientRect();
+
+      const areaPosition = {
+        x: stageBox.left + position.x,
+        y: stageBox.top + position.y,
       };
+
+      // Set position and size of textarea
+      textarea.style.position = 'absolute';
+      textarea.style.top = `${areaPosition.y}px`;
+      textarea.style.left = `${areaPosition.x}px`;
+      textarea.style.width = `${textNode.width() * stage.scaleX()}px`;
+      textarea.style.height = `${textNode.height() * stage.scaleY()}px`;
+      textarea.style.fontSize = `${element.fontSize || 16}px`;
+      textarea.style.fontFamily = element.fontFamily || 'Arial';
+      textarea.style.lineHeight = `${element.lineHeight || 1}`;
+      textarea.style.color = element.color;
+      textarea.style.padding = '5px';
+      textarea.style.margin = '0';
+      textarea.style.overflow = 'hidden';
+      textarea.style.border = 'none';
+      textarea.style.outline = '1px dashed #0096FF';
+      textarea.style.resize = 'none';
+      textarea.style.transformOrigin = 'left top';
+      textarea.style.boxSizing = 'border-box';
+
+      // Apply background with opacity
+      const bgColor = element.backgroundColor || 'transparent';
+      const bgOpacity = element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1;
+
+      if (bgColor !== 'transparent') {
+        // Convert hex to rgba
+        const hexToRgba = (hex: string, alpha: number): string => {
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        };
+
+        textarea.style.background = hexToRgba(bgColor, bgOpacity);
+      } else {
+        textarea.style.background = 'transparent';
+      }
+
+      // Apply font styles
+      if (element.fontStyles?.bold) {
+        textarea.style.fontWeight = 'bold';
+      }
+      if (element.fontStyles?.italic) {
+        textarea.style.fontStyle = 'italic';
+      }
+      if (element.fontStyles?.underline) {
+        textarea.style.textDecoration = textarea.style.textDecoration + ' underline';
+      }
+      if (element.fontStyles?.strikethrough) {
+        textarea.style.textDecoration = textarea.style.textDecoration + ' line-through';
+      }
+
+      // Apply text alignment
+      textarea.style.textAlign = element.textAlignment || 'center';
       
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          textarea.style.display = 'none';
-          setIsEditing(false);
-        }
-        if (e.key === 'Enter' && !e.shiftKey) {
-          textarea.style.display = 'none';
-          setIsEditing(false);
-          if (onTextEdit) {
-            onTextEdit(index, textarea.value);
-          }
-        }
-      };
-      
-      textarea.addEventListener('blur', handleBlur);
-      textarea.addEventListener('keydown', handleKeyDown);
-      
-      // Remove listeners when unmounting
-      return () => {
-        textarea.removeEventListener('blur', handleBlur);
-        textarea.removeEventListener('keydown', handleKeyDown);
-      };
+      // Apply text transform based on textCase
+      switch (element.textCase) {
+        case 'uppercase':
+          textarea.style.textTransform = 'uppercase';
+          break;
+        case 'lowercase':
+          textarea.style.textTransform = 'lowercase';
+          break;
+        case 'capitalize':
+          textarea.style.textTransform = 'capitalize';
+          break;
+        default:
+          textarea.style.textTransform = 'none';
+      }
+
+      // Focus and select all text if it's not the placeholder
+      textarea.focus();
+      if (element.text !== "Type text here...") {
+        textarea.select();
+      }
+    }
+  };
+
+  // Double click handler for text - now just delegates to handleTextEdit
+  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (element.type === "text") {
+      handleTextEdit(e);
     }
   };
 
@@ -393,18 +477,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
   const getBackgroundWithOpacity = () => {
     const bgColor = element.backgroundColor || 'transparent';
     if (bgColor === 'transparent') return 'transparent';
-    
+
     const bgOpacity = element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1;
-    
+
     // If opacity is 100%, just return the color
     if (bgOpacity >= 1) return bgColor;
-    
+
     // Convert hex to rgba for opacity
     const hex = bgColor.replace('#', '');
     const r = parseInt(hex.slice(0, 2), 16);
     const g = parseInt(hex.slice(2, 4), 16);
     const b = parseInt(hex.slice(4, 6), 16);
-    
+
     return `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
   };
 
@@ -412,6 +496,16 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
   const renderElement = () => {
     switch (element.type) {
       case "text":
+        // Create specific text properties with background
+        const textBackgroundProps = {
+          ...textProps,
+          // Apply background with opacity if not transparent
+          ...(element.backgroundColor && element.backgroundColor !== 'transparent' ? {
+            background: element.backgroundColor,
+            backgroundOpacity: (element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1)
+          } : {})
+        };
+        
         return (
           <Text
             ref={textRef}
@@ -419,22 +513,25 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             y={element.y}
             width={element.width}
             height={element.height}
-            text={element.text ? applyTextCase(element.text, element.textCase) : "Текст"}
+            text={element.text ? applyTextCase(element.text, element.textCase) : "Type text here..."}
             fontSize={element.fontSize || 16}
             fontFamily={element.fontFamily || "Arial"}
             fontStyle={getFontStyle(element)}
             textDecoration={getTextDecoration(element)}
-            align={element.textAlignment || "left"}
+            align={element.textAlignment || "center"}
+            verticalAlign="middle"
             lineHeight={element.lineHeight || 1}
             padding={5}
-            // Apply background with opacity
+            // Apply fill priority properties
             fillPriority="color"
             fillEnabled={true}
-            // Use Konva fill for text color and background for the shape
             fillAfterStrokeEnabled={true}
-            {...commonProps}
+            // Apply all text properties including background
+            {...textBackgroundProps}
+            // Apply stroke styles
+            {...getStrokeStyles()}
+            // Apply element props
             {...getElementProps()}
-            onDblClick={handleDoubleClick}
             visible={!isEditing}
           />
         );

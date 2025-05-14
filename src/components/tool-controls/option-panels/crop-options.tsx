@@ -12,10 +12,10 @@ import { useTool } from '@/context/tool-context';
 import { Crop, Check, ChevronDown } from 'lucide-react';
 
 const CropOptions: React.FC = () => {
-  const { 
-    isCropping, 
-    cropRect, 
-    setCropRect, 
+  const {
+    isCropping,
+    cropRect,
+    setCropRect,
     stageSize,
     activeTool,
     selectedAspectRatio,
@@ -25,7 +25,7 @@ const CropOptions: React.FC = () => {
 
   const [widthInput, setWidthInput] = useState<string>("");
   const [heightInput, setHeightInput] = useState<string>("");
-  
+
   const prevCropRectRef = useRef(cropRect);
   const isUpdatingRef = useRef(false);
 
@@ -64,14 +64,14 @@ const CropOptions: React.FC = () => {
         const newWidthInput = formatDimensionDisplay(targetWidth);
         const newHeightInput = formatDimensionDisplay(targetHeight);
 
-        if (newWidthInput !== widthInput || newHeightInput !== heightInput || 
-            (cropRect && (!prevCropRectRef.current || 
-                           prevCropRectRef.current.width !== cropRect.width || 
-                           prevCropRectRef.current.height !== cropRect.height)) ) {
+        if (newWidthInput !== widthInput || newHeightInput !== heightInput ||
+          (cropRect && (!prevCropRectRef.current ||
+            prevCropRectRef.current.width !== cropRect.width ||
+            prevCropRectRef.current.height !== cropRect.height))) {
           setWidthInput(newWidthInput);
           setHeightInput(newHeightInput);
-          if(cropRect) prevCropRectRef.current = cropRect;
-          else if (stageSize) prevCropRectRef.current = {x:0, y:0, width: stageSize.width, height: stageSize.height};
+          if (cropRect) prevCropRectRef.current = cropRect;
+          else if (stageSize) prevCropRectRef.current = { x: 0, y: 0, width: stageSize.width, height: stageSize.height };
         }
       } else {
         setWidthInput("");
@@ -86,9 +86,9 @@ const CropOptions: React.FC = () => {
 
   const handleDimensionChange = (value: string, dimension: 'width' | 'height') => {
     isUpdatingRef.current = true;
-    
+
     const numericValue = parseFloat(value);
-    if (dimension === 'width') setWidthInput(value); 
+    if (dimension === 'width') setWidthInput(value);
     if (dimension === 'height') setHeightInput(value);
 
     if (isNaN(numericValue)) {
@@ -98,7 +98,7 @@ const CropOptions: React.FC = () => {
 
     let currentCropRect = cropRect;
     if (!currentCropRect && isCropping && stageSize && stageSize.width > 0 && stageSize.height > 0) {
-        currentCropRect = { x: 0, y: 0, width: stageSize.width, height: stageSize.height };
+      currentCropRect = { x: 0, y: 0, width: stageSize.width, height: stageSize.height };
     }
     if (!currentCropRect) {
       isUpdatingRef.current = false;
@@ -107,10 +107,10 @@ const CropOptions: React.FC = () => {
 
     let newWidth = (dimension === 'width') ? numericValue : currentCropRect.width;
     let newHeight = (dimension === 'height') ? numericValue : currentCropRect.height;
-    
+
     let targetAspectRatio = selectedAspectRatio;
     if (numericValue <= 0 && selectedAspectRatio !== 'custom') {
-        targetAspectRatio = 'custom'; 
+      targetAspectRatio = 'custom';
     }
 
     if (targetAspectRatio !== 'custom' && numericValue > 0) {
@@ -118,17 +118,17 @@ const CropOptions: React.FC = () => {
       if (dimension === 'width') {
         newHeight = (newWidth / ratioW) * ratioH;
         if (newHeight > 0) setHeightInput(formatDimensionDisplay(newHeight)); else setHeightInput("0");
-      } else { 
+      } else {
         newWidth = (newHeight / ratioH) * ratioW;
         if (newWidth > 0) setWidthInput(formatDimensionDisplay(newWidth)); else setWidthInput("0");
       }
     }
-    
+
     const finalWidth = roundToTwoDecimals(newWidth);
     const finalHeight = roundToTwoDecimals(newHeight);
 
-    if (finalWidth > 0 && finalHeight > 0 && 
-        (finalWidth !== currentCropRect.width || finalHeight !== currentCropRect.height)) {
+    if (finalWidth > 0 && finalHeight > 0 &&
+      (finalWidth !== currentCropRect.width || finalHeight !== currentCropRect.height)) {
       setCropRect({ ...currentCropRect, width: finalWidth, height: finalHeight });
       prevCropRectRef.current = { ...currentCropRect, width: finalWidth, height: finalHeight };
     } else {
@@ -139,7 +139,7 @@ const CropOptions: React.FC = () => {
         setHeightInput(formatDimensionDisplay(currentCropRect.height));
       }
     }
-    
+
     setTimeout(() => {
       isUpdatingRef.current = false;
     }, 0);
@@ -147,10 +147,10 @@ const CropOptions: React.FC = () => {
 
   const handleAspectRatioChange = (value: string) => {
     if (value === selectedAspectRatio) return;
-    
+
     isUpdatingRef.current = true;
     setSelectedAspectRatio(value);
-    
+
     if (!stageSize) {
       setTimeout(() => {
         isUpdatingRef.current = false;
@@ -184,7 +184,7 @@ const CropOptions: React.FC = () => {
     let finalW, finalH;
 
     const potentialWBasedOnHeight = canvasH * basePercentage * (ratioW / ratioH);
- 
+
 
     if (potentialWBasedOnHeight <= canvasW * basePercentage) {
       finalH = canvasH * basePercentage;
@@ -193,26 +193,26 @@ const CropOptions: React.FC = () => {
       finalW = canvasW * basePercentage;
       finalH = finalW * (ratioH / ratioW);
     }
-    
+
     finalW = Math.max(10, Math.min(finalW, canvasW));
     finalH = Math.max(10, Math.min(finalH, canvasH));
-    
+
     if (finalW < canvasW * basePercentage && (finalW * (ratioH / ratioW)) !== finalH) {
-        finalH = finalW * (ratioH / ratioW);
-    } 
-    else if (finalH < canvasH * basePercentage && (finalH * (ratioW / ratioH)) !== finalW ) {
-        finalW = finalH * (ratioW / ratioH);
+      finalH = finalW * (ratioH / ratioW);
+    }
+    else if (finalH < canvasH * basePercentage && (finalH * (ratioW / ratioH)) !== finalW) {
+      finalW = finalH * (ratioW / ratioH);
     }
 
     if (finalW > canvasW) {
-        finalW = canvasW;
-        finalH = finalW * (ratioH / ratioW);
+      finalW = canvasW;
+      finalH = finalW * (ratioH / ratioW);
     }
     if (finalH > canvasH) {
-        finalH = canvasH;
-        finalW = finalH * (ratioW / ratioH);
+      finalH = canvasH;
+      finalW = finalH * (ratioW / ratioH);
     }
-    
+
     finalW = Math.max(10, finalW);
     finalH = Math.max(10, finalH);
 
@@ -226,12 +226,12 @@ const CropOptions: React.FC = () => {
       width: roundToTwoDecimals(finalW),
       height: roundToTwoDecimals(finalH),
     };
-    
+
     setCropRect(newCropRect);
     prevCropRectRef.current = newCropRect;
     setWidthInput(formatDimensionDisplay(newCropRect.width));
     setHeightInput(formatDimensionDisplay(newCropRect.height));
-    
+
     setTimeout(() => {
       isUpdatingRef.current = false;
     }, 0);
@@ -239,27 +239,27 @@ const CropOptions: React.FC = () => {
 
   const handleApplyCrop = () => {
     if (!cropRect || cropRect.width <= 0 || cropRect.height <= 0) return;
-    setTriggerApplyCrop(); 
+    setTriggerApplyCrop();
   };
 
   const handleResetCrop = () => {
     if (!stageSize || stageSize.width <= 0 || stageSize.height <= 0) return;
-    
+
     isUpdatingRef.current = true;
-    
+
     const fullSizeCropRect = {
       x: 0,
       y: 0,
       width: roundToTwoDecimals(stageSize.width),
       height: roundToTwoDecimals(stageSize.height)
     };
-    
-    setCropRect(fullSizeCropRect); 
+
+    setCropRect(fullSizeCropRect);
     prevCropRectRef.current = fullSizeCropRect;
     setWidthInput(formatDimensionDisplay(fullSizeCropRect.width));
     setHeightInput(formatDimensionDisplay(fullSizeCropRect.height));
     setSelectedAspectRatio('custom');
-    
+
     setTimeout(() => {
       isUpdatingRef.current = false;
     }, 0);
@@ -274,15 +274,15 @@ const CropOptions: React.FC = () => {
   ];
 
   if (!isCropping && activeTool?.type !== 'crop') {
-    return null; 
+    return null;
   }
 
   const selectedLabel = aspectRatios.find(r => r.value === selectedAspectRatio)?.label || "Соотношение";
 
   return (
     <div className="flex items-center space-x-3  bg-[#292C31FF] text-white h-full">
-      <Crop strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] flex-shrink-0"/>
-      
+      <Crop strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] flex-shrink-0" />
+
       <div className="flex items-center space-x-1.5">
         <label htmlFor="crop-width" className="text-xs text-[#A8AAACFF] flex-shrink-0">W:</label>
         <Input
@@ -293,7 +293,7 @@ const CropOptions: React.FC = () => {
           value={widthInput}
           onChange={(e) => handleDimensionChange(e.target.value, 'width')}
           min="1"
-          disabled={!isCropping} 
+          disabled={!isCropping}
         />
       </div>
       <div className="flex items-center space-x-1.5">
@@ -310,7 +310,7 @@ const CropOptions: React.FC = () => {
         />
       </div>
       <div className="flex items-center space-x-1.5">
-      <Label className="text-[14px] text-[#D4D4D5FF] pl-3">Preset:</Label>
+        <Label className="text-[14px] text-[#D4D4D5FF] pl-3">Preset:</Label>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={!isCropping || !stageSize}>
             <Button
@@ -323,7 +323,7 @@ const CropOptions: React.FC = () => {
               <ChevronDown size={12} className="text-white ml-0.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
+          <DropdownMenuContent
             className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white !text-xs p-0"
           >
             {aspectRatios.map((ratio) => (
@@ -342,18 +342,18 @@ const CropOptions: React.FC = () => {
         </DropdownMenu>
       </div>
       <div className="flex items-center space-x-2 pl-1">
-      <Button 
-          onClick={handleResetCrop} 
-          variant="ghost" 
+        <Button
+          onClick={handleResetCrop}
+          variant="ghost"
           className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!isCropping}
         >
           Reset
         </Button>
-        <Button 
-          onClick={handleApplyCrop} 
+        <Button
+          onClick={handleApplyCrop}
           className="bg-[#007ACC] hover:bg-[#005A99] text-white text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!isCropping || !cropRect || cropRect.width <=0 || cropRect.height <= 0}
+          disabled={!isCropping || !cropRect || cropRect.width <= 0 || cropRect.height <= 0}
         >
           Save
         </Button>

@@ -125,7 +125,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
     strikethrough: false
   })
   const [textCase, setTextCase] = useState<TextCase>("none")
-  const [textAlignment, setTextAlignment] = useState<TextAlignment>("left")
+  const [textAlignment, setTextAlignment] = useState<TextAlignment>("center")
   const [lineHeight, setLineHeight] = useState(1)
   const [backgroundColor, setBackgroundColor] = useState("transparent")
   const [backgroundOpacity, setBackgroundOpacity] = useState(100)

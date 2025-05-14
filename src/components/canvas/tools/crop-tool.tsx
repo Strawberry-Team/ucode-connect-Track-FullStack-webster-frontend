@@ -20,9 +20,9 @@ const CropTool: React.FC<CropToolProps> = ({
   handleCropRectDragEnd,
   handleCropRectTransformEnd
 }) => {
-  const { 
-    isCropping, 
-    cropRect 
+  const {
+    isCropping,
+    cropRect
   } = useTool();
 
   if (!isCropping || !cropRect || !stageSize) return null;

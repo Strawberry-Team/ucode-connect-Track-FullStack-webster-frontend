@@ -43,13 +43,14 @@ const useElementsManagement = ({
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
 
   const addElement = (
-    type: string, 
+    type: string,
     pos: { x: number; y: number },
     isRightClick: boolean = false,
-    text?: string
+    text?: string,
+    settings?: Record<string, any>
   ) => {
     const currentColor = isRightClick ? secondaryColor : color;
-    
+
     const baseElement: ElementData = {
       type,
       x: pos.x,
@@ -64,18 +65,24 @@ const useElementsManagement = ({
     if (type === "text") {
       const textElement: ElementData = {
         ...baseElement,
-        text: text || "Подвійний клік, щоб редагувати текст",
-        fontSize,
-        fontFamily,
-        fontStyles: { ...fontStyles },
-        textCase,
-        textAlignment,
-        lineHeight,
-        backgroundColor,
-        backgroundOpacity,
+        text: text || "Type text here...",
+        fontSize: settings?.fontSize || fontSize,
+        fontFamily: settings?.fontFamily || fontFamily,
+        fontStyles: settings?.fontStyles || { ...fontStyles },
+        textCase: settings?.textCase || textCase,
+        textAlignment: settings?.textAlignment || textAlignment,
+        lineHeight: settings?.lineHeight || lineHeight,
+        backgroundColor: settings?.backgroundColor || backgroundColor,
+        backgroundOpacity: settings?.backgroundOpacity ?? backgroundOpacity,
+        borderColor: settings?.borderColor || borderColor,
+        borderWidth: settings?.borderWidth ?? borderWidth,
+        borderStyle: settings?.borderStyle || borderStyle,
         width: 200, // Bigger width by default for text
+        height: 50,  // Default height for text
       };
       setElements([...elements, textElement]);
+      // Set the newly added element as selected
+      setSelectedElementIndex(elements.length);
     } else if (type === "rounded-rectangle") {
       const roundedRectElement: ElementData = {
         ...baseElement,
@@ -106,17 +113,17 @@ const useElementsManagement = ({
       index: i
     }));
   };
-  
+
   const updateElement = (index: number, newData: Partial<ElementData>) => {
-    setElements(elements.map((el, i) => 
+    setElements(elements.map((el, i) =>
       i === index ? { ...el, ...newData } : el
     ));
   };
 
   const handleDragEnd = (index: number, newX: number, newY: number) => {
-    updateElement(index, { 
-      x: newX, 
-      y: newY 
+    updateElement(index, {
+      x: newX,
+      y: newY
     });
   };
 

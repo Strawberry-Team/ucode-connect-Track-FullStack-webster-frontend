@@ -70,7 +70,7 @@ const useCropping = ({
     if (newY + rectHeight > canvasHeight) {
       newY = canvasHeight - rectHeight;
     }
-    
+
     return {
       x: newX,
       y: newY,
@@ -86,25 +86,25 @@ const useCropping = ({
       let correctedBox = { ...newBox };
 
       if (correctedBox.y < 0) {
-          const intendedBottom = newBox.y + newBox.height;
-          correctedBox.y = 0;
-          correctedBox.height = intendedBottom - correctedBox.y;
+        const intendedBottom = newBox.y + newBox.height;
+        correctedBox.y = 0;
+        correctedBox.height = intendedBottom - correctedBox.y;
       }
 
       if (correctedBox.x < 0) {
-          const intendedRight = newBox.x + newBox.width;
-          correctedBox.x = 0;
-          correctedBox.width = intendedRight - correctedBox.x;
+        const intendedRight = newBox.x + newBox.width;
+        correctedBox.x = 0;
+        correctedBox.width = intendedRight - correctedBox.x;
       }
-      
+
       correctedBox.width = Math.max(MIN_SIZE, correctedBox.width);
       correctedBox.height = Math.max(MIN_SIZE, correctedBox.height);
 
       if (correctedBox.x + correctedBox.width > stageWidth) {
         if (oldBox.width === newBox.width || Math.abs(newBox.x - oldBox.x) > Math.abs(newBox.width - oldBox.width)) {
-           correctedBox.x = stageWidth - correctedBox.width;
-        } else { 
-           correctedBox.width = stageWidth - correctedBox.x; 
+          correctedBox.x = stageWidth - correctedBox.width;
+        } else {
+          correctedBox.width = stageWidth - correctedBox.x;
         }
       }
 
@@ -115,13 +115,13 @@ const useCropping = ({
           correctedBox.height = stageHeight - correctedBox.y;
         }
       }
-      
+
       correctedBox.x = Math.max(0, correctedBox.x);
       correctedBox.y = Math.max(0, correctedBox.y);
 
       correctedBox.width = Math.max(MIN_SIZE, Math.min(correctedBox.width, stageWidth - correctedBox.x));
       correctedBox.height = Math.max(MIN_SIZE, Math.min(correctedBox.height, stageHeight - correctedBox.y));
-      
+
       if (correctedBox.x + correctedBox.width > stageWidth) {
         correctedBox.x = stageWidth - correctedBox.width;
         correctedBox.x = Math.max(0, correctedBox.x);
@@ -136,20 +136,20 @@ const useCropping = ({
 
     if (selectedRatio === 'custom') {
       return newBoundBoxFunc;
-    } 
-    
+    }
+
     return (oldBox: BoundingBox, newBox: BoundingBox): BoundingBox => {
       let constrainedBox = newBoundBoxFunc(oldBox, newBox);
-      
+
       const [widthRatio, heightRatio] = selectedRatio.split(':').map(Number);
       const targetRatio = widthRatio / heightRatio;
-      
-      if (Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height) && 
-          !(constrainedBox.x <= 1) && !(constrainedBox.x + constrainedBox.width >= stageSizeForBounding.width - 1)) {
+
+      if (Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height) &&
+        !(constrainedBox.x <= 1) && !(constrainedBox.x + constrainedBox.width >= stageSizeForBounding.width - 1)) {
         constrainedBox.height = constrainedBox.width / targetRatio;
-      } 
-      else if (Math.abs(newBox.height - oldBox.height) > Math.abs(newBox.width - oldBox.width) && 
-               !(constrainedBox.y + constrainedBox.height >= stageSizeForBounding.height - 1) && !(constrainedBox.y <= 1)) {
+      }
+      else if (Math.abs(newBox.height - oldBox.height) > Math.abs(newBox.width - oldBox.width) &&
+        !(constrainedBox.y + constrainedBox.height >= stageSizeForBounding.height - 1) && !(constrainedBox.y <= 1)) {
         constrainedBox.width = constrainedBox.height * targetRatio;
       } else {
         constrainedBox.height = constrainedBox.width / targetRatio;
@@ -177,10 +177,10 @@ const useCropping = ({
     const newLines = lines.reduce((acc, line) => {
       const transformedPoints = [];
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      
+
       for (let i = 0; i < line.points.length; i += 2) {
         const newPointX = line.points[i] - offsetX;
-        const newPointY = line.points[i+1] - offsetY;
+        const newPointY = line.points[i + 1] - offsetY;
         transformedPoints.push(newPointX, newPointY);
         minX = Math.min(minX, newPointX);
         minY = Math.min(minY, newPointY);
@@ -199,8 +199,8 @@ const useCropping = ({
       const newElX = el.x - offsetX;
       const newElY = el.y - offsetY;
 
-      if (newElX + el.width > 0 && newElX < newWidth && 
-          newElY + el.height > 0 && newElY < newHeight) {
+      if (newElX + el.width > 0 && newElX < newWidth &&
+        newElY + el.height > 0 && newElY < newHeight) {
         acc.push({ ...el, x: newElX, y: newElY });
       }
       return acc;
@@ -217,16 +217,16 @@ const useCropping = ({
       const containerWidth = containerRef.current.clientWidth;
       const containerHeight = containerRef.current.clientHeight;
       const scaleValue = zoom / 100;
-      
+
       const newStageX = (containerWidth - newWidth * scaleValue) / 2;
       const newStageY = (containerHeight - newHeight * scaleValue) / 2;
-      
-      setStagePosition({ 
+
+      setStagePosition({
         x: Math.max(0, newStageX),
         y: Math.max(0, newStageY)
       });
     }
-    
+
     setIsCropping(true);
   };
 
@@ -235,7 +235,7 @@ const useCropping = ({
       if (cropRectRef.current) {
         transformerRef.current.nodes([cropRectRef.current]);
         transformerRef.current.getLayer()?.batchDraw();
-        
+
         transformerRef.current.boundBoxFunc(createBoundBoxFunc(currentStageSize, selectedAspectRatio));
       }
     } else if (transformerRef.current) {
@@ -249,7 +249,7 @@ const useCropping = ({
     const node = e.target;
     setCropRect({
       ...cropRect,
-      x: node.x(), 
+      x: node.x(),
       y: node.y(),
     });
   };

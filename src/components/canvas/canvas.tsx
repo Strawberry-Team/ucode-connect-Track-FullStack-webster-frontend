@@ -151,7 +151,7 @@ const Canvas: React.FC = () => {
     };
 
     updateSizes();
-    
+
     window.addEventListener("resize", updateSizes);
     return () => window.removeEventListener("resize", updateSizes);
   }, [contextStageSize, isCanvasManuallyResized, setContextStageSize]);
@@ -379,6 +379,16 @@ const Canvas: React.FC = () => {
       return;
     }
 
+    // Get the actual target from Konva event
+    const target = e.target;
+    // Check if we clicked directly on the stage background (not on any element)
+    const clickedOnStage = target === stageRef.current || target.name() === "background";
+
+    // Clear selection if clicked on the background
+    if (clickedOnStage && elementsManager.selectedElementIndex !== null) {
+      elementsManager.setSelectedElementIndex(null);
+    }
+
     if (activeTool?.type === 'brush' || activeTool?.type === 'eraser') {
       const stage = stageRef.current;
       const position = stage.getPointerPosition();
@@ -397,8 +407,19 @@ const Canvas: React.FC = () => {
       const stage = stageRef.current;
       const position = stage.getPointerPosition();
 
-      if (position && activeElement) {
+      // Only add a new shape if we clicked on the stage background
+      if (position && activeElement && clickedOnStage) {
         elementsManager.addElement(activeElement.type, position, evt.button === 2);
+      }
+    } else if (activeTool?.type === 'text') {
+      const stage = stageRef.current;
+      const position = stage.getPointerPosition();
+
+      // Only add a new text element if we clicked on the stage background
+      if (position && activeElement && clickedOnStage) {
+        // Use the settings from activeElement if available
+        const textSettings = activeElement.settings || {};
+        elementsManager.addElement(activeElement.type, position, evt.button === 2, undefined, textSettings);
       }
     }
   };
@@ -513,22 +534,23 @@ const Canvas: React.FC = () => {
           >
             <Layer>
               <Rect
+                  name="background"
                   x={0}
                   y={0}
                   width={contextStageSize?.width ?? 0}
                   height={contextStageSize?.height ?? 0}
                   fillPatternImage={createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF")}
               />
-              {backgroundImage && contextStageSize && (
-                <KonvaImage
-                  image={backgroundImage}
-                  x={0}
-                  y={0}
-                  width={contextStageSize.width}
-                  height={contextStageSize.height}
-                  listening={false}
-                />
-              )}
+                {backgroundImage && contextStageSize && (
+                    <KonvaImage
+                        image={backgroundImage}
+                        x={0}
+                        y={0}
+                        width={contextStageSize.width}
+                        height={contextStageSize.height}
+                        listening={false}
+                    />
+                )}
             </Layer>
             <Layer>
               {drawingManager.lines.map((line, i) => (
@@ -551,6 +573,9 @@ const Canvas: React.FC = () => {
                       index={index}
                       onDragEnd={elementsManager.handleDragEnd}
                       onClick={elementsManager.handleElementClick}
+                      onTextEdit={elementsManager.updateTextElement}
+                      onTransform={(index, attrs) => elementsManager.updateElement(index, attrs)}
+                      isSelected={index === elementsManager.selectedElementIndex}
                   />
               ))}
               <CropTool

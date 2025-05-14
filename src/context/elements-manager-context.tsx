@@ -9,7 +9,7 @@ import type Konva from "konva";
 interface ElementsManagerContextValue {
   elements: ElementData[];
   setElements: (elements: ElementData[]) => void;
-  addElement: (type: string, pos: { x: number; y: number }, isRightClick?: boolean, text?: string) => void;
+  addElement: (type: string, pos: { x: number; y: number }, isRightClick?: boolean, text?: string, settings?: Record<string, any>) => void;
   renderElements: () => { key: string; element: ElementData; index: number }[];
   updateElement: (index: number, newData: Partial<ElementData>) => void;
   updateTextElement: (index: number, newText: string) => void;
