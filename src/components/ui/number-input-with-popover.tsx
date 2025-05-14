@@ -110,7 +110,7 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
         <PopoverTrigger asChild>
           <div 
             ref={popoverTriggerRef}
-            className="flex items-center h-7 px-1.5 rounded bg-[#1e1f22] border-2 border-[#44474AFF] focus-within:border-blue-500 cursor-text"
+            className="flex items-center h-7 px-1.5 rounded bg-[#1e1f22] border-2 border-[#44474AFF] focus-within:border-blue-500 cursor-pointer"
             onClick={() => inputRef.current?.focus()}
           >
             <Input
@@ -123,11 +123,11 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
               }}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
-              className="w-10 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0 m-0"
+              className="w-10 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0 m-0 cursor-text"
               maxLength={decimals > 0 ? 5 + decimals : 3}
             />
             <span className="text-xs text-white">{suffix}</span>
-            <ChevronDown size={12} className="text-white ml-0.5"/>
+            <ChevronDown size={12} className="text-white ml-0.5 "/>
           </div>
         </PopoverTrigger>
         <PopoverContent 

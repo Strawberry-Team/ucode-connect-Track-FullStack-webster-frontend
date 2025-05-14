@@ -10,6 +10,17 @@ export interface Element {
   type: string
   icon?: any
   settings?: Record<string, any>
+  text?: {
+    color: string
+    backgroundColor: string
+    backgroundOpacity: number
+    fontSize: number
+    fontFamily: string
+    fontStyles: FontStyles
+    textCase: TextCase
+    lineHeight: number
+    textAlignment: TextAlignment
+  }
 }
 
 export interface LineData {
@@ -72,6 +83,9 @@ export interface ElementData {
   rotation?: number;
   scaleX?: number;
   scaleY?: number;
+  // Additional properties for element behavior
+  draggable?: boolean;
+  preserveAspectRatio?: boolean;
 }
 
 export interface ToolSettings {

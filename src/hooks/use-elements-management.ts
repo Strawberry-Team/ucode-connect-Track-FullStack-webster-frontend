@@ -70,18 +70,25 @@ const useElementsManagement = ({
         fontFamily: settings?.fontFamily || fontFamily,
         fontStyles: settings?.fontStyles || { ...fontStyles },
         textCase: settings?.textCase || textCase,
-        textAlignment: settings?.textAlignment || textAlignment,
+        textAlignment: settings?.textAlignment || "center",
         lineHeight: settings?.lineHeight || lineHeight,
+        // Inherit colors from global tool settings but allow override
+        color: settings?.color || currentColor,
         backgroundColor: settings?.backgroundColor || backgroundColor,
-        backgroundOpacity: settings?.backgroundOpacity ?? backgroundOpacity,
-        borderColor: settings?.borderColor || borderColor,
-        borderWidth: settings?.borderWidth ?? borderWidth,
-        borderStyle: settings?.borderStyle || borderStyle,
-        width: 200, // Bigger width by default for text
-        height: 50,  // Default height for text
+        backgroundOpacity: settings?.backgroundOpacity !== undefined ? settings.backgroundOpacity : backgroundOpacity,
+        // Set border color same as background color
+        borderColor: settings?.backgroundColor || backgroundColor,
+        borderWidth: 1,
+        borderStyle: "solid",
+        width: 300,
+        height: 200,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        draggable: true,
+        preserveAspectRatio: false
       };
       setElements([...elements, textElement]);
-      // Set the newly added element as selected
       setSelectedElementIndex(elements.length);
     } else if (type === "rounded-rectangle") {
       const roundedRectElement: ElementData = {
@@ -140,7 +147,29 @@ const useElementsManagement = ({
 
   const updateSelectedElementStyle = (styleUpdate: Partial<ElementData>) => {
     if (selectedElementIndex !== null) {
-      updateElement(selectedElementIndex, styleUpdate);
+      const element = elements[selectedElementIndex];
+      if (element.type === "text") {
+        const defaultFontStyles = { bold: false, italic: false, underline: false, strikethrough: false };
+        
+        // Update element styles without affecting global settings
+        const updatedElement = {
+          ...element,
+          ...styleUpdate,
+          // Keep local color settings independent from global
+          color: styleUpdate.color || element.color,
+          backgroundColor: styleUpdate.backgroundColor || element.backgroundColor,
+          backgroundOpacity: styleUpdate.backgroundOpacity !== undefined ? styleUpdate.backgroundOpacity : element.backgroundOpacity,
+          fontStyles: styleUpdate.fontStyles ? {
+            bold: styleUpdate.fontStyles.bold ?? (element.fontStyles?.bold ?? defaultFontStyles.bold),
+            italic: styleUpdate.fontStyles.italic ?? (element.fontStyles?.italic ?? defaultFontStyles.italic),
+            underline: styleUpdate.fontStyles.underline ?? (element.fontStyles?.underline ?? defaultFontStyles.underline),
+            strikethrough: styleUpdate.fontStyles.strikethrough ?? (element.fontStyles?.strikethrough ?? defaultFontStyles.strikethrough)
+          } : (element.fontStyles || defaultFontStyles)
+        };
+        updateElement(selectedElementIndex, updatedElement);
+      } else {
+        updateElement(selectedElementIndex, styleUpdate);
+      }
     }
   };
 

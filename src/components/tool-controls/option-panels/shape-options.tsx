@@ -188,7 +188,7 @@ const ShapeSelector: React.FC<{
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <ShapeIcon type={value} className="w-4 h-4 mr-1" />
             {/* <span>{shapeNames[value]}</span> */}
-            <ChevronDown size={12} className="text-white ml-0.5" />
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -249,7 +249,7 @@ const BorderStyleSelector: React.FC<{
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <BorderStylePreview style={value} />
             <span>{borderStyleNames[value]}</span>
-            <ChevronDown size={12} className="text-white ml-0.5" />
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0">
@@ -539,7 +539,7 @@ const ShapeOptions: React.FC = () => {
           <Button variant="ghost" className={`flex items-center h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <Label className="text-xs text-[#D4D4D5FF]">Transform</Label>
             {/* <Type size={14} /> */}
-            <ChevronDown size={12} className="text-white" />
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[100px] grid grid-cols-3">

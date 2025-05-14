@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { Rect, Circle, RegularPolygon, Star, Line, Text, Group, Transformer, Shape } from "react-konva";
 import type { ElementData, TextCase, BorderStyle } from "@/types/canvas";
 import type Konva from "konva";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface ElementRendererProps {
   element: ElementData;
@@ -75,6 +76,43 @@ const getBorderStyle = (borderStyle: BorderStyle = "solid", borderWidth: number 
   }
 };
 
+// Create a single interface
+interface ColorPickerProps {
+  color: string;
+  setColor: (color: string) => void;
+  opacity?: number;
+  setOpacity?: (opacity: number) => void;
+  presetColors?: string[];
+  allowTransparent?: boolean;
+  onClose?: () => void;
+}
+
+// Add support for custom colors
+interface ColorPickerState {
+  customColors: string[];
+  recentColors: string[];
+  format: 'hex' | 'rgb' | 'hsl';
+}
+
+const validateColor = (color: string): boolean => {
+  const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+  const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
+  return hexRegex.test(color) || rgbRegex.test(color);
+};
+
+const ColorFormatSelector = ({ format, setFormat }: { format: string, setFormat: (format: string) => void }) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger>
+      {format.toUpperCase()}
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      <DropdownMenuItem onClick={() => setFormat('hex')}>HEX</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setFormat('rgb')}>RGB</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setFormat('hsl')}>HSL</DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
+
 const ElementRenderer: React.FC<ElementRendererProps> = ({
   element,
   index,
@@ -104,8 +142,20 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     }
 
     let targetNode = null;
-    if (element.type === "text" && textRef.current) {
-      targetNode = textRef.current;
+    if (element.type === "text" && groupRef.current) {
+      targetNode = groupRef.current;
+      // Configure transformer for text elements
+      transformerRef.current.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']);
+      transformerRef.current.rotateEnabled(true);
+      transformerRef.current.rotationSnaps([0, 45, 90, 135, 180, 225, 270, 315]);
+      transformerRef.current.rotationSnapTolerance(5);
+      transformerRef.current.padding(5);
+      transformerRef.current.boundBoxFunc((oldBox, newBox) => {
+        // Maintain minimum size
+        newBox.width = Math.max(50, newBox.width);
+        newBox.height = Math.max(20, newBox.height);
+        return newBox;
+      });
     } else if (element.type === "heart" && groupRef.current) {
       targetNode = groupRef.current;
     } else if (element.type === "rectangle" || element.type === "square" ||
@@ -131,83 +181,110 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
   // Handler for end of transformation
   const handleTransformEnd = () => {
-    if (!onTransform) return;
+    if (!onTransform || !groupRef.current) return;
 
-    let newAttrs: Partial<ElementData> = {};
-    let node: any = null;
+    // let newAttrs: Partial<ElementData> = {};
+    // let node: any = null;
 
-    if (element.type === "text" && textRef.current) {
-      node = textRef.current;
+    // if (element.type === "text" && textRef.current) {
+    //   node = textRef.current;
       
-      // For text elements, we update container dimensions but keep text size the same
-      // This ensures that text doesn't get distorted when resizing
-      newAttrs = {
-        x: node.x(),
-        y: node.y(),
-        width: Math.max(50, node.width() * Math.abs(node.scaleX())),
-        height: Math.max(20, node.height() * Math.abs(node.scaleY())),
-        rotation: node.rotation(),
-        // Always reset scale to 1 for text elements
-        scaleX: 1,
-        scaleY: 1,
-        // Preserve font size and other text properties
-        fontSize: element.fontSize,
-        fontFamily: element.fontFamily,
-        fontStyles: element.fontStyles,
-        textCase: element.textCase,
-        textAlignment: element.textAlignment,
-        lineHeight: element.lineHeight
-      };
-    } else if (element.type === "heart" && groupRef.current) {
-      node = groupRef.current;
-    } else if (element.type === "rectangle" || element.type === "square" ||
-      element.type === "rounded-rectangle" || element.type === "squircle") {
-      node = rectRef.current;
-    } else if (element.type === "circle") {
-      node = circleRef.current;
-    } else if (element.type === "line" || element.type === "arrow") {
-      node = lineRef.current;
-    } else if (element.type === "triangle" || element.type === "pentagon" || element.type === "hexagon") {
-      node = polygonRef.current;
-    } else if (element.type === "star") {
-      node = starRef.current;
-    } else {
-      node = shapeRef.current;
-    }
+    //   // Calculate new dimensions while preserving text properties
+    //   const scaleX = node.scaleX();
+    //   const scaleY = node.scaleY();
+    //   const rotation = node.rotation();
+      
+    //   // Update container dimensions
+    //   newAttrs = {
+    //     x: node.x(),
+    //     y: node.y(),
+    //     width: Math.max(50, node.width() * Math.abs(scaleX)),
+    //     height: Math.max(20, node.height() * Math.abs(scaleY)),
+    //     rotation: rotation,
+    //     // Reset scale to prevent text distortion
+    //     scaleX: 1,
+    //     scaleY: 1,
+    //     // Preserve all text properties
+    //     fontSize: element.fontSize,
+    //     fontFamily: element.fontFamily,
+    //     fontStyles: element.fontStyles,
+    //     textCase: element.textCase,
+    //     textAlignment: element.textAlignment,
+    //     lineHeight: element.lineHeight,
+    //     color: element.color,
+    //     backgroundColor: element.backgroundColor,
+    //     backgroundOpacity: element.backgroundOpacity,
+    //     borderColor: element.borderColor,
+    //     borderWidth: element.borderWidth,
+    //     borderStyle: element.borderStyle
+    //   };
+    // } else if (element.type === "heart" && groupRef.current) {
+    //   node = groupRef.current;
+    // } else if (element.type === "rectangle" || element.type === "square" ||
+    //   element.type === "rounded-rectangle" || element.type === "squircle") {
+    //   node = rectRef.current;
+    // } else if (element.type === "circle") {
+    //   node = circleRef.current;
+    // } else if (element.type === "line" || element.type === "arrow") {
+    //   node = lineRef.current;
+    // } else if (element.type === "triangle" || element.type === "pentagon" || element.type === "hexagon") {
+    //   node = polygonRef.current;
+    // } else if (element.type === "star") {
+    //   node = starRef.current;
+    // } else {
+    //   node = shapeRef.current;
+    // }
 
-    if (!node) return;
+    // if (!node) return;
 
-    if (element.type === "circle" || element.type === "triangle" ||
-      element.type === "pentagon" || element.type === "hexagon" ||
-      element.type === "star") {
-      // For shapes that use radius
-      const scale = Math.max(Math.abs(node.scaleX()), Math.abs(node.scaleY()));
-      const width = element.width * scale;
-      const height = element.height * scale;
-      const centerX = node.x();
-      const centerY = node.y();
+    // if (element.type === "circle" || element.type === "triangle" ||
+    //   element.type === "pentagon" || element.type === "hexagon" ||
+    //   element.type === "star") {
+    //   // For shapes that use radius
+    //   const scale = Math.max(Math.abs(node.scaleX()), Math.abs(node.scaleY()));
+    //   const width = element.width * scale;
+    //   const height = element.height * scale;
+    //   const centerX = node.x();
+    //   const centerY = node.y();
 
-      newAttrs = {
-        x: centerX - width / 2,
-        y: centerY - height / 2,
-        width,
-        height,
-        rotation: node.rotation(),
-        scaleX: 1,
-        scaleY: 1
-      };
-    } else {
-      // For rectangles and other shapes
-      newAttrs = {
-        x: node.x(),
-        y: node.y(),
-        width: Math.max(10, node.width() * Math.abs(node.scaleX())),
-        height: Math.max(10, node.height() * Math.abs(node.scaleY())),
-        rotation: node.rotation(),
-        scaleX: node.scaleX() < 0 ? -1 : 1, // Keep sign for reflection
-        scaleY: node.scaleY() < 0 ? -1 : 1
-      };
-    }
+    //   newAttrs = {
+    //     x: centerX - width / 2,
+    //     y: centerY - height / 2,
+    //     width,
+    //     height,
+    //     rotation: node.rotation(),
+    //     scaleX: 1,
+    //     scaleY: 1
+    //   };
+    // } else {
+    //   // For rectangles and other shapes
+    //   newAttrs = {
+    //     x: node.x(),
+    //     y: node.y(),
+    //     width: Math.max(10, node.width() * Math.abs(node.scaleX())),
+    //     height: Math.max(10, node.height() * Math.abs(node.scaleY())),
+    //     rotation: node.rotation(),
+    //     scaleX: node.scaleX() < 0 ? -1 : 1, // Keep sign for reflection
+    //     scaleY: node.scaleY() < 0 ? -1 : 1
+    //   };
+    // }
+    
+    
+    const node = groupRef.current;
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+
+    // Reset scale to prevent accumulation
+    node.scaleX(1);
+    node.scaleY(1);
+
+    const newAttrs = {
+      x: node.x(),
+      y: node.y(),
+      width: Math.max(20, node.width() * Math.abs(scaleX)),
+      height: Math.max(20, node.height() * Math.abs(scaleY)),
+      rotation: node.rotation(),
+    };
 
     onTransform(index, newAttrs);
   };
@@ -496,44 +573,62 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
   const renderElement = () => {
     switch (element.type) {
       case "text":
-        // Create specific text properties with background
-        const textBackgroundProps = {
-          ...textProps,
-          // Apply background with opacity if not transparent
-          ...(element.backgroundColor && element.backgroundColor !== 'transparent' ? {
-            background: element.backgroundColor,
-            backgroundOpacity: (element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1)
-          } : {})
-        };
-        
         return (
-          <Text
-            ref={textRef}
+          <Group
+            ref={groupRef}
             x={element.x}
             y={element.y}
             width={element.width}
             height={element.height}
-            text={element.text ? applyTextCase(element.text, element.textCase) : "Type text here..."}
-            fontSize={element.fontSize || 16}
-            fontFamily={element.fontFamily || "Arial"}
-            fontStyle={getFontStyle(element)}
-            textDecoration={getTextDecoration(element)}
-            align={element.textAlignment || "center"}
-            verticalAlign="middle"
-            lineHeight={element.lineHeight || 1}
-            padding={5}
-            // Apply fill priority properties
-            fillPriority="color"
-            fillEnabled={true}
-            fillAfterStrokeEnabled={true}
-            // Apply all text properties including background
-            {...textBackgroundProps}
-            // Apply stroke styles
-            {...getStrokeStyles()}
-            // Apply element props
+            draggable={true}
+            onDragEnd={(e) => {
+              if (onDragEnd) {
+                const node = e.target;
+                onDragEnd(index, node.x(), node.y());
+              }
+            }}
+            onClick={(e) => {
+              e.cancelBubble = true;
+              if (element.type === "text" && !isEditing) {
+                handleTextEdit(e);
+              }
+              onClick?.(index, e);
+            }}
+            onDblClick={handleDoubleClick}
+            onTransformEnd={handleTransformEnd}
             {...getElementProps()}
-            visible={!isEditing}
-          />
+          >
+            {/* Background rectangle */}
+            <Rect
+              width={element.width}
+              height={element.height}
+              fill={element.backgroundColor || "transparent"}
+              opacity={element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1}
+              {...getStrokeStyles()}
+            />
+            {/* Text element */}
+            <Text
+              ref={textRef}
+              width={element.width}
+              height={element.height}
+              text={element.text ? applyTextCase(element.text, element.textCase) : "Type text here..."}
+              fontSize={element.fontSize || 16}
+              fontFamily={element.fontFamily || "Arial"}
+              fontStyle={getFontStyle(element)}
+              textDecoration={getTextDecoration(element)}
+              align={element.textAlignment || "center"}
+              verticalAlign="middle"
+              lineHeight={element.lineHeight || 1}
+              padding={5}
+              fillPriority="color"
+              fillEnabled={true}
+              fillAfterStrokeEnabled={true}
+              fill={element.color || "#ffffff"}
+              visible={!isEditing}
+              // transformsEnabled="all"
+              // keepRatio={false}
+            />
+          </Group>
         );
       case "rectangle":
       case "square":
@@ -726,9 +821,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
           ref={transformerRef}
           boundBoxFunc={(oldBox, newBox) => {
             // Limit minimum size
-            if (newBox.width < 10 || newBox.height < 10) {
-              return oldBox;
-            }
+            newBox.width = Math.max(20, newBox.width);
+            newBox.height = Math.max(20, newBox.height);
             return newBox;
           }}
           // Set anchors appearance
@@ -739,6 +833,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
           borderDash={[4, 4]}
           rotateAnchorOffset={20}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left', 'bottom-left', 'bottom-center', 'bottom-right']}
+          // Add padding to make it easier to grab the transformer
+          padding={5}
         />
       )}
     </>

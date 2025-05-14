@@ -42,6 +42,7 @@ import { lightenColor } from "./common";
 import type { TextCase, Element, ElementData, FontStyles, TextAlignment, BorderStyle } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ColorPicker from "@/components/color-picker/color-picker";
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
@@ -59,46 +60,6 @@ const scrollbarStyles = `
   }
 `;
 
-const ColorPicker: React.FC<{ color: string; setColor: (color: string) => void }> = ({ color, setColor }) => {
-  const presetColors = [
-    "#000000",
-    "#ffffff",
-    "#ff0000",
-    "#00ff00",
-    "#0000ff",
-    "#ffff00",
-    "#00ffff",
-    "#ff00ff",
-    "#c0c0c0",
-    "#808080",
-    "#800000",
-    "#808000",
-    "#008000",
-    "#800080",
-    "#008080",
-    "#000080",
-  ];
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 rounded border border-gray-600" style={{ backgroundColor: color }} />
-        <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 p-0 border-0" />
-      </div>
-      <div className="grid grid-cols-8 gap-1">
-        {presetColors.map((presetColor) => (
-          <button
-            key={presetColor}
-            className="w-5 h-5 rounded border border-gray-600"
-            style={{ backgroundColor: presetColor }}
-            onClick={() => setColor(presetColor)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const FontSelector: React.FC<{
   value: string;
   onChange: (value: string) => void;
@@ -111,7 +72,7 @@ const FontSelector: React.FC<{
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <span style={{ fontFamily: value }}>{value}</span>
-            <ChevronDown size={12} className="text-white ml-0.5" />
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -200,7 +161,8 @@ const TextOptions: React.FC = () => {
     setBorderWidth,
     borderWidth,
     setBorderStyle,
-    borderStyle
+    borderStyle,
+    activeElement,
   } = useTool();
 
   const {
@@ -211,9 +173,11 @@ const TextOptions: React.FC = () => {
     updateSelectedElementStyle
   } = useElementsManager();
 
-  const [colorMenuOpen, setColorMenuOpen] = useState(false);
-  const [bgColorMenuOpen, setBgColorMenuOpen] = useState(false);
-  const [styleMenuOpen, setStyleMenuOpen] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [textBgColor, setTextBgColor] = useState("transparent");
+  const [textBgOpacity, setTextBgOpacity] = useState(0);
 
   // Keep track of the current text settings
   const [textSettings, setTextSettings] = useState<TextSettings>({
@@ -237,52 +201,59 @@ const TextOptions: React.FC = () => {
       const selectedElement = elements[selectedElementIndex];
       if (selectedElement && selectedElement.type === "text") {
         // Update tool state with selected element properties
-        if (selectedElement.color) setColor(selectedElement.color);
-        if (selectedElement.backgroundColor) setBackgroundColor(selectedElement.backgroundColor);
-        if (selectedElement.backgroundOpacity !== undefined) setBackgroundOpacity(selectedElement.backgroundOpacity);
-        if (selectedElement.fontSize) setFontSize(selectedElement.fontSize);
-        if (selectedElement.lineHeight) setLineHeight(selectedElement.lineHeight);
-        if (selectedElement.fontFamily) setFontFamily(selectedElement.fontFamily);
-        if (selectedElement.textAlignment) setTextAlignment(selectedElement.textAlignment);
-        if (selectedElement.fontStyles) setFontStyles(selectedElement.fontStyles);
-        if (selectedElement.textCase) setTextCase(selectedElement.textCase);
-        if (selectedElement.borderColor) setBorderColor(selectedElement.borderColor);
-        if (selectedElement.borderWidth !== undefined) setBorderWidth(selectedElement.borderWidth);
-        if (selectedElement.borderStyle) setBorderStyle(selectedElement.borderStyle);
+        setTextColor(selectedElement.color || "#ffffff");
+        setTextBgColor(selectedElement.backgroundColor || "transparent");
+        setTextBgOpacity(selectedElement.backgroundOpacity !== undefined ? selectedElement.backgroundOpacity : 0);
+        setFontSize(selectedElement.fontSize || 16);
+        setLineHeight(selectedElement.lineHeight || 1);
+        setFontFamily(selectedElement.fontFamily || "Arial");
+        setTextAlignment(selectedElement.textAlignment || "center");
+        setFontStyles(selectedElement.fontStyles || { bold: false, italic: false, underline: false, strikethrough: false });
+        setTextCase(selectedElement.textCase || "none");
+        setBorderColor(selectedElement.borderColor || "#ffffff");
+        setBorderWidth(selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 1);
+        setBorderStyle(selectedElement.borderStyle || "solid");
       }
     }
   }, [selectedElementIndex, elements]);
 
-  // Update selected element when tool settings change
+  // Update selected element when text settings change
   useEffect(() => {
     if (selectedElementIndex !== null) {
       const selectedElement = elements[selectedElementIndex];
       if (selectedElement && selectedElement.type === "text") {
-        // Track what properties have actually been changed by the user
-        const elementUpdates: Partial<ElementData> = {};
+        const updatedStyles = {
+          color: textColor,
+          backgroundColor: textBgColor,
+          backgroundOpacity: textBgOpacity,
+          fontSize,
+          lineHeight,
+          fontFamily,
+          textAlignment,
+          fontStyles: { ...fontStyles },
+          textCase,
+          borderColor,
+          borderWidth,
+          borderStyle
+        };
+        
+        // Only update if values have actually changed
+        const hasChanges = Object.entries(updatedStyles).some(([key, value]) => {
+          if (key === 'fontStyles') {
+            return Object.entries(value).some(([styleKey, styleValue]) => 
+              selectedElement.fontStyles?.[styleKey as keyof FontStyles] !== styleValue
+            );
+          }
+          return selectedElement[key as keyof ElementData] !== value;
+        });
 
-        // Only include properties that have actually changed
-        if (selectedElement.color !== color) elementUpdates.color = color;
-        if (selectedElement.backgroundColor !== backgroundColor) elementUpdates.backgroundColor = backgroundColor;
-        if (selectedElement.backgroundOpacity !== backgroundOpacity) elementUpdates.backgroundOpacity = backgroundOpacity;
-        if (selectedElement.fontSize !== fontSize) elementUpdates.fontSize = fontSize;
-        if (selectedElement.lineHeight !== lineHeight) elementUpdates.lineHeight = lineHeight;
-        if (selectedElement.fontFamily !== fontFamily) elementUpdates.fontFamily = fontFamily;
-        if (selectedElement.textAlignment !== textAlignment) elementUpdates.textAlignment = textAlignment;
-        if (JSON.stringify(selectedElement.fontStyles) !== JSON.stringify(fontStyles)) elementUpdates.fontStyles = { ...fontStyles };
-        if (selectedElement.textCase !== textCase) elementUpdates.textCase = textCase;
-        if (selectedElement.borderColor !== borderColor) elementUpdates.borderColor = borderColor;
-        if (selectedElement.borderWidth !== borderWidth) elementUpdates.borderWidth = borderWidth;
-        if (selectedElement.borderStyle !== borderStyle) elementUpdates.borderStyle = borderStyle;
-
-        // Only update if there are actual changes
-        if (Object.keys(elementUpdates).length > 0) {
-          updateSelectedElementStyle(elementUpdates);
+        if (hasChanges) {
+          updateSelectedElementStyle(updatedStyles);
         }
       }
     }
   }, [
-    color, backgroundColor, backgroundOpacity, fontSize, lineHeight,
+    textColor, textBgColor, textBgOpacity, fontSize, lineHeight,
     fontFamily, textAlignment, fontStyles, textCase, borderColor,
     borderWidth, borderStyle, selectedElementIndex
   ]);
@@ -310,6 +281,38 @@ const TextOptions: React.FC = () => {
     borderWidth, borderStyle
   ]);
 
+  // Update activeElement when text settings change
+  useEffect(() => {
+    if (activeElement?.type === "text") {
+      const updatedTextElement = {
+        ...activeElement,
+        text: {
+          color: textColor,
+          backgroundColor: textBgColor,
+          backgroundOpacity: textBgOpacity,
+          fontSize: fontSize,
+          fontFamily: fontFamily,
+          fontStyles: { ...fontStyles },
+          textCase: textCase,
+          lineHeight: lineHeight,
+          textAlignment: textAlignment
+        }
+      };
+      setActiveElement(updatedTextElement);
+    }
+  }, [
+    textColor,
+    textBgColor,
+    textBgOpacity,
+    fontSize,
+    fontFamily,
+    fontStyles,
+    textCase,
+    lineHeight,
+    textAlignment,
+    activeElement?.type
+  ]);
+
   // Available fonts
   const fonts = [
     "Arial", "Helvetica", "Times New Roman", "Courier New",
@@ -323,30 +326,131 @@ const TextOptions: React.FC = () => {
   ];
 
   const handleAddText = () => {
-    const element = {
+    // Create text element with all current text settings
+    const textElement = {
       id: "text",
       type: "text",
       icon: Type,
-      // Add current text settings to the element
-      settings: {
-        color,
-        backgroundColor,
-        backgroundOpacity,
-        fontSize,
-        fontFamily,
-        fontStyles: { ...fontStyles },
-        textCase,
-        textAlignment,
-        lineHeight,
-        borderColor,
-        borderWidth,
-        borderStyle
+      text: {
+        color: textColor,
+        backgroundColor: textBgColor,
+        backgroundOpacity: textBgOpacity,
+        fontSize: fontSize,
+        fontFamily: fontFamily,
+        fontStyles: {
+          bold: fontStyles.bold,
+          italic: fontStyles.italic,
+          underline: fontStyles.underline,
+          strikethrough: fontStyles.strikethrough
+        },
+        textCase: textCase,
+        lineHeight: lineHeight,
+        textAlignment: textAlignment
       }
     };
 
-    // Set the element as the active tool
-    setActiveElement(element);
+    // Set as active element
+    setActiveElement(textElement);
   };
+
+  // Check if the selected element is a text element
+  const isTextElementSelected = selectedElementIndex !== null && elements[selectedElementIndex]?.type === "text";
+
+  // Handle duplicate button click
+  const handleDuplicate = () => {
+    if (isTextElementSelected) {
+      duplicateSelectedElement();
+    }
+  };
+
+  // Handle delete button click
+  const handleDelete = () => {
+    if (isTextElementSelected) {
+      removeSelectedElement();
+    }
+  };
+
+  // Replace the existing color picker buttons with new ones
+  const renderColorPickers = () => (
+    <>
+      {/* Text Color Picker */}
+      <div className="relative">
+        <Button
+          variant="ghost"
+          className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+          onClick={() => setShowColorPicker(!showColorPicker)}
+        >
+          <p className="text-xs text-[#D4D4D5FF]">Text</p>
+          <div
+            className="w-5 h-5 rounded-xl border border-gray-500"
+            style={{ backgroundColor: textColor }}
+          />
+        </Button>
+        {showColorPicker && (
+          <div className="absolute z-50 top-full left-0 mt-2">
+            <ColorPicker
+              color={textColor}
+              setColor={(newColor) => {
+                setTextColor(newColor);
+              }}
+              onClose={() => setShowColorPicker(false)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Background Color Picker */}
+      <div className="relative">
+        <Button
+          variant="ghost"
+          className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+          onClick={() => setShowBgColorPicker(!showBgColorPicker)}
+        >
+          <p className="text-xs text-[#D4D4D5FF]">Background</p>
+          <div
+            className="w-5 h-5 rounded-xl border border-gray-500"
+            style={{ backgroundColor: textBgColor === 'transparent' ? '#ffffff' : textBgColor }}
+          />
+        </Button>
+        {showBgColorPicker && (
+          <div className="absolute z-50 top-full left-0 mt-2">
+            <ColorPicker
+              color={textBgColor === 'transparent' ? '#ffffff' : textBgColor}
+              setColor={(newColor) => {
+                setTextBgColor(newColor);
+              }}
+              onClose={() => setShowBgColorPicker(false)}
+            />
+            {/* Background opacity control */}
+            <div className="mt-2 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
+              <div className="flex justify-between items-center mb-1">
+                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
+                <span className="text-xs text-[#D4D4D5FF]">{textBgOpacity}%</span>
+              </div>
+              <Input
+                type="range"
+                min="0"
+                max="100"
+                value={textBgOpacity}
+                onChange={(e) => setTextBgOpacity(parseInt(e.target.value))}
+                className="w-full"
+              />
+              <Button
+                variant="ghost"
+                className="w-full mt-2 text-xs text-white"
+                onClick={() => {
+                  setTextBgColor('transparent');
+                  setTextBgOpacity(0);
+                }}
+              >
+                Transparent
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
 
   // Toggle individual text style independently
   const toggleStyle = (style: keyof typeof fontStyles) => {
@@ -359,11 +463,11 @@ const TextOptions: React.FC = () => {
     // Update the state with the new object
     setFontStyles(updatedFontStyles);
 
-    // Also update the text settings
-    setTextSettings({
-      ...textSettings,
+    // Update the text settings
+    setTextSettings(prev => ({
+      ...prev,
       fontStyles: updatedFontStyles
-    });
+    }));
 
     // If there is a selected element, update its style
     if (selectedElementIndex !== null) {
@@ -455,6 +559,85 @@ const TextOptions: React.FC = () => {
     }
   };
 
+  // Render style buttons
+  const renderStyleButtons = () => (
+    <div className="flex items-center px-2 text-xs text-white rounded">
+      <div className="bg-[#292C31FF] border-2 border-[#44474AFF] rounded text-white text-xs p-0 min-w-[100px] grid grid-cols-4">
+        {/* Bold */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.bold ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                onClick={() => toggleStyle('bold')}
+              >
+                <Bold size={12} className={fontStyles.bold ? 'text-white' : 'text-[#D4D4D5FF]'} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Bold</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Italic */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.italic ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                onClick={() => toggleStyle('italic')}
+              >
+                <Italic size={12} className={fontStyles.italic ? 'text-white' : 'text-[#D4D4D5FF]'} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Italic</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Underline */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.underline ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                onClick={() => toggleStyle('underline')}
+              >
+                <Underline size={12} className={fontStyles.underline ? 'text-white' : 'text-[#D4D4D5FF]'} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Underline</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Strikethrough */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.strikethrough ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                onClick={() => toggleStyle('strikethrough')}
+              >
+                <Strikethrough size={12} className={fontStyles.strikethrough ? 'text-white' : 'text-[#D4D4D5FF]'} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Strikethrough</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex space-x-2 items-center h-full text-xs">
       {/* Add text button */}
@@ -463,9 +646,12 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded"
-              onClick={handleAddText}>
-              <PlusCircle size={14} />
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] ${
+                activeElement?.type === "text" ? 'bg-[#3F434AFF] text-white' : 'text-[#D4D4D5FF]'
+              }`}
+              onClick={handleAddText}
+            >
+              <PlusCircle size={14} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -480,10 +666,13 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={duplicateSelectedElement}
-              disabled={selectedElementIndex === null}>
-              <Copy size={14} />
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] ${
+                !isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'
+              }`}
+              onClick={handleDuplicate}
+              disabled={!isTextElementSelected}
+            >
+              <Copy size={14} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -498,10 +687,13 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded ${selectedElementIndex === null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={removeSelectedElement}
-              disabled={selectedElementIndex === null}>
-              <Trash2 size={14} />
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] ${
+                !isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'
+              }`}
+              onClick={handleDelete}
+              disabled={!isTextElementSelected}
+            >
+              <Trash2 size={14} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -512,61 +704,7 @@ const TextOptions: React.FC = () => {
 
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
-      {/* Color picker */}
-      <Popover open={colorMenuOpen} onOpenChange={setColorMenuOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
-            <p className="text-xs text-[#D4D4D5FF]">Text</p>
-            <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: color }} />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
-          <ColorPicker color={color} setColor={setColor} />
-        </PopoverContent>
-      </Popover>
-
-      {/* Background color picker */}
-      <Popover open={bgColorMenuOpen} onOpenChange={setBgColorMenuOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
-            <p className="text-xs text-[#D4D4D5FF]">Background</p>
-            <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: backgroundColor === 'transparent' ? '#ffffff' : backgroundColor }} />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
-          <div className="space-y-5">
-
-            {/* Background opacity slider */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
-                <span className="text-xs text-[#D4D4D5FF]">{backgroundOpacity}%</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={backgroundOpacity}
-                  onChange={(e) => handleBackgroundOpacityChange(parseInt(e.target.value))}
-                  className="h-1.5 w-full p-0 m-0"
-                />
-              </div>
-            </div>
-
-            {/* Transparent option */}
-            <Button
-              variant="ghost"
-              className="text-xs text-white rounded hover:bg-[#3F434AFF] w-full h-7 border-2 border-[#44474AFF]"
-              onClick={() => setBackgroundColor('transparent')}
-            >
-              Transparent background
-            </Button>
-
-            <ColorPicker color={backgroundColor === 'transparent' ? '#ffffff' : backgroundColor} setColor={setBackgroundColor} />
-          </div>
-        </PopoverContent>
-      </Popover>
+      {renderColorPickers()}
 
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
@@ -584,95 +722,7 @@ const TextOptions: React.FC = () => {
         suffix="px"
       />
 
-      {/* Text style */}
-      <div className="flex items-center px-2 text-xs text-white rounded">
-        <div className="bg-[#292C31FF] border-2 border-[#44474AFF] rounded text-white text-xs p-0 min-w-[100px] grid grid-cols-4">
-
-          {/* Bold */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  className={`flex items-center justify-center min-w-7 min-h-7 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                    ${fontStyles.bold ? 'bg-[#3F434AFF] shadow-inner border-b-2 border-blue-400' : 'bg-[#1e1f22]'}`}
-                  onClick={() => toggleStyle('bold')}
-                >
-                  <Bold size={14} className={`transition-all ${fontStyles.bold ? 'text-white' : 'text-[#D4D4D5FF]'}`} />
-                  {fontStyles.bold && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-400 rounded-full"></span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Bold</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Italic */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  className={`flex items-center justify-center min-w-7 min-h-7 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                    ${fontStyles.italic ? 'bg-[#3F434AFF] shadow-inner border-b-2 border-blue-400' : 'bg-[#1e1f22]'}`}
-                  onClick={() => toggleStyle('italic')}
-                >
-                  <Italic size={14} className={`transition-all ${fontStyles.italic ? 'text-white' : 'text-[#D4D4D5FF]'}`} />
-                  {fontStyles.italic && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-400 rounded-full"></span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Italic</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Underline */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  className={`flex items-center justify-center min-w-7 min-h-7 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                    ${fontStyles.underline ? 'bg-[#3F434AFF] shadow-inner border-b-2 border-blue-400' : 'bg-[#1e1f22]'}`}
-                  onClick={() => toggleStyle('underline')}
-                >
-                  <Underline size={14} className={`transition-all ${fontStyles.underline ? 'text-white' : 'text-[#D4D4D5FF]'}`} />
-                  {fontStyles.underline && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-400 rounded-full"></span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Underline</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Strikethrough */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  className={`flex items-center justify-center min-w-7 min-h-7 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                    ${fontStyles.strikethrough ? 'bg-[#3F434AFF] shadow-inner border-b-2 border-blue-400' : 'bg-[#1e1f22]'}`}
-                  onClick={() => toggleStyle('strikethrough')}
-                >
-                  <Strikethrough size={14} className={`transition-all ${fontStyles.strikethrough ? 'text-white' : 'text-[#D4D4D5FF]'}`} />
-                  {fontStyles.strikethrough && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-400 rounded-full"></span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Strikethrough</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
+      {renderStyleButtons()}
 
       {/* Text case */}
       <DropdownMenu>
@@ -684,7 +734,7 @@ const TextOptions: React.FC = () => {
                   textCase === "lowercase" ? <CaseLower size={14} strokeWidth={1.5}/> :
                     textCase === "capitalize" ? <CaseSensitive size={14} strokeWidth={1.5}/> : <Baseline size={14} strokeWidth={1.5}/>}
             </Label>
-            <ChevronDown size={14} className="text-white" />
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">
@@ -772,14 +822,14 @@ const TextOptions: React.FC = () => {
       {/* Text alignment */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] ">
-            <Label className="text-xs text-[#D4D4D5FF]">
+          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
+            <Label className="text-xs text-white">
               {textAlignment === "left" ? <AlignLeft size={16} /> :
                 textAlignment === "center" ? <AlignCenter size={16} /> :
                   textAlignment === "right" ? <AlignRight size={16} /> :
                     textAlignment === "justify" ? <AlignJustify size={16} /> : <AlignCenter size={16} />}
             </Label>
-            <ChevronDown size={12} className="text-white" />
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">

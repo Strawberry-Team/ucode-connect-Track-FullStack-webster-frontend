@@ -417,8 +417,8 @@ const Canvas: React.FC = () => {
 
       // Only add a new text element if we clicked on the stage background
       if (position && activeElement && clickedOnStage) {
-        // Use the settings from activeElement if available
-        const textSettings = activeElement.settings || {};
+        // Get text settings from activeElement.text
+        const textSettings = activeElement.text || {};
         elementsManager.addElement(activeElement.type, position, evt.button === 2, undefined, textSettings);
       }
     }
