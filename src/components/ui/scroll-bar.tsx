@@ -44,21 +44,27 @@ const ScrollBar: React.FC<ScrollBarProps> = ({
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.current) return;
-    
+
     let delta;
     if (orientation === "horizontal") {
       delta = e.clientX - startDragPos.current;
     } else {
       delta = e.clientY - startDragPos.current;
     }
-    
-    const ratio = contentSize / containerSize;
-    const newScrollPos = Math.max(0, Math.min(
-      contentSize - containerSize,
-      startScrollPos.current + delta * ratio
-    ));
-    
-    onScroll(-newScrollPos);
+
+    const initialThumbPos = startScrollPos.current;
+    const targetThumbPos = initialThumbPos + delta;
+    const maxThumbScroll = containerSize - thumbSize;
+
+    if (maxThumbScroll <= 0) {
+      return;
+    }
+
+    const clampedTargetThumbPos = Math.max(0, Math.min(maxThumbScroll, targetThumbPos));
+    const maxContentScroll = contentSize - containerSize;
+    const newContentScrollPos = clampedTargetThumbPos * (maxContentScroll / maxThumbScroll);
+
+    onScroll(newContentScrollPos);
     e.preventDefault();
   };
 

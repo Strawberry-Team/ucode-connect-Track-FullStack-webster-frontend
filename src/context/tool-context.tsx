@@ -10,6 +10,13 @@ interface Rect {
   height: number;
 }
 
+interface InitialImage {
+  src: string;
+  width: number;
+  height: number;
+  file: File;
+}
+
 interface ToolContextValue {
   activeTool: Tool | null
   setActiveTool: (tool: Tool | null) => void
@@ -78,6 +85,9 @@ interface ToolContextValue {
   setTriggerApplyCrop: () => void;
   isCanvasManuallyResized: boolean;
   setIsCanvasManuallyResized: (isResized: boolean) => void;
+
+  initialImage: InitialImage | null;
+  setInitialImage: (image: InitialImage | null) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -103,6 +113,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("custom");
   const [triggerApplyCrop, setTriggerApplyCropState] = useState<boolean>(false);
   const [isCanvasManuallyResized, setIsCanvasManuallyResized] = useState<boolean>(false);
+  const [initialImage, setInitialImage] = useState<InitialImage | null>(null);
 
   //  States for text
   const [fontSize, setFontSize] = useState(16)
@@ -221,6 +232,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTriggerApplyCrop: handleSetTriggerApplyCrop,
         isCanvasManuallyResized,
         setIsCanvasManuallyResized,
+        initialImage,
+        setInitialImage,
       }}
     >
       {children}

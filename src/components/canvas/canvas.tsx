@@ -1,7 +1,7 @@
 import type React from "react";
 import { useTool } from "@/context/tool-context";
 import { useRef, useState, useEffect } from "react";
-import { Stage, Layer, Line, Rect } from "react-konva";
+import { Stage, Layer, Line, Rect, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   createCheckerboardPattern,
@@ -39,7 +39,9 @@ const Canvas: React.FC = () => {
     setSelectedAspectRatio,
     triggerApplyCrop,
     isCanvasManuallyResized,
-    setIsCanvasManuallyResized
+    setIsCanvasManuallyResized,
+    initialImage,
+    setInitialImage
   } = useTool();
 
   const drawingManager = useDrawing({
@@ -72,8 +74,10 @@ const Canvas: React.FC = () => {
   const [showEraserCursor, setShowEraserCursor] = useState(false);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const [isHoveringZoomControls, setIsHoveringZoomControls] = useState(false);
+  const [isHoveringUiElement, setIsHoveringUiElement] = useState(false);
   const zoomControlsRef = useRef<HTMLDivElement>(null);
+  const horizontalScrollbarRef = useRef<HTMLDivElement>(null);
+  const verticalScrollbarRef = useRef<HTMLDivElement>(null);
   const zoomStep = 20;
 
   const croppingManager = useCropping({
@@ -94,6 +98,26 @@ const Canvas: React.FC = () => {
     setStagePosition
   });
 
+  const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (initialImage && initialImage.src) {
+      const img = new window.Image();
+      img.src = initialImage.src;
+      img.onload = () => {
+        setBackgroundImage(img);
+        setTimeout(() => {
+          setInitialImage(null);
+        }, 0);
+      };
+      img.onerror = () => {
+        console.error("The initial image for the canvas could not be loaded.");
+        setBackgroundImage(null);
+        setInitialImage(null);
+      };
+    }
+  }, [initialImage, setInitialImage]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -108,27 +132,29 @@ const Canvas: React.FC = () => {
   }, [elementsManager]);
 
   useEffect(() => {
-    const updateContainerSizeAndStage = () => {
+    const updateSizes = () => {
+      let currentContainerWidth = 0;
+      let currentContainerHeight = 0;
+
       if (containerRef.current) {
+        currentContainerWidth = containerRef.current.clientWidth;
+        currentContainerHeight = containerRef.current.clientHeight;
         setContainerSize({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight
+          width: currentContainerWidth,
+          height: currentContainerHeight
         });
       }
-      if (!isCanvasManuallyResized) {
-        const newCalculatedStageSize = calculateCanvasSize();
-        if (!contextStageSize ||
-            contextStageSize.width !== newCalculatedStageSize.width ||
-            contextStageSize.height !== newCalculatedStageSize.height) {
-          setContextStageSize(newCalculatedStageSize);
-        }
+
+      if (!contextStageSize && !isCanvasManuallyResized && currentContainerWidth > 0 && currentContainerHeight > 0) {
+        setContextStageSize({ width: currentContainerWidth, height: currentContainerHeight });
       }
     };
 
-    updateContainerSizeAndStage();
-    window.addEventListener("resize", updateContainerSizeAndStage);
-    return () => window.removeEventListener("resize", updateContainerSizeAndStage);
-  }, [isCanvasManuallyResized, setContextStageSize]);
+    updateSizes();
+    
+    window.addEventListener("resize", updateSizes);
+    return () => window.removeEventListener("resize", updateSizes);
+  }, [contextStageSize, isCanvasManuallyResized, setContextStageSize]);
 
   const contentWidth = contextStageSize ? contextStageSize.width * (zoom / 100) : 0;
   const contentHeight = contextStageSize ? contextStageSize.height * (zoom / 100) : 0;
@@ -278,17 +304,20 @@ const Canvas: React.FC = () => {
   const handleZoomOutClick = () => handleZoomButtonClick(-zoomStep);
 
   const handleMouseMoveOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || !stageRef.current ) return;
+    if (!containerRef.current) return;
 
     const isOverZoomCtrl = zoomControlsRef.current && zoomControlsRef.current.contains(e.target as Node);
-    if (isOverZoomCtrl) {
-      if (!isHoveringZoomControls) setIsHoveringZoomControls(true);
+    const isOverHorizontalScroll = horizontalScrollbarRef.current && horizontalScrollbarRef.current.contains(e.target as Node);
+    const isOverVerticalScroll = verticalScrollbarRef.current && verticalScrollbarRef.current.contains(e.target as Node);
+
+    if (isOverZoomCtrl || isOverHorizontalScroll || isOverVerticalScroll) {
+      if (!isHoveringUiElement) setIsHoveringUiElement(true);
       if (containerRef.current) containerRef.current.style.cursor = 'default';
       setShowBrushCursor(false);
       setShowEraserCursor(false);
       return;
     }
-    if (isHoveringZoomControls) setIsHoveringZoomControls(false);
+    if (isHoveringUiElement) setIsHoveringUiElement(false);
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const scale = zoom / 100;
@@ -338,7 +367,7 @@ const Canvas: React.FC = () => {
     setShowEraserCursor(false);
     setCursorPosition(null);
     isDragging.current = false;
-    setIsHoveringZoomControls(false);
+    setIsHoveringUiElement(false);
   };
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -490,6 +519,16 @@ const Canvas: React.FC = () => {
                   height={contextStageSize?.height ?? 0}
                   fillPatternImage={createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF")}
               />
+              {backgroundImage && contextStageSize && (
+                <KonvaImage
+                  image={backgroundImage}
+                  x={0}
+                  y={0}
+                  width={contextStageSize.width}
+                  height={contextStageSize.height}
+                  listening={false}
+                />
+              )}
             </Layer>
             <Layer>
               {drawingManager.lines.map((line, i) => (
@@ -551,20 +590,24 @@ const Canvas: React.FC = () => {
           </button>
         </span>
         </div>
-        <ScrollBar
-            orientation="horizontal"
-            containerSize={containerSize.width}
-            contentSize={contentWidth}
-            position={-stagePosition.x}
-            onScroll={(newPos) => handleScroll("horizontal", newPos)}
-        />
-        <ScrollBar
-            orientation="vertical"
-            containerSize={containerSize.height}
-            contentSize={contentHeight}
-            position={-stagePosition.y}
-            onScroll={(newPos) => handleScroll("vertical", newPos)}
-        />
+        <div ref={horizontalScrollbarRef}>
+          <ScrollBar
+              orientation="horizontal"
+              containerSize={containerSize.width}
+              contentSize={contentWidth}
+              position={-stagePosition.x}
+              onScroll={(newPos) => handleScroll("horizontal", newPos)}
+          />
+        </div>
+        <div ref={verticalScrollbarRef}>
+          <ScrollBar
+              orientation="vertical"
+              containerSize={containerSize.height}
+              contentSize={contentHeight}
+              position={-stagePosition.y}
+              onScroll={(newPos) => handleScroll("vertical", newPos)}
+          />
+        </div>
       </div>
   );
 };
