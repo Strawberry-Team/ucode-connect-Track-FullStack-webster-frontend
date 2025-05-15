@@ -125,7 +125,7 @@ const Toolbar: React.FC = () => {
   const secondaryLightBorder = lightenColor(secondaryColor, 50);
 
   return (
-    <div className="w-15 h-full bg-[#292C31FF] border-t-2 border-[#44474AFF] flex flex-col items-center py-2">
+    <div className="w-15 h-full bg-[#292C31FF] border-t-2 border-t-[#44474AFF] border-r-1 border-r-[#171719FF] flex flex-col items-center py-2">
       <div className="space-y-1">
         {tools.map((tool) => {
           const Icon = tool.icon

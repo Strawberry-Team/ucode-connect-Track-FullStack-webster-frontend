@@ -1,58 +1,80 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from '@/components/ui/custom-tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Map, History as HistoryIcon } from 'lucide-react'; // Пример иконок
 import NavigatorPanel from './navigator-panel';
 import HistoryPanel from './history-panel';
 
+interface ActivePanelsState {
+  navigator: boolean;
+  history: boolean;
+}
 
 const RightToolbar: React.FC = () => {
-  const [activePanel, setActivePanel] = useState<string | null>(null); // 'navigator' или 'history'
+  const [activePanels, setActivePanels] = useState<ActivePanelsState>({ navigator: false, history: false });
 
-  const togglePanel = (panelId: string) => {
-    setActivePanel(prev => (prev === panelId ? null : panelId));
+  const togglePanel = (panelId: keyof ActivePanelsState) => {
+    setActivePanels(prev => ({
+      ...prev,
+      [panelId]: !prev[panelId],
+    }));
   };
 
+  const anyPanelsActive = activePanels.navigator || activePanels.history;
+  const bothPanelsActive = activePanels.navigator && activePanels.history;
+
   return (
-    <div className="h-full flex fixed right-0 top-0 z-40">
-      {/* Сама панель с кнопками (вертикальная) */}
-      <div className="w-12 bg-[#292C31FF] border-l-2 border-[#44474AFF] flex flex-col items-center py-2 pt-[60px]">
-        <div className="space-y-1">
-          <CustomTooltip>
-            <CustomTooltipTrigger asChild>
+    <div className={`h-full border-l-1 border-[#171719FF] flex items-center z-40 ${anyPanelsActive ? 'bg-transparent' : ''}`}>
+      {anyPanelsActive && (
+        <div className="h-full flex flex-col w-64 border-r-1 border-[#171719FF]">
+          {activePanels.navigator && (
+            <NavigatorPanel 
+              onClose={() => togglePanel('navigator')} 
+              isSharedHeight={bothPanelsActive} 
+            />
+          )}
+          {activePanels.history && (
+            <HistoryPanel 
+              onClose={() => togglePanel('history')} 
+              isSharedHeight={bothPanelsActive} 
+            />
+          )}
+        </div>
+      )}
+
+      <div className="h-full w-15 bg-[#292C31FF] border-t-2  border-[#44474AFF] flex flex-col items-center py-2">
+        <div className="w-full flex flex-col items-center space-y-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className={`w-10 h-10 group hover:bg-[#383A3EFF] ${activePanel === 'navigator' ? 'bg-[#414448FF]' : ''}`}
+                className={`w-10 h-10 group hover:bg-[#383A3EFF] ${activePanels.navigator ? 'bg-[#414448FF]' : ''}`}
                 onClick={() => togglePanel('navigator')}
               >
-                <Map className={`!w-4.5 !h-4.5 ${activePanel === 'navigator' ? 'text-white' : 'text-[#A8AAACFF] group-hover:text-white'}`} />
+                <Map className={`!w-4.5 !h-4.5 ${activePanels.navigator ? 'text-white' : 'text-[#A8AAACFF] group-hover:text-white'}`} />
               </Button>
-            </CustomTooltipTrigger>
-            <CustomTooltipContent side="left" align="center" title="Navigator">
+            </TooltipTrigger>
+            <TooltipContent side="left" align="center" title="Navigator">
               <p>Open navigator panel</p>
-            </CustomTooltipContent>
-          </CustomTooltip>
+            </TooltipContent>
+          </Tooltip>
 
-          <CustomTooltip>
-            <CustomTooltipTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className={`w-10 h-10 group hover:bg-[#383A3EFF] ${activePanel === 'history' ? 'bg-[#414448FF]' : ''}`}
+                className={`w-10 h-10 group hover:bg-[#383A3EFF] ${activePanels.history ? 'bg-[#414448FF]' : ''}`}
                 onClick={() => togglePanel('history')}
               >
-                <HistoryIcon className={`!w-4.5 !h-4.5 ${activePanel === 'history' ? 'text-white' : 'text-[#A8AAACFF] group-hover:text-white'}`} />
+                <HistoryIcon className={`!w-4.5 !h-4.5 ${activePanels.history ? 'text-white' : 'text-[#A8AAACFF] group-hover:text-white'}`} />
               </Button>
-            </CustomTooltipTrigger>
-            <CustomTooltipContent side="left" align="center" title="History">
+            </TooltipTrigger>
+            <TooltipContent side="left" align="center" title="History">
               <p>Open history panel</p>
-            </CustomTooltipContent>
-          </CustomTooltip>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
-
-      {/* Выдвигающиеся панели */}
-      {activePanel === 'navigator' && <NavigatorPanel onClose={() => setActivePanel(null)} />}
-      {activePanel === 'history' && <HistoryPanel onClose={() => setActivePanel(null)} />}
     </div>
   );
 };

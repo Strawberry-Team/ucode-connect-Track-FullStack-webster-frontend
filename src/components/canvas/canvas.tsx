@@ -1,11 +1,10 @@
 import type React from "react";
 import { useTool } from "@/context/tool-context";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Stage, Layer, Line, Rect, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   createCheckerboardPattern,
-  calculateCanvasSize
 } from "@/utils/canvas-utils.ts";
 import { useDrawing, useElementsManagement, useCropping } from "@/hooks";
 import ScrollBar from "@/components/ui/scroll-bar";
@@ -41,7 +40,12 @@ const Canvas: React.FC = () => {
     isCanvasManuallyResized,
     setIsCanvasManuallyResized,
     initialImage,
-    setInitialImage
+    setInitialImage,
+    cursorPositionOnCanvas,
+    setCursorPositionOnCanvas,
+    setMiniMapDataURL,
+    setVisibleCanvasRectOnMiniMap,
+    registerStagePositionUpdater
   } = useTool();
 
   const drawingManager = useDrawing({
@@ -69,7 +73,7 @@ const Canvas: React.FC = () => {
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const stageRef = useRef<Konva.Stage | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
+  // const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
   const [showBrushCursor, setShowBrushCursor] = useState(false);
   const [showEraserCursor, setShowEraserCursor] = useState(false);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
@@ -325,7 +329,7 @@ const Canvas: React.FC = () => {
     const mouseX = (e.clientX - containerRect.left - stagePosition.x) / scale;
     const mouseY = (e.clientY - containerRect.top - stagePosition.y) / scale;
 
-    setCursorPosition({ x: mouseX, y: mouseY });
+    setCursorPositionOnCanvas({ x: mouseX, y: mouseY });
 
     if (activeTool?.type === 'brush') {
       if (containerRef.current) containerRef.current.style.cursor = "none";
@@ -365,7 +369,7 @@ const Canvas: React.FC = () => {
     }
     setShowBrushCursor(false);
     setShowEraserCursor(false);
-    setCursorPosition(null);
+    setCursorPositionOnCanvas(null);
     isDragging.current = false;
     setIsHoveringUiElement(false);
   };
@@ -417,8 +421,8 @@ const Canvas: React.FC = () => {
 
       // Only add a new text element if we clicked on the stage background
       if (position && activeElement && clickedOnStage) {
-        // Get text settings from activeElement.text
-        const textSettings = activeElement.text || {};
+        // Use the settings from activeElement if available
+        const textSettings = activeElement.settings || {};
         elementsManager.addElement(activeElement.type, position, evt.button === 2, undefined, textSettings);
       }
     }
@@ -454,6 +458,97 @@ const Canvas: React.FC = () => {
       croppingManager.applyCrop();
     }
   }, [triggerApplyCrop, croppingManager]);
+
+  const handleSetStagePositionFromMiniMap = useCallback((coords: { x: number, y: number }, type: 'center' | 'drag') => {
+    if (!stageRef.current || !contextStageSize || !containerRef.current) return;
+
+    const currentScale = zoom / 100;
+    const { width: stageWidth, height: stageHeight } = contextStageSize;
+    const { clientWidth: containerWidth, clientHeight: containerHeight } = containerRef.current;
+
+    let newStageX = stagePosition.x;
+    let newStageY = stagePosition.y;
+
+    if (type === 'center') {
+      const targetCanvasX = coords.x * stageWidth;
+      const targetCanvasY = coords.y * stageHeight;
+
+      newStageX = containerWidth / 2 - targetCanvasX * currentScale;
+      newStageY = containerHeight / 2 - targetCanvasY * currentScale;
+    } else if (type === 'drag') {
+      newStageX = -coords.x * stageWidth * currentScale;
+      newStageY = -coords.y * stageHeight * currentScale;
+    }
+
+    const scaledContentWidth = stageWidth * currentScale;
+    const scaledContentHeight = stageHeight * currentScale;
+
+    if (scaledContentWidth > containerWidth) {
+      newStageX = Math.max(containerWidth - scaledContentWidth, Math.min(0, newStageX));
+    } else {
+      newStageX = (containerWidth - scaledContentWidth) / 2;
+    }
+
+    if (scaledContentHeight > containerHeight) {
+      newStageY = Math.max(containerHeight - scaledContentHeight, Math.min(0, newStageY));
+    } else {
+      newStageY = (containerHeight - scaledContentHeight) / 2;
+    }
+
+    setStagePosition({ x: newStageX, y: newStageY });
+
+  }, [contextStageSize, zoom, stagePosition, containerSize.width, containerSize.height, setStagePosition]);
+
+  useEffect(() => {
+    if (registerStagePositionUpdater) {
+      registerStagePositionUpdater(handleSetStagePositionFromMiniMap);
+    }
+  }, [registerStagePositionUpdater, handleSetStagePositionFromMiniMap]);
+
+  useEffect(() => {
+    if (stageRef.current && contextStageSize && containerRef.current) {
+      const dataURL = stageRef.current.toDataURL({
+        pixelRatio: 0.1,
+      });
+      setMiniMapDataURL(dataURL);
+
+      const canvasWidth = contextStageSize.width;
+      const canvasHeight = contextStageSize.height;
+      const viewPortWidth = containerRef.current.clientWidth;
+      const viewPortHeight = containerRef.current.clientHeight;
+
+      const visibleXOnCanvas = -stagePosition.x / scale;
+      const visibleYOnCanvas = -stagePosition.y / scale;
+      const visibleWidthOnCanvas = viewPortWidth / scale;
+      const visibleHeightOnCanvas = viewPortHeight / scale;
+
+      const relX = Math.max(0, Math.min(1, visibleXOnCanvas / canvasWidth));
+      const relY = Math.max(0, Math.min(1, visibleYOnCanvas / canvasHeight));
+      const relWidth = Math.max(0, Math.min(1, visibleWidthOnCanvas / canvasWidth));
+      const relHeight = Math.max(0, Math.min(1, visibleHeightOnCanvas / canvasHeight));
+
+      setVisibleCanvasRectOnMiniMap({
+        x: relX,
+        y: relY,
+        width: relWidth,
+        height: relHeight,
+      });
+    } else {
+      setMiniMapDataURL(null);
+      setVisibleCanvasRectOnMiniMap(null);
+    }
+  }, [
+    drawingManager.lines,
+    elementsManager.elements,
+    backgroundImage,
+    zoom,
+    stagePosition,
+    contextStageSize,
+    containerSize,
+    setMiniMapDataURL,
+    setVisibleCanvasRectOnMiniMap,
+    scale
+  ]);
 
   return (
       <div
@@ -517,12 +612,12 @@ const Canvas: React.FC = () => {
               color={color}
               opacity={opacity}
               isVisible={showBrushCursor}
-              position={cursorPosition}
+              position={cursorPositionOnCanvas}
           />
           <EraserCursor
               size={eraserSize}
               isVisible={showEraserCursor}
-              position={cursorPosition}
+              position={cursorPositionOnCanvas}
           />
           <Stage
               width={contextStageSize?.width ?? 0}

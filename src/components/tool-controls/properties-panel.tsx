@@ -36,7 +36,7 @@ const PropertiesPanel: React.FC = () => {
   };
 
   return (
-    <div className="h-12 w-full bg-[#292C31FF] p-2">
+    <div className="h-12 w-full bg-[#292C31FF] p-2 ">
       <div className="flex justify-between items-center">
       <div className="flex items-center">
         <House

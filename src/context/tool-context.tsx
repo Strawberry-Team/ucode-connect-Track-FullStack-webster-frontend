@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState, useCallback } from "react"
 import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType } from "@/types/canvas"
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
@@ -58,7 +58,7 @@ interface ToolContextValue {
   setBackgroundColor: (color: string) => void
   backgroundOpacity: number
   setBackgroundOpacity: (opacity: number) => void
-  
+
   // Additional parameters for shapes
   fillColor: string
   setFillColor: (color: string) => void
@@ -103,6 +103,20 @@ interface ToolContextValue {
     scaleY: number
   }
   setShapeTransform: (transform: { rotate: number; scaleX: number; scaleY: number }) => void
+
+  // NavigatorPanel
+  cursorPositionOnCanvas: { x: number; y: number } | null;
+  setCursorPositionOnCanvas: (position: { x: number; y: number } | null) => void;
+
+  // MiniMap in NavigatorPanel
+  miniMapDataURL: string | null;
+  setMiniMapDataURL: (url: string | null) => void;
+  visibleCanvasRectOnMiniMap: { x: number; y: number; width: number; height: number } | null;
+  setVisibleCanvasRectOnMiniMap: (rect: { x: number; y: number; width: number; height: number } | null) => void;
+
+  // For setting the canvas position from MiniMap
+  setStagePositionFromMiniMap: (coords: { x: number; y: number }, type: 'center' | 'drag') => void;
+  registerStagePositionUpdater: (updater: (coords: { x: number; y: number }, type: 'center' | 'drag') => void) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -129,6 +143,29 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [triggerApplyCrop, setTriggerApplyCropState] = useState<boolean>(false);
   const [isCanvasManuallyResized, setIsCanvasManuallyResized] = useState<boolean>(false);
   const [initialImage, setInitialImage] = useState<InitialImage | null>(null);
+
+  // State for cursor position on canvas
+  const [cursorPositionOnCanvas, setCursorPositionOnCanvas] = useState<{ x: number; y: number } | null>(null);
+
+  // States for MiniMap
+  const [miniMapDataURL, setMiniMapDataURL] = useState<string | null>(null);
+  const [visibleCanvasRectOnMiniMap, setVisibleCanvasRectOnMiniMap] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+
+  // State for storing the function of updating from Canvas.tsx
+  const [actualStagePositionUpdater, setActualStagePositionUpdater] =
+    useState< (coords: { x: number; y: number }, type: 'center' | 'drag') => void>(() => () => {
+      console.warn("setStagePositionFromMiniMap called before Canvas has registered its updater function.");
+    });
+
+  // Function that MiniMap will call
+  const setStagePositionFromMiniMap = useCallback((coords: { x: number; y: number }, type: 'center' | 'drag') => {
+    actualStagePositionUpdater(coords, type);
+  }, [actualStagePositionUpdater]);
+
+  // Function that Canvas will call to register its function
+  const registerStagePositionUpdater = useCallback((updater: (coords: { x: number; y: number }, type: 'center' | 'drag') => void) => {
+    setActualStagePositionUpdater(() => updater); // Important to wrap in () => updater for the function state
+  }, []);
 
   //  States for text
   const [fontSize, setFontSize] = useState(16)
@@ -269,6 +306,17 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setShapeType,
         shapeTransform,
         setShapeTransform,
+        // Pass new values for cursor coordinates
+        cursorPositionOnCanvas,
+        setCursorPositionOnCanvas,
+        // Pass new values for MiniMap
+        miniMapDataURL,
+        setMiniMapDataURL,
+        visibleCanvasRectOnMiniMap,
+        setVisibleCanvasRectOnMiniMap,
+        // For setting the canvas position from MiniMap
+        setStagePositionFromMiniMap,
+        registerStagePositionUpdater,
       }}
     >
       {children}

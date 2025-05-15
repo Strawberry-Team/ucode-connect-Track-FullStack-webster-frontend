@@ -2,19 +2,27 @@ import React from 'react';
 
 interface HistoryPanelProps {
   onClose: () => void;
+  isSharedHeight?: boolean;
 }
 
-const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
+const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) => {
+  const heightClass = isSharedHeight ? 'h-[800px]' : 'h-full';
   return (
-    <div className="w-64 h-full bg-[#2D2F34FF] text-white p-4 border-l border-[#44474AFF]">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">History</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-white">
-          &times; {/* Простой крестик для закрытия */}
-        </button>
+    <div className={`w-full ${heightClass} border-t-1 border-[#171719FF] bg-[#292C31FF] text-[#A8AAACFF] flex flex-col`}>
+      {/* Заголовок панели с тёмным фоном */}
+      <div className="flex items-center bg-[#24262BFF] p-1">
+        <div className="flex-1"></div>
+        <h3 className="text-[15px] font-semibold text-[#E8E8E8FF] text-center">History</h3>
+        <div className="flex-1 flex justify-end">
+          <button onClick={onClose} className="cursor-pointer text-gray-400 hover:text-white text-2xl mr-1 leading-none">×</button>
+        </div>
       </div>
-      <p className="text-sm text-gray-300">History panel content will be here.</p>
-      {/* Здесь будет список действий с кнопками отмены */}
+
+      {/* Основное содержимое панели */}
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <p className="text-sm text-[#C1C1C1FF]">History panel content will be here.</p>
+        {/* Здесь будет список действий с кнопками отмены */}
+      </div>
     </div>
   );
 };
