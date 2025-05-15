@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import type { LineData } from "@/types/canvas";
 import { calculateEffectiveEraserSize, calculateEraserPressure } from "@/utils/canvas-utils";
 import type { MirrorMode } from "@/context/tool-context";
+import { useTool } from "@/context/tool-context";
+import { Brush, Eraser } from "lucide-react";
 
 export interface DrawingProps {
   color: string;
@@ -35,6 +37,7 @@ const useDrawing = ({
   const isDrawing = useRef(false);
   const centerX = canvasWidth / 2;
   const centerY = canvasHeight / 2;
+  const { addHistoryEntry } = useTool();
 
   const getCurrentMirrorMode = (): MirrorMode => {
     if (activeToolType === 'brush') {
@@ -177,6 +180,24 @@ const useDrawing = ({
   };
 
   const endDrawing = () => {
+    if (isDrawing.current) {
+      const currentTool = activeToolType;
+      let description: React.ReactNode = "Unknown action";
+      let historyEntryType: 'brushStroke' | 'eraserStroke' | 'unknown' = 'unknown';
+
+      if (currentTool === 'brush') {
+        description = <><Brush className="inline-block w-4 h-4 mr-1" /> brush</>;
+        historyEntryType = 'brushStroke';
+      } else if (currentTool === 'eraser') {
+        description = <><Eraser className="inline-block w-4 h-4 mr-1" /> eraser</>;
+        historyEntryType = 'eraserStroke';
+      }
+      
+      // Создаем копию текущих линий для истории
+      const linesSnapshot = lines.map(line => ({ ...line, points: [...line.points] }));
+
+      addHistoryEntry({ type: historyEntryType, description, linesSnapshot });
+    }
     isDrawing.current = false;
   };
 

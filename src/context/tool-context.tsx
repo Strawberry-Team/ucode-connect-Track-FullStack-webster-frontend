@@ -1,7 +1,16 @@
-import React, { createContext, useContext, useState, useCallback } from "react"
-import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType } from "@/types/canvas"
+import React, { createContext, useContext, useState, useCallback, useRef } from "react"
+import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType, LineData } from "@/types/canvas"
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
+
+export interface HistoryEntry {
+  id: string;
+  timestamp: Date;
+  type: 'brushStroke' | 'eraserStroke' | 'unknown'; // Добавим 'unknown' для общности
+  description: React.ReactNode;
+  linesSnapshot: LineData[]; // Снапшот линий для этого состояния
+  isActive: boolean; // Активно ли это состояние в текущей временной шкале
+}
 
 interface Rect {
   x: number;
@@ -117,6 +126,13 @@ interface ToolContextValue {
   // For setting the canvas position from MiniMap
   setStagePositionFromMiniMap: (coords: { x: number; y: number }, type: 'center' | 'drag') => void;
   registerStagePositionUpdater: (updater: (coords: { x: number; y: number }, type: 'center' | 'drag') => void) => void;
+
+  // History
+  history: HistoryEntry[];
+  currentHistoryIndex: number; // Индекс текущего активного состояния в истории
+  addHistoryEntry: (entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => void;
+  revertToHistoryState: (historyId: string) => void;
+  registerLinesRestorer: (restorer: (lines: LineData[]) => void) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -156,6 +172,66 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useState< (coords: { x: number; y: number }, type: 'center' | 'drag') => void>(() => () => {
       console.warn("setStagePositionFromMiniMap called before Canvas has registered its updater function.");
     });
+
+  // History state
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState<number>(-1);
+
+  // Регистраторы для восстановления состояния
+  const linesRestorerRef = useRef<((lines: LineData[]) => void) | null>(null);
+
+  const registerLinesRestorer = useCallback((restorer: (lines: LineData[]) => void) => {
+    linesRestorerRef.current = restorer;
+  }, []);
+
+  const addHistoryEntry = useCallback((entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => {
+    setHistory(prevHistory => {
+      const newHistoryBase = currentHistoryIndex < prevHistory.length - 1 && prevHistory.length > 0
+        ? prevHistory.slice(0, currentHistoryIndex + 1)
+        : prevHistory;
+
+      const newEntry: HistoryEntry = {
+        ...entryData,
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+        timestamp: new Date(),
+        isActive: true,
+      };
+      
+      const updatedHistory = newHistoryBase.map(entry => ({ ...entry, isActive: true }));
+      
+      const finalHistory = [...updatedHistory, newEntry];
+      setCurrentHistoryIndex(finalHistory.length - 1);
+      return finalHistory;
+    });
+  }, [currentHistoryIndex]);
+
+  const revertToHistoryState = useCallback((historyId: string) => {
+    const entryIndex = history.findIndex(entry => entry.id === historyId);
+    if (entryIndex === -1) {
+      console.warn("History entry not found for ID:", historyId);
+      return;
+    }
+
+    const targetEntry = history[entryIndex];
+    if (!targetEntry.linesSnapshot) {
+        console.warn("Lines snapshot missing in history entry:", historyId);
+        return;
+    }
+
+    if (linesRestorerRef.current) {
+      linesRestorerRef.current([...targetEntry.linesSnapshot]); 
+    } else {
+      console.warn("Lines restorer not registered in ToolContext.");
+    }
+    
+    setHistory(prevHistory =>
+      prevHistory.map((entry, index) => ({
+        ...entry,
+        isActive: index <= entryIndex,
+      }))
+    );
+    setCurrentHistoryIndex(entryIndex);
+  }, [history]);
 
   // Function that MiniMap will call
   const setStagePositionFromMiniMap = useCallback((coords: { x: number; y: number }, type: 'center' | 'drag') => {
@@ -317,6 +393,12 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // For setting the canvas position from MiniMap
         setStagePositionFromMiniMap,
         registerStagePositionUpdater,
+        // History
+        history,
+        currentHistoryIndex,
+        addHistoryEntry,
+        revertToHistoryState,
+        registerLinesRestorer,
       }}
     >
       {children}

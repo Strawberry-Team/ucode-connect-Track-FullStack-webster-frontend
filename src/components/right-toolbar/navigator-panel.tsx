@@ -13,7 +13,7 @@ interface NavigatorPanelProps {
 const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight }) => {
   const { stageSize, zoom, setZoom, cursorPositionOnCanvas } = useTool();
 
-  const heightClass = isSharedHeight ? 'h-1/2' : 'h-full';
+  const heightClass = isSharedHeight ? 'h-[260px]' : 'h-full';
 
   const [tempZoomInput, setTempZoomInput] = useState<string>(() => String(Math.round(zoom)));
   const zoomInputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +78,7 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
         </div>
       </div>
 
-      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+      <div className="flex-1 p-4 space-y-4">
         <div className="flex flex-row items-start space-x-3">
           <div className="w-[120px] h-[150px] bg-[#202225FF] border border-[#44474AFF] rounded flex-shrink-0 flex items-center justify-center">
             <MiniMap />

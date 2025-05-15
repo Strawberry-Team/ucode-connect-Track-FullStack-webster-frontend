@@ -45,7 +45,8 @@ const Canvas: React.FC = () => {
     setCursorPositionOnCanvas,
     setMiniMapDataURL,
     setVisibleCanvasRectOnMiniMap,
-    registerStagePositionUpdater
+    registerStagePositionUpdater,
+    registerLinesRestorer,
   } = useTool();
 
   const drawingManager = useDrawing({
@@ -73,7 +74,6 @@ const Canvas: React.FC = () => {
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const stageRef = useRef<Konva.Stage | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  // const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
   const [showBrushCursor, setShowBrushCursor] = useState(false);
   const [showEraserCursor, setShowEraserCursor] = useState(false);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
@@ -422,7 +422,7 @@ const Canvas: React.FC = () => {
       // Only add a new text element if we clicked on the stage background
       if (position && activeElement && clickedOnStage) {
         // Use the settings from activeElement if available
-        const textSettings = activeElement.settings || {};
+        const textSettings = activeElement.text || {};
         elementsManager.addElement(activeElement.type, position, evt.button === 2, undefined, textSettings);
       }
     }
@@ -549,6 +549,12 @@ const Canvas: React.FC = () => {
     setVisibleCanvasRectOnMiniMap,
     scale
   ]);
+
+  useEffect(() => {
+    if (registerLinesRestorer) {
+      registerLinesRestorer(drawingManager.setLines);
+    }
+  }, [registerLinesRestorer, drawingManager.setLines]);
 
   return (
       <div
