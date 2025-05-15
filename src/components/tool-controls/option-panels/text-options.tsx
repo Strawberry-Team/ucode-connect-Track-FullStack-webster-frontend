@@ -398,6 +398,8 @@ const TextOptions: React.FC = () => {
         )}
       </div>
 
+      <div className="h-6 border-l border-[#44474AFF]"></div>
+
       {/* Background Color Picker */}
       <div className="relative">
         <Button
@@ -421,7 +423,7 @@ const TextOptions: React.FC = () => {
               onClose={() => setShowBgColorPicker(false)}
             />
             {/* Background opacity control */}
-            <div className="mt-2 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
+            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
               <div className="flex justify-between items-center mb-1">
                 <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
                 <span className="text-xs text-[#D4D4D5FF]">{textBgOpacity}%</span>
@@ -439,7 +441,7 @@ const TextOptions: React.FC = () => {
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
                 onClick={() => {
                   setTextBgColor('transparent');
-                  setTextBgOpacity(0);
+                  setTextBgOpacity(100);
                 }}
               >
                 Transparent
@@ -703,10 +705,6 @@ const TextOptions: React.FC = () => {
 
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
-      {renderColorPickers()}
-
-      <div className="h-6 border-l border-[#44474AFF]"></div>
-
       {/* Font controls */}
       <FontSelector value={fontFamily} onChange={setFontFamily} fonts={fonts} />
 
@@ -804,7 +802,7 @@ const TextOptions: React.FC = () => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="h-6 border-l border-[#44474AFF]"></div>
+      {renderColorPickers()}
 
       {/* Line height */}
       <NumberInputWithPopover
@@ -907,14 +905,14 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] rounded cursor-pointer border-2 border-[#44474AFF] bg-[#1e1f22]"
+              className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
               onClick={resetAllStyles}
             >
-              <span className="text-xs text-white">Clear all</span>
+              <span className="text-xs">Reset all</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Clear all text styles</p>
+            <p>Reset all text styles</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

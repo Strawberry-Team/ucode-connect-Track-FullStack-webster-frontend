@@ -377,7 +377,7 @@ const ShapeOptions: React.FC = () => {
           scaleX: shapeTransform.scaleX,
           scaleY: shapeTransform.scaleY
         };
-        
+
         updateSelectedElementStyle(updatedStyles);
       }
     }
@@ -442,11 +442,6 @@ const ShapeOptions: React.FC = () => {
     }
   };
 
-  // Handle opacity change
-  const handleOpacityChange = (newOpacity: number) => {
-    setOpacity(Math.min(100, Math.max(0, newOpacity)));
-  };
-
   const handleAddShape = () => {
     handleShapeSelect(shapeType);
   };
@@ -476,6 +471,35 @@ const ShapeOptions: React.FC = () => {
     rotateSelectedElement(degrees);
   };
 
+  // Reset all shape styles to default values
+  const resetAllStyles = () => {
+    setFillColor("#ffffff");
+    setFillColorOpacity(100);
+    setBorderColor("#000000");
+    setBorderWidth(2);
+    setBorderStyle("solid");
+    setCornerRadius(0);
+    setShapeTransform({
+      rotate: 0,
+      scaleX: 1,
+      scaleY: 1
+    });
+
+    if (selectedElementIndex !== null) {
+      updateSelectedElementStyle({
+        fillColor: "#ffffff",
+        fillColorOpacity: 100,
+        borderColor: "#000000",
+        borderWidth: 2,
+        borderStyle: "solid",
+        cornerRadius: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1
+      });
+    }
+  };
+
   // Replace the existing color picker buttons with new ones
   const renderColorPickers = () => (
     <>
@@ -503,7 +527,7 @@ const ShapeOptions: React.FC = () => {
             />
 
             {/* Fill opacity control */}
-            <div className="mt-2 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
+            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
               <div className="flex justify-between items-center mb-1">
                 <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
                 <span className="text-xs text-[#D4D4D5FF]">{fillColorOpacity}%</span>
@@ -615,37 +639,6 @@ const ShapeOptions: React.FC = () => {
       {/* Shape selector */}
       <ShapeSelector value={shapeType} onChange={handleShapeSelect} />
 
-      {renderColorPickers()}
-
-      {/* Border width */}
-      <NumberInputWithPopover
-        label="Width"
-        value={borderWidth}
-        onChange={setBorderWidth}
-        min={0}
-        max={20}
-        step={1}
-        suffix="px"
-      />
-
-      {/* Border style */}
-      <BorderStyleSelector value={borderStyle} onChange={setBorderStyle} />
-
-      {/* Corner radius (only for rounded rectangle) */}
-      {(shapeType === "rounded-rectangle") && (
-        <NumberInputWithPopover
-          label="Radius"
-          value={cornerRadius}
-          onChange={setCornerRadius}
-          min={0}
-          max={50}
-          step={1}
-          suffix="px"
-        />
-      )}
-
-      <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
-
       {/* Shape transform */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -701,6 +694,37 @@ const ShapeOptions: React.FC = () => {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {renderColorPickers()}
+
+      {/* Border width */}
+      <NumberInputWithPopover
+        label="Width"
+        value={borderWidth}
+        onChange={setBorderWidth}
+        min={0}
+        max={20}
+        step={1}
+        suffix="px"
+      />
+
+      {/* Border style */}
+      <BorderStyleSelector value={borderStyle} onChange={setBorderStyle} />
+
+      {/* Corner radius (only for rounded rectangle) */}
+      {(shapeType === "rounded-rectangle") && (
+        <NumberInputWithPopover
+          label="Radius"
+          value={cornerRadius}
+          onChange={setCornerRadius}
+          min={0}
+          max={50}
+          step={1}
+          suffix="px"
+        />
+      )}
+
+      <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
+
       {/* Upload custom image
       <Tooltip>
         <TooltipTrigger asChild>
@@ -722,6 +746,24 @@ const ShapeOptions: React.FC = () => {
           <p>Upload image</p>
         </TooltipContent>
       </Tooltip> */}
+
+      {/* Reset All Styles button */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center justify-center px-2 min-w-7 ml-3 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              onClick={resetAllStyles}
+            >
+              <span className="text-xs">Reset all</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Reset all shape styles</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };
