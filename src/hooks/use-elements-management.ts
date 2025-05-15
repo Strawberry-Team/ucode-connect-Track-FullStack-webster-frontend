@@ -16,10 +16,17 @@ export interface ElementsManagementProps {
   backgroundColor?: string;
   backgroundOpacity?: number;
   // Additional parameters for shapes
+  fillColor?: string;
+  fillColorOpacity?: number;
   borderColor?: string;
   borderWidth?: number;
   borderStyle?: BorderStyle;
   cornerRadius?: number;
+  shapeTransform?: {
+    rotate: number;
+    scaleX: number;
+    scaleY: number;
+  };
 }
 
 const useElementsManagement = ({
@@ -34,10 +41,13 @@ const useElementsManagement = ({
   lineHeight = 1,
   backgroundColor = "transparent",
   backgroundOpacity = 100,
+  fillColor = "#ffffff",
+  fillColorOpacity = 100,
   borderColor = "#000000",
   borderWidth = 2,
   borderStyle = "solid",
-  cornerRadius = 0
+  cornerRadius = 0,
+  shapeTransform = { rotate: 0, scaleX: 1, scaleY: 1 }
 }: ElementsManagementProps) => {
   const [elements, setElements] = useState<ElementData[]>([]);
   const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
@@ -59,6 +69,10 @@ const useElementsManagement = ({
       width: 100,
       height: 100,
       opacity: opacity / 100,
+      rotation: shapeTransform.rotate,
+      scaleX: shapeTransform.scaleX,
+      scaleY: shapeTransform.scaleY,
+      draggable: true,
     };
 
     // Add specific properties depending on the element type
@@ -93,18 +107,28 @@ const useElementsManagement = ({
     } else if (type === "rounded-rectangle") {
       const roundedRectElement: ElementData = {
         ...baseElement,
-        cornerRadius,
-        borderColor,
-        borderWidth,
-        borderStyle
+        cornerRadius: settings?.cornerRadius || cornerRadius,
+        fillColor: settings?.fillColor || fillColor,
+        fillColorOpacity: settings?.fillColorOpacity !== undefined ? settings.fillColorOpacity : fillColorOpacity,
+        borderColor: settings?.borderColor || borderColor,
+        borderWidth: settings?.borderWidth || borderWidth,
+        borderStyle: settings?.borderStyle || borderStyle,
+        rotation: settings?.rotation || shapeTransform.rotate,
+        scaleX: settings?.scaleX || shapeTransform.scaleX,
+        scaleY: settings?.scaleY || shapeTransform.scaleY
       };
       setElements([...elements, roundedRectElement]);
     } else if (["rectangle", "square", "circle", "triangle", "pentagon", "hexagon", "star", "heart", "arrow", "line", "squircle"].includes(type)) {
       const shapeElement: ElementData = {
         ...baseElement,
-        borderColor,
-        borderWidth,
-        borderStyle
+        fillColor: settings?.fillColor || fillColor,
+        fillColorOpacity: settings?.fillColorOpacity !== undefined ? settings.fillColorOpacity : fillColorOpacity,
+        borderColor: settings?.borderColor || borderColor,
+        borderWidth: settings?.borderWidth || borderWidth,
+        borderStyle: settings?.borderStyle || borderStyle,
+        rotation: settings?.rotation || shapeTransform.rotate,
+        scaleX: settings?.scaleX || shapeTransform.scaleX,
+        scaleY: settings?.scaleY || shapeTransform.scaleY
       };
       setElements([...elements, shapeElement]);
     } else {

@@ -260,7 +260,6 @@ const TextOptions: React.FC = () => {
 
   // Update textSettings when any property changes
   useEffect(() => {
-    console.log('Current fontStyles state:', fontStyles);
     setTextSettings({
       color,
       backgroundColor,
@@ -433,11 +432,11 @@ const TextOptions: React.FC = () => {
                 max="100"
                 value={textBgOpacity}
                 onChange={(e) => setTextBgOpacity(parseInt(e.target.value))}
-                className="w-full"
+                className="w-full p-0 m-0"
               />
               <Button
                 variant="ghost"
-                className="w-full mt-2 text-xs text-white"
+                className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
                 onClick={() => {
                   setTextBgColor('transparent');
                   setTextBgOpacity(0);
@@ -727,7 +726,7 @@ const TextOptions: React.FC = () => {
       {/* Text case */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
+          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 mr-5 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
             <Label className="text-xs text-white scale-120">
               {textCase === "none" ? <Baseline size={14} strokeWidth={1.5}/> :
                 textCase === "uppercase" ? <CaseUpper size={14} strokeWidth={1.5}/> :
@@ -822,7 +821,7 @@ const TextOptions: React.FC = () => {
       {/* Text alignment */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
+          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 mr-5 ml-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
             <Label className="text-xs text-white">
               {textAlignment === "left" ? <AlignLeft size={16} /> :
                 textAlignment === "center" ? <AlignCenter size={16} /> :
@@ -900,13 +899,15 @@ const TextOptions: React.FC = () => {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <div className="h-6 border-l border-[#44474AFF]"></div>
+
       {/* Reset All Styles button */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-1 hover:bg-[#3F434AFF] rounded cursor-pointer border-2 border-[#44474AFF] bg-[#1e1f22]"
+              className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] rounded cursor-pointer border-2 border-[#44474AFF] bg-[#1e1f22]"
               onClick={resetAllStyles}
             >
               <span className="text-xs text-white">Clear all</span>

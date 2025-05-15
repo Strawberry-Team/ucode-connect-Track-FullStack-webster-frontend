@@ -48,6 +48,7 @@ import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/comp
 import type { ShapeType, BorderStyle, Element } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ColorPicker from "@/components/color-picker/color-picker";
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
@@ -65,37 +66,37 @@ const scrollbarStyles = `
   }
 `;
 
-interface ColorPickerProps {
-  color: string;
-  setColor: (color: string) => void;
-}
+// interface ColorPickerProps {
+//   color: string;
+//   setColor: (color: string) => void;
+// }
 
-const ColorPicker: React.FC<ColorPickerProps> = ({ color, setColor }) => {
-  const presetColors = [
-    "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff",
-    "#ffff00", "#00ffff", "#ff00ff", "#c0c0c0", "#808080",
-    "#800000", "#808000", "#008000", "#800080", "#008080", "#000080",
-  ];
+// const ColorPicker: React.FC<ColorPickerProps> = ({ color, setColor }) => {
+//   const presetColors = [
+//     "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff",
+//     "#ffff00", "#00ffff", "#ff00ff", "#c0c0c0", "#808080",
+//     "#800000", "#808000", "#008000", "#800080", "#008080", "#000080",
+//   ];
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 rounded border border-gray-600" style={{ backgroundColor: color }} />
-        <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 p-0 border-0" />
-      </div>
-      <div className="grid grid-cols-8 gap-1">
-        {presetColors.map((presetColor) => (
-          <button
-            key={presetColor}
-            className="w-5 h-5 rounded border border-gray-600"
-            style={{ backgroundColor: presetColor }}
-            onClick={() => setColor(presetColor)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
+//   return (
+//     <div className="space-y-2">
+//       <div className="flex items-center space-x-2">
+//         <div className="w-8 h-8 rounded border border-gray-600" style={{ backgroundColor: color }} />
+//         <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 p-0 border-0" />
+//       </div>
+//       <div className="grid grid-cols-8 gap-1">
+//         {presetColors.map((presetColor) => (
+//           <button
+//             key={presetColor}
+//             className="w-5 h-5 rounded border border-gray-600"
+//             style={{ backgroundColor: presetColor }}
+//             onClick={() => setColor(presetColor)}
+//           />
+//         ))}
+//       </div>
+//     </div>
+//   );
+// };
 
 // Component for displaying a line style example
 const BorderStylePreview: React.FC<{ style: BorderStyle }> = ({ style }) => {
@@ -145,7 +146,7 @@ const ShapeIcon: React.FC<{ type: ShapeType; className?: string }> = ({ type, cl
     case "custom-image":
       return <FileImage className={className} />;
     default:
-      return <Square className={className} />;
+      return <RectangleHorizontal className={className} />;
   }
 };
 
@@ -188,7 +189,7 @@ const ShapeSelector: React.FC<{
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <ShapeIcon type={value} className="w-4 h-4 mr-1" />
             {/* <span>{shapeNames[value]}</span> */}
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -248,8 +249,7 @@ const BorderStyleSelector: React.FC<{
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <BorderStylePreview style={value} />
-            <span>{borderStyleNames[value]}</span>
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0">
@@ -279,12 +279,30 @@ declare global {
   }
 }
 
+// Define a type to track current shape settings
+interface ShapeSettings {
+  fillColor: string;
+  fillColorOpacity: number;
+  borderColor: string;
+  borderWidth: number;
+  borderStyle: BorderStyle;
+  cornerRadius: number;
+  opacity: number;
+  transform: {
+    rotate: number;
+    scaleX: number;
+    scaleY: number;
+  };
+}
+
 const ShapeOptions: React.FC = () => {
   const {
     setActiveElement,
     activeElement,
-    color,
-    setColor,
+    fillColor,
+    setFillColor,
+    fillColorOpacity,
+    setFillColorOpacity,
     borderColor,
     setBorderColor,
     borderWidth,
@@ -293,29 +311,95 @@ const ShapeOptions: React.FC = () => {
     setBorderStyle,
     cornerRadius,
     setCornerRadius,
-    opacity,
-    setOpacity
+    shapeType,
+    setShapeType,
+    shapeTransform,
+    setShapeTransform
   } = useTool();
 
-  const { selectedElementIndex, duplicateSelectedElement, removeSelectedElement, flipSelectedElementHorizontal, flipSelectedElementVertical, rotateSelectedElement } = useElementsManager();
+  const {
+    selectedElementIndex,
+    duplicateSelectedElement,
+    removeSelectedElement,
+    elements,
+    updateSelectedElementStyle,
+    flipSelectedElementHorizontal,
+    flipSelectedElementVertical,
+    rotateSelectedElement
+  } = useElementsManager();
 
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const [borderColorMenuOpen, setBorderColorMenuOpen] = useState(false);
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
+  const [showFillColorPicker, setShowFillColorPicker] = useState(false);
+  const [showBorderColorPicker, setShowBorderColorPicker] = useState(false);
 
   const defaultShapes: ShapeType[] = [
     "rectangle", "square", "rounded-rectangle", "squircle", "circle",
     "line", "triangle", "pentagon", "hexagon", "star", "heart", "arrow"
   ];
 
+  // Sync tool state with selected element
+  useEffect(() => {
+    if (selectedElementIndex !== null) {
+      const selectedElement = elements[selectedElementIndex];
+      if (selectedElement && selectedElement.type !== "text") {
+        // Update tool state with selected element properties
+        setFillColor(selectedElement.fillColor || "#ffffff");
+        setFillColorOpacity(selectedElement.fillColorOpacity !== undefined ? selectedElement.fillColorOpacity : 100);
+        setBorderColor(selectedElement.borderColor || "#000000");
+        setBorderWidth(selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 2);
+        setBorderStyle(selectedElement.borderStyle || "solid");
+        setCornerRadius(selectedElement.cornerRadius || 0);
+        setShapeTransform({
+          rotate: selectedElement.rotation || 0,
+          scaleX: selectedElement.scaleX || 1,
+          scaleY: selectedElement.scaleY || 1
+        });
+        setShapeType(selectedElement.type as ShapeType);
+      }
+    }
+  }, [selectedElementIndex, elements]);
+
+  // Update selected element when shape settings change
+  useEffect(() => {
+    if (selectedElementIndex !== null) {
+      const selectedElement = elements[selectedElementIndex];
+      if (selectedElement && selectedElement.type !== "text") {
+        const updatedStyles = {
+          fillColor,
+          fillColorOpacity,
+          borderColor,
+          borderWidth,
+          borderStyle,
+          cornerRadius: selectedElement.type === "rounded-rectangle" ? cornerRadius : undefined,
+          rotation: shapeTransform.rotate,
+          scaleX: shapeTransform.scaleX,
+          scaleY: shapeTransform.scaleY
+        };
+        
+        updateSelectedElementStyle(updatedStyles);
+      }
+    }
+  }, [
+    fillColor,
+    fillColorOpacity,
+    borderColor,
+    borderWidth,
+    borderStyle,
+    cornerRadius,
+    shapeTransform,
+    selectedElementIndex
+  ]);
+
   const handleShapeSelect = (type: ShapeType) => {
+    setShapeType(type);
     const shapeElement: Element = {
       id: type,
       type,
       icon: getShapeIcon(type)
     };
     setActiveElement(shapeElement);
-    setShapeMenuOpen(false);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -364,9 +448,118 @@ const ShapeOptions: React.FC = () => {
   };
 
   const handleAddShape = () => {
-    // Default to rectangle if no shape is selected
-    handleShapeSelect("rectangle");
+    handleShapeSelect(shapeType);
   };
+
+  // Handle transform operations
+  const handleFlipHorizontal = () => {
+    setShapeTransform({
+      ...shapeTransform,
+      scaleX: -shapeTransform.scaleX
+    });
+    flipSelectedElementHorizontal();
+  };
+
+  const handleFlipVertical = () => {
+    setShapeTransform({
+      ...shapeTransform,
+      scaleY: -shapeTransform.scaleY
+    });
+    flipSelectedElementVertical();
+  };
+
+  const handleRotate = (degrees: number) => {
+    setShapeTransform({
+      ...shapeTransform,
+      rotate: shapeTransform.rotate + degrees
+    });
+    rotateSelectedElement(degrees);
+  };
+
+  // Replace the existing color picker buttons with new ones
+  const renderColorPickers = () => (
+    <>
+      {/* Fill Color Picker */}
+      <div className="relative">
+        <Button
+          variant="ghost"
+          className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+          onClick={() => setShowFillColorPicker(!showFillColorPicker)}
+        >
+          <p className="text-xs text-[#D4D4D5FF]">Fill</p>
+          <div
+            className="w-5 h-5 rounded-xl border border-gray-500"
+            style={{ backgroundColor: fillColor == 'transparent' ? '#ffffff' : fillColor }}
+          />
+        </Button>
+        {showFillColorPicker && (
+          <div className="absolute z-50 top-full left-0 mt-2">
+            <ColorPicker
+              color={fillColor == 'transparent' ? '#ffffff' : fillColor}
+              setColor={(newColor) => {
+                setFillColor(newColor);
+              }}
+              onClose={() => setShowFillColorPicker(false)}
+            />
+
+            {/* Fill opacity control */}
+            <div className="mt-2 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
+              <div className="flex justify-between items-center mb-1">
+                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
+                <span className="text-xs text-[#D4D4D5FF]">{fillColorOpacity}%</span>
+              </div>
+              <Input
+                type="range"
+                min="0"
+                max="100"
+                value={fillColorOpacity}
+                onChange={(e) => setFillColorOpacity(parseInt(e.target.value))}
+                className="w-full p-0 m-0"
+              />
+              <Button
+                variant="ghost"
+                className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
+                onClick={() => {
+                  setFillColor('transparent');
+                  setFillColorOpacity(100);
+                }}
+              >
+                Transparent
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="h-6 border-l border-[#44474AFF]"></div>
+
+      {/* Border Color Picker */}
+      <div className="relative">
+        <Button
+          variant="ghost"
+          className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+          onClick={() => setShowBorderColorPicker(!showBorderColorPicker)}
+        >
+          <p className="text-xs text-[#D4D4D5FF]">Border</p>
+          <div
+            className="w-5 h-5 rounded-xl border border-gray-500"
+            style={{ backgroundColor: borderColor }}
+          />
+        </Button>
+        {showBorderColorPicker && (
+          <div className="absolute z-50 top-full left-0 mt-2">
+            <ColorPicker
+              color={borderColor}
+              setColor={(newColor) => {
+                setBorderColor(newColor);
+              }}
+              onClose={() => setShowBorderColorPicker(false)}
+            />
+          </div>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="flex space-x-2 items-center h-full text-xs">
@@ -420,89 +613,9 @@ const ShapeOptions: React.FC = () => {
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
       {/* Shape selector */}
-      <ShapeSelector value={activeElement?.type as ShapeType || "rectangle"} onChange={handleShapeSelect} />
+      <ShapeSelector value={shapeType} onChange={handleShapeSelect} />
 
-      {/* Fill color
-      <Popover open={colorMenuOpen} onOpenChange={setColorMenuOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
-            <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: color }} />
-            <span>Fill</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
-          <ColorPicker color={color} setColor={setColor} />
-        </PopoverContent>
-      </Popover> */}
-
-      {/* Fill color picker */}
-      <Popover open={colorMenuOpen} onOpenChange={setColorMenuOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
-          <p className="text-xs text-[#D4D4D5FF]">Fill</p>
-            <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: color === 'transparent' ? '#ffffff' : color }} />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
-          <div className="space-y-5">
-
-            {/* Fill color opacity slider */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
-                <span className="text-xs text-[#D4D4D5FF]">{opacity}%</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={opacity ?? 100}
-                  onChange={(e) => handleOpacityChange(parseInt(e.target.value))}
-                  className="h-1.5 w-full p-0 m-0"
-                />
-              </div>
-            </div>
-
-            {/* Transparent option */}
-            <Button
-              variant="ghost"
-              className="text-xs text-white rounded hover:bg-[#3F434AFF] w-full h-7 border-2 border-[#44474AFF]"
-              onClick={() => setColor('transparent')}
-            >
-              Transparent background
-            </Button>
-
-            <ColorPicker color={color === 'transparent' ? '#ffffff' : color} setColor={setColor} />
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Opacity
-      <NumberInputWithPopover 
-        label="Opacity" 
-        value={opacity} 
-        onChange={handleOpacityChange} 
-        min={0} 
-        max={100} 
-        step={1} 
-        suffix="%" 
-      /> */}
-
-      <div className="h-6 border-l border-[#44474AFF]"></div>
-
-      {/* Border color */}
-      <Popover open={borderColorMenuOpen} onOpenChange={setBorderColorMenuOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]">
-            <p className="text-xs text-[#D4D4D5FF]">Border</p>
-            <div className="w-5 h-5 rounded-xl border border-gray-500" style={{ backgroundColor: borderColor }} />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3 bg-[#292C31FF] border-2 border-[#44474AFF]">
-          <ColorPicker color={borderColor} setColor={setBorderColor} />
-        </PopoverContent>
-      </Popover>
+      {renderColorPickers()}
 
       {/* Border width */}
       <NumberInputWithPopover
@@ -519,7 +632,7 @@ const ShapeOptions: React.FC = () => {
       <BorderStyleSelector value={borderStyle} onChange={setBorderStyle} />
 
       {/* Corner radius (only for rounded rectangle) */}
-      {(activeElement?.type === "rounded-rectangle") && (
+      {(shapeType === "rounded-rectangle") && (
         <NumberInputWithPopover
           label="Radius"
           value={cornerRadius}
@@ -531,15 +644,14 @@ const ShapeOptions: React.FC = () => {
         />
       )}
 
-      <div className="h-6 border-l border-[#44474AFF]"></div>
+      <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
 
-      {/* Text alignment */}
+      {/* Shape transform */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className={`flex items-center h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <Button variant="ghost" className={`flex items-center min-w-7 min-h-7 px-2 gap-2 mr-5 text-xs text-white rounded hover:bg-[#3F434AFF] ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <Label className="text-xs text-[#D4D4D5FF]">Transform</Label>
-            {/* <Type size={14} /> */}
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[100px] grid grid-cols-3">
@@ -547,10 +659,9 @@ const ShapeOptions: React.FC = () => {
           {/* Transform controls */}
           <Tooltip>
             <TooltipTrigger asChild>
-              
               <DropdownMenuItem
                 className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={flipSelectedElementHorizontal}
+                onClick={handleFlipHorizontal}
                 disabled={selectedElementIndex !== null}>
                 <FlipHorizontal size={14} color="white" />
               </DropdownMenuItem>
@@ -564,7 +675,7 @@ const ShapeOptions: React.FC = () => {
             <TooltipTrigger asChild>
               <DropdownMenuItem
                 className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={flipSelectedElementVertical}
+                onClick={handleFlipVertical}
                 disabled={selectedElementIndex !== null}>
                 <FlipVertical size={14} color="white" />
               </DropdownMenuItem>
@@ -578,7 +689,7 @@ const ShapeOptions: React.FC = () => {
             <TooltipTrigger asChild>
               <DropdownMenuItem
                 className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${selectedElementIndex !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => rotateSelectedElement(90)}
+                onClick={() => handleRotate(90)}
                 disabled={selectedElementIndex !== null}>
                 <RotateCcw size={14} color="white" />
               </DropdownMenuItem>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react"
-import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle } from "@/types/canvas"
+import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType } from "@/types/canvas"
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 
@@ -58,7 +58,12 @@ interface ToolContextValue {
   setBackgroundColor: (color: string) => void
   backgroundOpacity: number
   setBackgroundOpacity: (opacity: number) => void
+  
   // Additional parameters for shapes
+  fillColor: string
+  setFillColor: (color: string) => void
+  fillColorOpacity: number
+  setFillColorOpacity: (opacity: number) => void
   borderColor: string
   setBorderColor: (color: string) => void
   borderWidth: number
@@ -88,6 +93,16 @@ interface ToolContextValue {
 
   initialImage: InitialImage | null;
   setInitialImage: (image: InitialImage | null) => void;
+
+  // Shape settings
+  shapeType: ShapeType
+  setShapeType: (type: ShapeType) => void
+  shapeTransform: {
+    rotate: number
+    scaleX: number
+    scaleY: number
+  }
+  setShapeTransform: (transform: { rotate: number; scaleX: number; scaleY: number }) => void
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -135,6 +150,16 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [borderWidth, setBorderWidth] = useState(2)
   const [borderStyle, setBorderStyle] = useState<BorderStyle>("solid")
   const [cornerRadius, setCornerRadius] = useState(0)
+  const [fillColor, setFillColor] = useState("#ffffff")
+  const [fillColorOpacity, setFillColorOpacity] = useState(0)
+
+  // Shape settings state
+  const [shapeType, setShapeType] = useState<ShapeType>("rectangle")
+  const [shapeTransform, setShapeTransform] = useState({
+    rotate: 0,
+    scaleX: 1,
+    scaleY: 1
+  })
 
   const swapColors = () => {
     const tempColor = color
@@ -215,6 +240,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBorderStyle,
         cornerRadius,
         setCornerRadius,
+        fillColor,
+        setFillColor,
+        fillColorOpacity,
+        setFillColorOpacity,
 
         brushMirrorMode,
         setBrushMirrorMode,
@@ -234,6 +263,12 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsCanvasManuallyResized,
         initialImage,
         setInitialImage,
+
+        // Shape settings
+        shapeType,
+        setShapeType,
+        shapeTransform,
+        setShapeTransform,
       }}
     >
       {children}

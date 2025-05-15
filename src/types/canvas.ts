@@ -75,6 +75,8 @@ export interface ElementData {
   backgroundColor?: string;
   backgroundOpacity?: number;
   // Additional properties for shapes
+  fillColor?: string;
+  fillColorOpacity?: number;
   borderColor?: string;
   borderWidth?: number;
   borderStyle?: BorderStyle;
