@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from "@/components/header/header";
 import Canvas from "@/components/canvas/canvas";
 import { ToolProvider, useTool } from "@/context/tool-context";
@@ -8,6 +8,7 @@ import PropertiesPanel from "@/components/tool-controls/properties-panel";
 import { ElementsManagerProvider } from "@/context/elements-manager-context";
 import DashboardPage from "@/components/dashboard/dashboard-page";
 import RightToolbar from "@/components/right-toolbar/right-toolbar";
+import { Toaster } from "@/components/ui/sonner";
 
 // Компонент для основной страницы с холстом
 const CanvasPage: React.FC = () => {
@@ -72,6 +73,7 @@ const App: React.FC = () => {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/canvas" element={<CanvasPage />} />
         </Routes>
+        <Toaster position="top-center" />
       </ToolProvider>
     </Router>
   );

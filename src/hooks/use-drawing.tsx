@@ -4,6 +4,7 @@ import { calculateEffectiveEraserSize, calculateEraserPressure } from "@/utils/c
 import type { MirrorMode } from "@/context/tool-context";
 import { useTool } from "@/context/tool-context";
 import { Brush, Eraser } from "lucide-react";
+import { toast } from "sonner";
 
 export interface DrawingProps {
   color: string;
@@ -37,7 +38,7 @@ const useDrawing = ({
   const isDrawing = useRef(false);
   const centerX = canvasWidth / 2;
   const centerY = canvasHeight / 2;
-  const { addHistoryEntry } = useTool();
+  const { addHistoryEntry, history, currentHistoryIndex } = useTool();
 
   const getCurrentMirrorMode = (): MirrorMode => {
     if (activeToolType === 'brush') {
@@ -82,6 +83,13 @@ const useDrawing = ({
     isDrawing.current = true;
 
     const currentMirrorMode = getCurrentMirrorMode();
+
+    if (currentHistoryIndex < history.length - 1 && history.length > 0) {
+      toast.info("History changed", {
+        description: "You will not be able to revert to the undone changes",
+        duration: 5000,
+      });
+    }
 
     if (tool === "brush") {
       const currentColor = isRightClick ? secondaryColor : color;
@@ -193,7 +201,6 @@ const useDrawing = ({
         historyEntryType = 'eraserStroke';
       }
       
-      // Создаем копию текущих линий для истории
       const linesSnapshot = lines.map(line => ({ ...line, points: [...line.points] }));
 
       addHistoryEntry({ type: historyEntryType, description, linesSnapshot });
