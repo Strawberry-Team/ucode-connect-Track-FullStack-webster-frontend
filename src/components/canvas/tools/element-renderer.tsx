@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
-import { Rect, Circle, RegularPolygon, Star, Line, Text, Group, Transformer, Shape } from "react-konva";
-import type { ElementData, TextCase, BorderStyle } from "@/types/canvas";
-import type Konva from "konva";
+import { Rect, Circle, RegularPolygon, Star, Line, Text, Group, Transformer, Shape, Image as KonvaImage } from "react-konva";
+import type { ElementData, TextCase, BorderStyle, ShapeType } from "@/types/canvas";
+import Konva from "konva";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useTool } from "@/context/tool-context";
 
 interface ElementRendererProps {
   element: ElementData;
-  index: number;
-  onDragEnd?: (index: number, newX: number, newY: number) => void;
-  onClick?: (index: number, e: Konva.KonvaEventObject<MouseEvent>) => void;
-  onTextEdit?: (index: number, newText: string) => void;
-  onTransform?: (index: number, newAttrs: Partial<ElementData>) => void;
+  onDragEnd?: (id: string, newX: number, newY: number) => void;
+  onClick?: (id: string, e: Konva.KonvaEventObject<MouseEvent>) => void;
+  onTextEdit?: (id: string, newText: string) => void;
+  onTransform?: (id: string, newAttrs: Partial<ElementData>) => void;
   isSelected?: boolean;
 }
 
@@ -54,25 +54,17 @@ const getTextDecoration = (element: ElementData): string => {
 };
 
 // Function to get border/stroke style
-const getBorderStyle = (borderStyle: BorderStyle = "solid", borderWidth: number = 1): { dash?: number[], dashEnabled?: boolean, shadowOffset?: { x: number, y: number }, shadowColor?: string, shadowBlur?: number } => {
+const getBorderStyleProperties = (borderStyle: BorderStyle = "solid", borderWidth: number = 1): { dash?: number[], dashEnabled?: boolean } => {
   switch (borderStyle) {
     case "dashed":
-      return { dash: [10, 5], dashEnabled: true };
+      return { dash: [borderWidth * 3, borderWidth * 2], dashEnabled: true };
     case "dotted":
-      return { dash: [2, 2], dashEnabled: true };
-    case "double":
-      if (borderWidth > 2) {
-        return {
-          shadowOffset: { x: 0, y: 0 },
-          shadowColor: "inherit",
-          shadowBlur: borderWidth * 0.5
-        };
-      }
-      return {};
+      return { dash: [borderWidth, borderWidth], dashEnabled: true };
     case "hidden":
     case "solid":
+    case "double": 
     default:
-      return {};
+      return { dashEnabled: false };
   }
 };
 
@@ -113,300 +105,349 @@ const ColorFormatSelector = ({ format, setFormat }: { format: string, setFormat:
   </DropdownMenu>
 );
 
+// Helper function to convert hex/rgb/named color and opacity (0-100) to RGBA string
+const convertColorToRGBA = (color: string | undefined, opacityPercent: number | undefined): string => {
+  if (color === undefined || color === 'transparent') {
+    return 'rgba(0,0,0,0)'; // Or handle as fully transparent or default
+  }
+  if (opacityPercent === undefined) {
+    return color; // No opacity change
+  }
+
+  const opacity = Math.max(0, Math.min(100, opacityPercent)) / 100;
+
+  // Use Konva's parser if available, otherwise a simpler one
+  if (window.Konva && window.Konva.Util) {
+    const parsed = window.Konva.Util.getRGB(color);
+    return `rgba(${parsed.r},${parsed.g},${parsed.b},${opacity})`;
+  } else {
+    // Basic fallback for hex (very simplified)
+    let r = 0, g = 0, b = 0;
+    if (color.startsWith('#')) {
+      const hex = color.substring(1);
+      if (hex.length === 3) {
+        r = parseInt(hex[0] + hex[0], 16);
+        g = parseInt(hex[1] + hex[1], 16);
+        b = parseInt(hex[2] + hex[2], 16);
+      } else if (hex.length === 6) {
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
+      }
+    }
+    // This fallback doesn't handle named colors or rgb() strings well without Konva
+    // For simplicity, if not hex, and Konva isn't there, it might not apply opacity correctly.
+    // Consider a more robust color parsing library if Konva.Util is not guaranteed.
+    if (r === 0 && g === 0 && b === 0 && !color.startsWith('#')) {
+        // Could be a named color, return as is with warning or try to use a canvas context to parse
+        console.warn("Basic color parser cannot derive RGB from named color without Konva: ", color);
+        return color; // Or apply opacity if it's a CSS context that understands it.
+    }
+    return `rgba(${r},${g},${b},${opacity})`;
+  }
+};
+
 const ElementRenderer: React.FC<ElementRendererProps> = ({
   element,
-  index,
   onDragEnd,
   onClick,
   onTextEdit,
   onTransform,
   isSelected
 }) => {
+  const { activeTool } = useTool();
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(element.text || "");
-  const shapeRef = useRef<Konva.Shape>(null);
-  const rectRef = useRef<Konva.Rect>(null);
-  const circleRef = useRef<Konva.Circle>(null);
-  const lineRef = useRef<Konva.Line>(null);
-  const polygonRef = useRef<Konva.RegularPolygon>(null);
-  const starRef = useRef<Konva.Star>(null);
-  const textRef = useRef<Konva.Text | null>(null);
+  
+  // Consolidate refs
+  const nodeRef = useRef<Konva.Shape | Konva.Group | Konva.Text | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  const groupRef = useRef<Konva.Group | null>(null);
+  const textNodeRef = useRef<Konva.Text | null>(null); // Ref for direct Konva.Text node access
 
-  // Effect for transformer
+  const canInteractWithElement = useCallback(() => {
+    if (!activeTool) return true;
+    if (activeTool.type === "cursor") return true;
+    
+    const elementType = element.type as ShapeType | "text" | "custom-image";
+
+    if (elementType === "text") {
+      return activeTool.type === "text";
+    }
+    if (activeTool.type === "shape") {
+      return true; 
+    }
+    return false;
+  }, [activeTool, element.type]);
+
   useEffect(() => {
-    if (!isSelected || !transformerRef.current) {
-      return;
-    }
-
-    let targetNode = null;
-    if (element.type === "text" && groupRef.current) {
-      targetNode = groupRef.current;
-      // Configure transformer for text elements
-      transformerRef.current.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']);
-      transformerRef.current.rotateEnabled(true);
-      transformerRef.current.rotationSnaps([0, 45, 90, 135, 180, 225, 270, 315]);
-      transformerRef.current.rotationSnapTolerance(5);
-      transformerRef.current.padding(5);
-      transformerRef.current.boundBoxFunc((oldBox, newBox) => {
-        // Maintain minimum size
-        newBox.width = Math.max(50, newBox.width);
-        newBox.height = Math.max(20, newBox.height);
-        return newBox;
-      });
-    } else if (element.type === "heart" && groupRef.current) {
-      targetNode = groupRef.current;
-    } else if (element.type === "rectangle" || element.type === "square" ||
-      element.type === "rounded-rectangle" || element.type === "squircle") {
-      targetNode = rectRef.current;
-    } else if (element.type === "circle") {
-      targetNode = circleRef.current;
-    } else if (element.type === "line" || element.type === "arrow") {
-      targetNode = lineRef.current;
-    } else if (element.type === "triangle" || element.type === "pentagon" || element.type === "hexagon") {
-      targetNode = polygonRef.current;
-    } else if (element.type === "star") {
-      targetNode = starRef.current;
-    } else if (shapeRef.current) {
-      targetNode = shapeRef.current;
-    }
-
-    if (!targetNode) return;
-
-    transformerRef.current.nodes([targetNode]);
-    transformerRef.current.getLayer()?.batchDraw();
-  }, [isSelected, element.type]);
-
-  // Handler for end of transformation
-  const handleTransformEnd = () => {
-    if (!onTransform || !groupRef.current) return;
-
-    // let newAttrs: Partial<ElementData> = {};
-    // let node: any = null;
-
-    // if (element.type === "text" && textRef.current) {
-    //   node = textRef.current;
+    if (isSelected && transformerRef.current && nodeRef.current && canInteractWithElement()) {
+      const tr = transformerRef.current;
+      const node = nodeRef.current; // This is the Group for text elements
       
-    //   // Calculate new dimensions while preserving text properties
-    //   const scaleX = node.scaleX();
-    //   const scaleY = node.scaleY();
-    //   const rotation = node.rotation();
+      // Reset transformer first
+      tr.detach();
       
-    //   // Update container dimensions
-    //   newAttrs = {
-    //     x: node.x(),
-    //     y: node.y(),
-    //     width: Math.max(50, node.width() * Math.abs(scaleX)),
-    //     height: Math.max(20, node.height() * Math.abs(scaleY)),
-    //     rotation: rotation,
-    //     // Reset scale to prevent text distortion
-    //     scaleX: 1,
-    //     scaleY: 1,
-    //     // Preserve all text properties
-    //     fontSize: element.fontSize,
-    //     fontFamily: element.fontFamily,
-    //     fontStyles: element.fontStyles,
-    //     textCase: element.textCase,
-    //     textAlignment: element.textAlignment,
-    //     lineHeight: element.lineHeight,
-    //     color: element.color,
-    //     backgroundColor: element.backgroundColor,
-    //     backgroundOpacity: element.backgroundOpacity,
-    //     borderColor: element.borderColor,
-    //     borderWidth: element.borderWidth,
-    //     borderStyle: element.borderStyle
-    //   };
-    // } else if (element.type === "heart" && groupRef.current) {
-    //   node = groupRef.current;
-    // } else if (element.type === "rectangle" || element.type === "square" ||
-    //   element.type === "rounded-rectangle" || element.type === "squircle") {
-    //   node = rectRef.current;
-    // } else if (element.type === "circle") {
-    //   node = circleRef.current;
-    // } else if (element.type === "line" || element.type === "arrow") {
-    //   node = lineRef.current;
-    // } else if (element.type === "triangle" || element.type === "pentagon" || element.type === "hexagon") {
-    //   node = polygonRef.current;
-    // } else if (element.type === "star") {
-    //   node = starRef.current;
-    // } else {
-    //   node = shapeRef.current;
-    // }
-
-    // if (!node) return;
-
-    // if (element.type === "circle" || element.type === "triangle" ||
-    //   element.type === "pentagon" || element.type === "hexagon" ||
-    //   element.type === "star") {
-    //   // For shapes that use radius
-    //   const scale = Math.max(Math.abs(node.scaleX()), Math.abs(node.scaleY()));
-    //   const width = element.width * scale;
-    //   const height = element.height * scale;
-    //   const centerX = node.x();
-    //   const centerY = node.y();
-
-    //   newAttrs = {
-    //     x: centerX - width / 2,
-    //     y: centerY - height / 2,
-    //     width,
-    //     height,
-    //     rotation: node.rotation(),
-    //     scaleX: 1,
-    //     scaleY: 1
-    //   };
-    // } else {
-    //   // For rectangles and other shapes
-    //   newAttrs = {
-    //     x: node.x(),
-    //     y: node.y(),
-    //     width: Math.max(10, node.width() * Math.abs(node.scaleX())),
-    //     height: Math.max(10, node.height() * Math.abs(node.scaleY())),
-    //     rotation: node.rotation(),
-    //     scaleX: node.scaleX() < 0 ? -1 : 1, // Keep sign for reflection
-    //     scaleY: node.scaleY() < 0 ? -1 : 1
-    //   };
-    // }
-    
-    
-    const node = groupRef.current;
-    const scaleX = node.scaleX();
-    const scaleY = node.scaleY();
-
-    // Reset scale to prevent accumulation
-    node.scaleX(1);
-    node.scaleY(1);
-
-    const newAttrs = {
-      x: node.x(),
-      y: node.y(),
-      width: Math.max(20, node.width() * Math.abs(scaleX)),
-      height: Math.max(20, node.height() * Math.abs(scaleY)),
-      rotation: node.rotation(),
-    };
-
-    onTransform(index, newAttrs);
-  };
-
-  // Common properties for all element types
-  const commonProps = {
-    draggable: true,
-    opacity: element.opacity,
-    fill: element.color,
-    stroke: element.borderColor,
-    strokeWidth: element.borderWidth || 0,
-    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // Stop event propagation to prevent clicking on the stage
-      e.cancelBubble = true;
+      // Create a new configuration
+      tr.nodes([node]);
       
-      // For text elements, start editing with a single click
-      if (element.type === "text" && !isEditing) {
-        handleTextEdit(e);
+      // Enable rotation for all elements
+      tr.rotateEnabled(true);
+      
+      // Handle aspect ratio differently for different shapes
+      if (element.type === 'rectangle' 
+          || element.type === 'text' 
+          || element.type === 'rounded-rectangle' 
+          || element.type === 'squircle'
+          || element.type === 'line'
+          || element.type === 'arrow') {
+        // Allow rectangle, text, and rounded-rectangle to be freely resized without keeping aspect ratio
+        tr.keepRatio(false);
+      } else {
+        // Keep aspect ratio for other shapes
+        tr.keepRatio(true);
       }
       
-      // Handle click on the element
-      onClick?.(index, e);
+      // Enable all anchors
+      tr.enabledAnchors([
+        'top-left', 'top-center', 'top-right',
+        'middle-left', 'middle-right',
+        'bottom-left', 'bottom-center', 'bottom-right'
+      ]);
+      
+      // Set rotation snapping
+      tr.rotationSnaps([0, 45, 90, 135, 180, 225, 270, 315]);
+      tr.rotationSnapTolerance(5);
+      
+      // Visual properties
+      tr.borderDash([3, 3]);
+      tr.anchorStroke('#0096FF');
+      tr.anchorFill('#FFFFFF');
+      tr.anchorSize(8);
+      tr.borderStroke('#0096FF');
+      
+      // Adjust padding based on element type
+      const paddingValue = element.type === 'text' ? 5 : (element.type === 'custom-image' ? 0 : 2);
+      tr.padding(paddingValue);
+      
+      // Make rotation anchor more visible
+      tr.rotateAnchorOffset(30);
+      
+      // Set minimum size and handle aspect ratio in boundBoxFunc if keepRatio is true
+      const currentKeepRatio = tr.keepRatio();
+      tr.boundBoxFunc((oldBox, newBox) => {
+        newBox.width = Math.max(20, newBox.width);
+        newBox.height = Math.max(20, newBox.height);
+
+        if (currentKeepRatio) {
+          const aspectRatio = oldBox.width / oldBox.height;
+          if (Math.abs(newBox.width / newBox.height - aspectRatio) > 1e-2) { // Check if aspect ratio changed significantly
+            //哪个改变的更多，就以哪个为准
+            const widthChangedMore = Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height);
+            if (widthChangedMore) {
+              newBox.height = newBox.width / aspectRatio;
+            } else {
+              newBox.width = newBox.height * aspectRatio;
+            }
+          }
+        }
+        return newBox;
+      });
+      
+      // Force redraw
+      tr.getLayer()?.batchDraw();
+
+      const handleContinuousTransform = () => {
+        if (element.type === 'text' && node instanceof Konva.Group && textNodeRef.current) {
+          const groupNode = node as Konva.Group;
+          const konvaTextNode = textNodeRef.current;
+          
+          const designWidth = element.width || 0;
+          const designHeight = element.height || 0;
+          const originalFontSize = element.fontSize || 16;
+
+          const groupScaleX = groupNode.scaleX();
+          const groupScaleY = groupNode.scaleY();
+          
+          // Calculate new dimensions based on the group's scale
+          const newWidth = designWidth * Math.abs(groupScaleX);
+          const newHeight = designHeight * Math.abs(groupScaleY);
+
+          // Set the text node's attributes
+          konvaTextNode.setAttrs({
+            fontSize: originalFontSize, // Keep original font size
+            width: newWidth / Math.abs(groupScaleX), // Adjust width for text reflow
+            height: newHeight / Math.abs(groupScaleY), // Adjust height for text reflow
+            scaleX: 1,
+            scaleY: 1
+          });
+
+          // Force redraw
+          konvaTextNode.getLayer()?.batchDraw();
+        }
+      };
+
+      tr.on('transform', handleContinuousTransform);
+
+      // Cleanup listener when effect re-runs or component unmounts
+      return () => {
+        tr.off('transform', handleContinuousTransform);
+      };
+
+    } else if (transformerRef.current) {
+      transformerRef.current.detach();
+      transformerRef.current.getLayer()?.batchDraw();
+    }
+  }, [isSelected, element, canInteractWithElement]); // element contains fontSize, type etc.
+
+  const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
+    const node = nodeRef.current;
+    if (node && onTransform && canInteractWithElement()) {
+      const baseScaleX = element.scaleX ?? 1;
+      const baseScaleY = element.scaleY ?? 1;
+
+      let newVisualWidth = node.width() * node.scaleX();
+      let newVisualHeight = node.height() * node.scaleY();
+      const newRotation = node.rotation();
+      
+      const newDesignWidth = Math.max(20, Math.abs(newVisualWidth / baseScaleX));
+      const newDesignHeight = Math.max(20, Math.abs(newVisualHeight / baseScaleY));
+      
+      node.scaleX(baseScaleX); // Reset to base flip state
+      node.scaleY(baseScaleY); // Reset to base flip state
+      
+      let newElementX: number;
+      let newElementY: number;
+
+      const type = element.type as ShapeType | "text" | "custom-image";
+      
+      // Case 1: Node was centered using offsetX/Y (current Text and CustomImage)
+      if (node.offsetX() > 0 || node.offsetY() > 0) {
+          // node.x() is the center. Calculate top-left for ElementData.
+          const visualWForOffset = newDesignWidth * Math.abs(baseScaleX);
+          const visualHForOffset = newDesignHeight * Math.abs(baseScaleY);
+          newElementX = node.x() - visualWForOffset / 2;
+          newElementY = node.y() - visualHForOffset / 2;
+      }
+      // Case 2: Node's x,y props were set to its visual center, but no offsetX/Y were used
+      // (Circle, Triangle, Pentagon, Hexagon, Star as per new rendering)
+      else if (type === 'circle' || type === 'triangle' || type === 'pentagon' || type === 'hexagon' || type === 'star') {
+          // node.x() is the center. Calculate top-left for ElementData.
+          const visualW = newDesignWidth * Math.abs(baseScaleX);
+          const visualH = newDesignHeight * Math.abs(baseScaleY);
+          newElementX = node.x() - visualW / 2;
+          newElementY = node.y() - visualH / 2;
+      } 
+      // Case 3: Node's x,y props were top-left (Rects, Lines, Heart Group, Arrow as per new rendering)
+      else {
+          newElementX = node.x();
+          newElementY = node.y();
+      }
+      
+      const newAttrs: Partial<ElementData> = {
+        width: newDesignWidth,
+        height: newDesignHeight,
+        x: newElementX,
+        y: newElementY,
+        rotation: newRotation,
+      };
+      
+      console.log(`Transform completed for ${element.id} (type: ${type}):`, {
+        newDesignWidth, newDesignHeight, newElementX, newElementY, newRotation,
+        nodePos: { x: node.x(), y: node.y() }, 
+        nodeOffsets: { x: node.offsetX(), y: node.offsetY() },
+        finalNodeScale: { x: node.scaleX(), y: node.scaleY() }, // Should reflect baseScaleX/Y
+        element: {...element} 
+      });
+      
+      onTransform(element.id, newAttrs);
+    }
+  };
+
+  const commonProps = {
+    id: element.id,
+    draggable: canInteractWithElement(),
+    opacity: element.opacity ?? 1,
+    stroke: element.borderColor,
+    strokeWidth: element.borderStyle === 'hidden' ? 0 : element.borderWidth ?? 0,
+    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      e.cancelBubble = true; 
+      onClick?.(element.id, e);
+      if (element.type === "text" && activeTool?.type === "text" && !isEditing && canInteractWithElement()) {
+        handleTextEdit(e);
+      }
+    },
+    onDblClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (element.type === "text" && canInteractWithElement()) {
+        handleTextEdit(e);
+      }
     },
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
-      if (onDragEnd) {
-        const node = e.target;
-        onDragEnd(index, node.x(), node.y());
+      if (onDragEnd && canInteractWithElement()) {
+        onDragEnd(element.id, e.target.x(), e.target.y());
       }
     },
     onTransformEnd: handleTransformEnd,
     rotation: element.rotation || 0,
-    scaleX: element.scaleX || 1,
-    scaleY: element.scaleY || 1
+    scaleX: element.scaleX ?? 1,
+    scaleY: element.scaleY ?? 1,
   };
+  
+  const borderStyleProps = getBorderStyleProperties(element.borderStyle, element.borderWidth);
 
-  // For text elements, we create a separate set of properties to ensure proper scaling
-  const textProps = {
-    ...commonProps,
-    // Override scaleX and scaleY to always be 1 for text to prevent distortion
-    scaleX: 1,
-    scaleY: 1,
-  };
-
-  // Handle border styles
   const getStrokeStyles = () => {
-    const borderStyleProps = getBorderStyle(element.borderStyle, element.borderWidth);
-
-    if (element.borderStyle === "hidden") {
-      return {
-        dash: borderStyleProps.dash,
-        dashEnabled: borderStyleProps.dashEnabled,
-        stroke: element.borderColor,
-        strokeWidth: 0
-      };
-    } else if (element.borderStyle === "double" && element.borderWidth && element.borderWidth > 2) {
-      // For double border we create an effect with inner and outer stroke
-      return {
-        stroke: element.borderColor,
-        strokeWidth: Math.ceil(element.borderWidth * 0.6),
-        shadowColor: element.borderColor,
-        shadowBlur: 0,
-        shadowOffsetX: 0,
-        shadowOffsetY: 0,
-        shadowOpacity: 1,
-        shadowEnabled: true,
-        // Create inner stroke effect
-        dashEnabled: false
-      };
-    } else if (element.borderStyle === "dotted" || element.borderStyle === "dashed") {
-      return {
-        dash: borderStyleProps.dash,
-        dashEnabled: borderStyleProps.dashEnabled,
-        stroke: element.borderColor,
-        strokeWidth: element.borderWidth || 0
-      };
-    } else {
-      return {
-        stroke: element.borderColor,
-        strokeWidth: element.borderWidth || 0
-      };
+    if (element.borderStyle === "hidden" || !element.borderWidth || element.borderWidth === 0) {
+      return { strokeWidth: 0, dashEnabled: false };
     }
+    const borderColorWithOpacity = convertColorToRGBA(element.borderColor, element.borderColorOpacity);
+
+    if (element.borderStyle === "double" && element.borderWidth && element.borderWidth > 1) {
+        return {
+            stroke: borderColorWithOpacity, 
+            strokeWidth: element.borderWidth / 2,
+            shadowColor: borderColorWithOpacity,
+            shadowBlur: 0,
+            shadowOffsetX: element.borderWidth / 2,
+            shadowOffsetY: element.borderWidth / 2,
+            shadowOpacity: 1,
+            dashEnabled: false,
+            shadowEnabled: true
+        };
+    }
+    return {
+      stroke: borderColorWithOpacity,
+      strokeWidth: element.borderWidth,
+      ...borderStyleProps
+    };
   };
 
-  // Handler for text editing (used for both single and double click)
   const handleTextEdit = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (element.type !== "text") return;
-    
-    // Stop event propagation
+    if (element.type !== "text" || !canInteractWithElement()) return;
     e.cancelBubble = true;
-    
     setIsEditing(true);
-    
-    // Clear the placeholder text on first edit
     const currentText = element.text || "";
     const isPlaceholder = currentText === "Type text here...";
     setEditText(isPlaceholder ? "" : currentText);
 
-    // Add textarea for editing
     if (!textAreaRef.current) {
       const textarea = document.createElement('textarea');
       document.body.appendChild(textarea);
       textAreaRef.current = textarea;
     }
-
     const textarea = textAreaRef.current;
     textarea.value = isPlaceholder ? "" : currentText;
     textarea.style.display = 'block';
 
-    // Event listeners for textarea
+    const groupNodeForPositioning = nodeRef.current as Konva.Group; // Corrected type to Konva.Group
+
     const handleBlur = () => {
       textarea.style.display = 'none';
       setIsEditing(false);
       if (onTextEdit) {
-        // Don't save empty text, revert to placeholder
         let newText = textarea.value.trim() === "" ? "Type text here..." : textarea.value;
-        
-        // Store the raw text without applying case transformations
-        // The text case will be applied during rendering by the applyTextCase function
-        onTextEdit(index, newText);
+        onTextEdit(element.id, newText);
       }
     };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         textarea.style.display = 'none';
@@ -416,217 +457,136 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         textarea.style.display = 'none';
         setIsEditing(false);
         if (onTextEdit) {
-          // Don't save empty text, revert to placeholder
           let newText = textarea.value.trim() === "" ? "Type text here..." : textarea.value;
-          
-          // Store the raw text without applying case transformations
-          // The text case will be applied during rendering by the applyTextCase function
-          onTextEdit(index, newText);
+          onTextEdit(element.id, newText);
         }
       }
     };
-
     textarea.addEventListener('blur', handleBlur);
     textarea.addEventListener('keydown', handleKeyDown);
-
-    // Position the textarea with a small delay to ensure it's correctly positioned
     setTimeout(() => {
-      if (textRef.current && textarea) {
-        positionTextarea(textRef.current, textarea);
+      if (groupNodeForPositioning && textarea) {
+        positionTextarea(groupNodeForPositioning, textarea); // Pass groupNode
       }
     }, 0);
-
-    // Return cleanup function
     return () => {
       textarea.removeEventListener('blur', handleBlur);
       textarea.removeEventListener('keydown', handleKeyDown);
     };
   };
 
-  // Position textarea over the text element
-  const positionTextarea = (textNode: Konva.Text, textarea: HTMLTextAreaElement) => {
-    const position = textNode.getAbsolutePosition();
-    const stage = textNode.getStage();
+  const positionTextarea = (groupNode: Konva.Group, textarea: HTMLTextAreaElement) => {
+    const stage = groupNode.getStage();
+    if (!stage) return;
 
-    if (stage) {
-      const stageContainer = stage.container();
-      const stageBox = stageContainer.getBoundingClientRect();
+    const box = groupNode.getClientRect(); // Get bounding box of the group in stage coordinates
 
-      const areaPosition = {
-        x: stageBox.left + position.x,
-        y: stageBox.top + position.y,
-      };
+    const stageContainer = stage.container();
+    const stageRect = stageContainer.getBoundingClientRect(); // Stage position on page
 
-      // Set position and size of textarea
-      textarea.style.position = 'absolute';
-      textarea.style.top = `${areaPosition.y}px`;
-      textarea.style.left = `${areaPosition.x}px`;
-      textarea.style.width = `${textNode.width() * stage.scaleX()}px`;
-      textarea.style.height = `${textNode.height() * stage.scaleY()}px`;
-      textarea.style.fontSize = `${element.fontSize || 16}px`;
-      textarea.style.fontFamily = element.fontFamily || 'Arial';
-      textarea.style.lineHeight = `${element.lineHeight || 1}`;
-      textarea.style.color = element.color;
-      textarea.style.padding = '5px';
-      textarea.style.margin = '0';
-      textarea.style.overflow = 'hidden';
-      textarea.style.border = 'none';
-      textarea.style.outline = '1px dashed #0096FF';
-      textarea.style.resize = 'none';
-      textarea.style.transformOrigin = 'left top';
-      textarea.style.boxSizing = 'border-box';
+    textarea.style.position = 'absolute';
+    textarea.style.top = `${stageRect.top + box.y}px`;
+    textarea.style.left = `${stageRect.left + box.x}px`;
+    textarea.style.width = `${box.width}px`;
+    textarea.style.height = `${box.height}px`;
+    
+    textarea.style.transformOrigin = 'left top';
+    textarea.style.transform = `rotate(${groupNode.rotation()}deg)`;
 
-      // Apply background with opacity
-      const bgColor = element.backgroundColor || 'transparent';
-      const bgOpacity = element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1;
+    const visualFontSize = (element.fontSize || 16) * Math.abs(groupNode.scaleY()) * stage.scaleY();
+    textarea.style.fontSize = `${visualFontSize}px`;
+    
+    textarea.style.fontFamily = element.fontFamily || 'Arial';
+    textarea.style.lineHeight = `${element.lineHeight || 1}`;
+    textarea.style.color = convertColorToRGBA(element.color, element.textColorOpacity) || '#000000';
+    
+    textarea.style.padding = '0px';
+    textarea.style.margin = '0';
+    textarea.style.overflow = 'hidden'; 
+    textarea.style.border = '1px dashed #0096FF';
+    textarea.style.outline = 'none'; 
+    textarea.style.resize = 'none';
+    textarea.style.boxSizing = 'border-box';
 
-      if (bgColor !== 'transparent') {
-        // Convert hex to rgba
-        const hexToRgba = (hex: string, alpha: number): string => {
-          const r = parseInt(hex.slice(1, 3), 16);
-          const g = parseInt(hex.slice(3, 5), 16);
-          const b = parseInt(hex.slice(5, 7), 16);
-          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        };
-
-        textarea.style.background = hexToRgba(bgColor, bgOpacity);
-      } else {
-        textarea.style.background = 'transparent';
-      }
-
-      // Apply font styles
-      if (element.fontStyles?.bold) {
-        textarea.style.fontWeight = 'bold';
-      }
-      if (element.fontStyles?.italic) {
-        textarea.style.fontStyle = 'italic';
-      }
-      if (element.fontStyles?.underline) {
-        textarea.style.textDecoration = textarea.style.textDecoration + ' underline';
-      }
-      if (element.fontStyles?.strikethrough) {
-        textarea.style.textDecoration = textarea.style.textDecoration + ' line-through';
-      }
-
-      // Apply text alignment
-      textarea.style.textAlign = element.textAlignment || 'center';
-      
-      // Apply text transform based on textCase
-      switch (element.textCase) {
-        case 'uppercase':
-          textarea.style.textTransform = 'uppercase';
-          break;
-        case 'lowercase':
-          textarea.style.textTransform = 'lowercase';
-          break;
-        case 'capitalize':
-          textarea.style.textTransform = 'capitalize';
-          break;
-        default:
-          textarea.style.textTransform = 'none';
-      }
-
-      // Focus and select all text if it's not the placeholder
-      textarea.focus();
-      if (element.text !== "Type text here...") {
-        textarea.select();
-      }
-    }
-  };
-
-  // Double click handler for text - now just delegates to handleTextEdit
-  const handleDoubleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (element.type === "text") {
-      handleTextEdit(e);
-    }
-  };
-
-  // Add attributes for identifying element
-  const getElementProps = () => {
-    return {
-      id: `element-${index}`,
-      'data-selected': isSelected ? 'true' : 'false',
-      'data-type': element.type
-    };
-  };
-
-  // Process background color with opacity for text
-  const getBackgroundWithOpacity = () => {
     const bgColor = element.backgroundColor || 'transparent';
-    if (bgColor === 'transparent') return 'transparent';
+    textarea.style.background = convertColorToRGBA(bgColor, element.backgroundOpacity);
 
-    const bgOpacity = element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1;
+    textarea.style.fontWeight = element.fontStyles?.bold ? 'bold' : 'normal';
+    textarea.style.fontStyle = element.fontStyles?.italic ? 'italic' : 'normal';
+    let textDecorationLine = "";
+    if (element.fontStyles?.underline) textDecorationLine += ' underline';
+    if (element.fontStyles?.strikethrough) textDecorationLine += ' line-through';
+    textarea.style.textDecoration = textDecorationLine.trim() || 'none';
 
-    // If opacity is 100%, just return the color
-    if (bgOpacity >= 1) return bgColor;
+    textarea.style.textAlign = element.textAlignment || 'left';
+    switch (element.textCase) {
+      case 'uppercase': textarea.style.textTransform = 'uppercase'; break;
+      case 'lowercase': textarea.style.textTransform = 'lowercase'; break;
+      case 'capitalize': textarea.style.textTransform = 'capitalize'; break;
+      default: textarea.style.textTransform = 'none';
+    }
 
-    // Convert hex to rgba for opacity
-    const hex = bgColor.replace('#', '');
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
+    textarea.focus();
+    if (element.text !== "Type text here...") {
+      textarea.select();
+    }
   };
 
-  // Rendering elements depending on type
   const renderElement = () => {
+    const strokeStyleProps = getStrokeStyles();
+
+    // ElementData x, y are always top-left.
+    // No longer using universal centerX, centerY, offsetX, offsetY for all shapes.
+    // Positioning will be according to user's provided snippet logic.
+
     switch (element.type) {
       case "text":
+        // Text Group is centered using offsetX/Y, its x/y in ElementData is top-left
+        const textCenterX = element.x + (element.width ?? 0) / 2;
+        const textCenterY = element.y + (element.height ?? 0) / 2;
+        const textOffsetX = (element.width ?? 0) / 2;
+        const textOffsetY = (element.height ?? 0) / 2;
         return (
-          <Group
-            ref={groupRef}
-            x={element.x}
-            y={element.y}
-            width={element.width}
-            height={element.height}
-            draggable={true}
-            onDragEnd={(e) => {
-              if (onDragEnd) {
-                const node = e.target;
-                onDragEnd(index, node.x(), node.y());
-              }
-            }}
-            onClick={(e) => {
-              e.cancelBubble = true;
-              if (element.type === "text" && !isEditing) {
-                handleTextEdit(e);
-              }
-              onClick?.(index, e);
-            }}
-            onDblClick={handleDoubleClick}
-            onTransformEnd={handleTransformEnd}
-            {...getElementProps()}
+          <Group 
+            ref={nodeRef as React.RefObject<Konva.Group>} 
+            x={textCenterX} 
+            y={textCenterY} 
+            offsetX={textOffsetX}
+            offsetY={textOffsetY}
+            width={element.width} 
+            height={element.height} 
+            {...commonProps}
+            draggable={isSelected && activeTool?.type === 'text' ? commonProps.draggable : false}
           >
-            {/* Background rectangle */}
             <Rect
-              width={element.width}
+              width={element.width} 
               height={element.height}
               fill={element.backgroundColor || "transparent"}
-              opacity={element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : 1}
-              {...getStrokeStyles()}
+              opacity={element.backgroundOpacity !== undefined ? element.backgroundOpacity / 100 : (element.backgroundColor === "transparent" ? 0 : 1)}
+              stroke={convertColorToRGBA(element.borderColor, element.borderColorOpacity)} // Use opacity
+              strokeWidth={element.borderStyle === 'hidden' || !element.borderWidth ? 0 : element.borderWidth}
+              {...getBorderStyleProperties(element.borderStyle, element.borderWidth)}
+              x={0} // Relative to group
+              y={0} // Relative to group
             />
-            {/* Text element */}
             <Text
-              ref={textRef}
-              width={element.width}
+              ref={textNodeRef} // Assign ref to Konva.Text
+              width={element.width} 
               height={element.height}
               text={element.text ? applyTextCase(element.text, element.textCase) : "Type text here..."}
               fontSize={element.fontSize || 16}
               fontFamily={element.fontFamily || "Arial"}
               fontStyle={getFontStyle(element)}
               textDecoration={getTextDecoration(element)}
-              align={element.textAlignment || "center"}
+              align={element.textAlignment || "left"}
               verticalAlign="middle"
               lineHeight={element.lineHeight || 1}
               padding={5}
-              fillPriority="color"
-              fillEnabled={true}
-              fillAfterStrokeEnabled={true}
-              fill={element.color || "#ffffff"}
+              fill={convertColorToRGBA(element.color, element.textColorOpacity) || "#000000"}
               visible={!isEditing}
-              // transformsEnabled="all"
-              // keepRatio={false}
+              listening={!isEditing}
+              x={0} // Relative to group
+              y={0} // Relative to group
             />
           </Group>
         );
@@ -634,180 +594,211 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
       case "square":
         return (
           <Rect
-            ref={rectRef}
+            ref={nodeRef as React.Ref<Konva.Rect>}
             x={element.x}
             y={element.y}
             width={element.width}
             height={element.height}
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "rounded-rectangle":
         return (
           <Rect
-            ref={rectRef}
+            ref={nodeRef as React.Ref<Konva.Rect>}
             x={element.x}
             y={element.y}
             width={element.width}
             height={element.height}
-            cornerRadius={element.cornerRadius || 10}
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
+            cornerRadius={element.cornerRadius ?? 10}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "squircle":
         return (
           <Rect
-            ref={rectRef}
+            ref={nodeRef as React.Ref<Konva.Rect>}
             x={element.x}
             y={element.y}
             width={element.width}
             height={element.height}
-            cornerRadius={Math.min(element.width, element.height) / 4}
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
+            cornerRadius={Math.min(element.width ?? 0, element.height ?? 0) / 4}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "circle":
         return (
           <Circle
-            ref={circleRef}
-            x={element.x + element.width / 2}
-            y={element.y + element.height / 2}
-            radius={element.width / 2}
+            ref={nodeRef as React.Ref<Konva.Circle>}
+            x={element.x + (element.width ?? 0) / 2}
+            y={element.y + (element.height ?? 0) / 2}
+            radius={Math.min(element.width ?? 0, element.height ?? 0) / 2} // Keep robust radius
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "line":
         return (
-          <Line
-            ref={lineRef}
-            x={element.x}
+          <Line 
+            ref={nodeRef as React.Ref<Konva.Line>} 
+            x={element.x} 
             y={element.y}
-            points={[0, 0, element.width, 0]}
-            {...commonProps}
-            fill={undefined} // Override fill property for line
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            points={[0, 0, element.width ?? 0, 0]} 
+            closed={false} 
+            {...commonProps} 
+            {...strokeStyleProps} 
+            fillEnabled={false} 
           />
         );
       case "triangle":
         return (
           <RegularPolygon
-            ref={polygonRef}
-            x={element.x + element.width / 2}
-            y={element.y + element.height / 2}
+            ref={nodeRef as React.Ref<Konva.RegularPolygon>}
+            x={element.x + (element.width ?? 0) / 2}
+            y={element.y + (element.height ?? 0) / 2}
             sides={3}
-            radius={element.width / 2}
+            radius={Math.min(element.width ?? 0, element.height ?? 0) / 2} // Keep robust radius
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "pentagon":
         return (
           <RegularPolygon
-            ref={polygonRef}
-            x={element.x + element.width / 2}
-            y={element.y + element.height / 2}
+            ref={nodeRef as React.Ref<Konva.RegularPolygon>}
+            x={element.x + (element.width ?? 0) / 2}
+            y={element.y + (element.height ?? 0) / 2}
             sides={5}
-            radius={element.width / 2}
+            radius={Math.min(element.width ?? 0, element.height ?? 0) / 2} // Keep robust radius
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "hexagon":
         return (
           <RegularPolygon
-            ref={polygonRef}
-            x={element.x + element.width / 2}
-            y={element.y + element.height / 2}
+            ref={nodeRef as React.Ref<Konva.RegularPolygon>}
+            x={element.x + (element.width ?? 0) / 2}
+            y={element.y + (element.height ?? 0) / 2}
             sides={6}
-            radius={element.width / 2}
+            radius={Math.min(element.width ?? 0, element.height ?? 0) / 2} // Keep robust radius
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "star":
         return (
           <Star
-            ref={starRef}
-            x={element.x + element.width / 2}
-            y={element.y + element.height / 2}
+            ref={nodeRef as React.Ref<Konva.Star>}
+            x={element.x + (element.width ?? 0) / 2}
+            y={element.y + (element.height ?? 0) / 2}
             numPoints={5}
-            innerRadius={element.width / 4}
-            outerRadius={element.width / 2}
+            // Use element.width for radii as per user snippet style, but ensure min for robustness if height is too small
+            innerRadius={Math.min(element.width ?? 0, element.height ?? 0) / 4} 
+            outerRadius={Math.min(element.width ?? 0, element.height ?? 0) / 2}
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
             {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            {...strokeStyleProps}
           />
         );
       case "heart":
-        // Implementation of custom heart shape
+        const heartW = element.width ?? 0;
+        const heartH = element.height ?? 0;
         const heartPath = [
-          // Coordinates for rounded heart
-          element.width / 2, element.height / 5,
-          // Left top arc
-          element.width / 4, 0,
-          0, element.height / 4,
-          0, element.height / 2,
-          // Bottom part
-          element.width / 2, element.height,
-          // Right top arc
-          element.width, element.height / 2,
-          element.width, element.height / 4,
-          element.width * 3 / 4, 0,
-          element.width / 2, element.height / 5
+          heartW / 2, heartH / 5,
+          heartW / 4, 0,
+          0, heartH / 4,
+          0, heartH / 2,
+          heartW / 2, heartH,
+          heartW, heartH / 2,
+          heartW, heartH / 4,
+          heartW * 3 / 4, 0,
+          heartW / 2, heartH / 5
         ];
         return (
           <Group
-            ref={groupRef}
+            ref={nodeRef as React.RefObject<Konva.Group>}
             x={element.x}
             y={element.y}
-            draggable={true}
-            rotation={element.rotation || 0}
-            scaleX={element.scaleX || 1}
-            scaleY={element.scaleY || 1}
-            onClick={(e) => onClick?.(index, e)}
-            onDragEnd={(e) => {
-              if (onDragEnd) {
-                const node = e.target;
-                onDragEnd(index, node.x(), node.y());
-              }
-            }}
-            onTransformEnd={handleTransformEnd}
-            {...getElementProps()}
+            width={heartW} // Set group width/height for transformer
+            height={heartH}
+            {...commonProps} // Includes draggable, rotation, scale, events
           >
-            <Line
+            <Line // Use the imported Line from react-konva
               points={heartPath}
-              fill={element.color}
-              opacity={element.opacity}
+            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
               closed={true}
-              {...getStrokeStyles()}
+              {...strokeStyleProps} // Includes stroke, strokeWidth, dash, etc.
+              // commonProps from Group are not needed here again, opacity is on Group
             />
           </Group>
         );
       case "arrow":
-        // Implementation of arrow
+        const arrowW = element.width ?? 0;
+        const arrowH = element.height ?? 0;
+        // Points from user snippet
+        const arrowPoints = [
+            0, arrowH / 2, 
+            arrowW * 0.8, arrowH / 2, 
+            arrowW * 0.8, arrowH * 0.2, 
+            arrowW, arrowH / 2, 
+            arrowW * 0.8, arrowH * 0.8, 
+            arrowW * 0.8, arrowH / 2
+        ];
+        // My previous arrow used fill for the arrow body/head and stroke for its own border.
+        // The user's Line-based arrow will primarily use stroke for visibility.
+        // If a fill is desired, it needs fillEnabled=true and a fill color.
+        // The user's snippet applied commonProps and getStrokeStyles.
+        // commonProps contains opacity, which is fine.
+        // getStrokeStyles contains stroke color. This will be the arrow's color.
         return (
-          <Line
-            ref={lineRef}
+          <Line // Konva.Line
+            ref={nodeRef as React.Ref<Konva.Line>}
             x={element.x}
             y={element.y}
-            points={[0, element.height / 2, element.width * 0.8, element.height / 2, element.width * 0.8, element.height * 0.2, element.width, element.height / 2, element.width * 0.8, element.height * 0.8, element.width * 0.8, element.height / 2]}
-            {...commonProps}
-            {...getStrokeStyles()}
-            {...getElementProps()}
+            points={arrowPoints}
+            closed={false} // Typically arrows are not closed if drawn as a simple path like this
+            {...commonProps} // Includes opacity, draggable, rotation, scale
+            {...strokeStyleProps} // Main color of arrow from stroke
+            fillEnabled={false} // An arrow path like this usually isn't filled
           />
         );
+      case "custom-image":
+        // Custom Image is centered using offsetX/Y, its x/y in ElementData is top-left
+        const imgCenterX = element.x + (element.width ?? 0) / 2;
+        const imgCenterY = element.y + (element.height ?? 0) / 2;
+        const imgOffsetX = (element.width ?? 0) / 2;
+        const imgOffsetY = (element.height ?? 0) / 2;
+        if (element.src) {
+            const img = new window.Image();
+            img.src = element.src;
+            // TODO: handle img.onload for async image loading if it causes issues with Konva
+            return (
+              <KonvaImage 
+                ref={nodeRef as React.RefObject<Konva.Image>} 
+                image={img} 
+                x={imgCenterX} 
+                y={imgCenterY}
+                offsetX={imgOffsetX}
+                offsetY={imgOffsetY}
+                width={element.width} 
+                height={element.height} 
+                {...commonProps} 
+                {...strokeStyleProps} // Borders for image
+              />
+            );
+        }
+        return null;
       default:
         return null;
     }
@@ -816,29 +807,34 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
   return (
     <>
       {renderElement()}
-      {isSelected && (
+      {isSelected && canInteractWithElement() && (
         <Transformer
           ref={transformerRef}
-          boundBoxFunc={(oldBox, newBox) => {
-            // Limit minimum size
-            newBox.width = Math.max(20, newBox.width);
-            newBox.height = Math.max(20, newBox.height);
-            return newBox;
-          }}
-          // Set anchors appearance
+          // Visual properties
+          borderDash={[3, 3]}
           anchorStroke="#0096FF"
           anchorFill="#FFFFFF"
           anchorSize={8}
           borderStroke="#0096FF"
-          borderDash={[4, 4]}
-          rotateAnchorOffset={20}
-          enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left', 'bottom-left', 'bottom-center', 'bottom-right']}
-          // Add padding to make it easier to grab the transformer
-          padding={5}
+          rotateAnchorOffset={30}
+          
+          // Function properties will be set in useEffect for full control
+          // Just providing additional visual cues here
+          draggable={true}
+          resizeEnabled={true}
+          rotateEnabled={true}
+          keepRatio={element.preserveAspectRatio !== false && element.type !== 'rectangle' && element.type !== 'text'}
+          centeredScaling={false}
+          enabledAnchors={[
+            'top-left', 'top-center', 'top-right',
+            'middle-left', 'middle-right',
+            'bottom-left', 'bottom-center', 'bottom-right'
+          ]}
+          padding={element.type === 'text' ? 5 : (element.type === 'custom-image' ? 0 : 2)}
         />
       )}
     </>
   );
 };
 
-export default ElementRenderer; 
+export default memo(ElementRenderer); 

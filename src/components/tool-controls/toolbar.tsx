@@ -129,7 +129,7 @@ const Toolbar: React.FC = () => {
       <div className="space-y-1">
         {tools.map((tool) => {
           const Icon = tool.icon
-          const isActive = activeTool?.id === tool.id
+          const isActive = activeTool?.id === tool.id;
 
           return (
             <div key={tool.id} className="relative">
@@ -137,16 +137,12 @@ const Toolbar: React.FC = () => {
                 <CustomTooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`w-10 h-10 group hover:bg-[#383A3EFF] ${isActive || (tool.id === "shape" && activeElement) ? "bg-[#414448FF]" : ""}`}
+                    className={`w-10 h-10 group hover:bg-[#383A3EFF] ${isActive ? "bg-[#414448FF]" : ""}`}
                     onClick={() => handleToolClick(tool)}
                   >
                     <Icon 
                       className={
-                        `!w-4.5 !h-4.5 ${
-                          isActive || (tool.id === "shape" && activeElement) 
-                            ? "text-white" 
-                            : "text-[#A8AAACFF] group-hover:text-white"
-                        }`
+                        `!w-4.5 !h-4.5 ${isActive ? "text-white" : "text-[#A8AAACFF] group-hover:text-white"}`
                       }
                     />
                   </Button>

@@ -14,6 +14,9 @@ export interface Element {
     color: string
     backgroundColor: string
     backgroundOpacity: number
+    // textColor?: string
+    // textBgColor?: string
+    // textBgOpacity: number
     fontSize: number
     fontFamily: string
     fontStyles: FontStyles
@@ -29,6 +32,7 @@ export interface LineData {
   color: string
   strokeWidth: number
   opacity: number
+  id: string
 }
 
 export type TextAlignment = "left" | "center" | "right" | "justify";
@@ -57,37 +61,41 @@ export interface FontStyles {
 }
 
 export interface ElementData {
-  type: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color: string;
-  opacity: number;
-  // Additional properties for text elements
-  text?: string;
-  fontSize?: number;
-  fontFamily?: string;
-  fontStyles?: FontStyles;
-  textCase?: TextCase;
-  textAlignment?: TextAlignment;
-  lineHeight?: number;
-  backgroundColor?: string;
-  backgroundOpacity?: number;
-  // Additional properties for shapes
-  fillColor?: string;
-  fillColorOpacity?: number;
-  borderColor?: string;
-  borderWidth?: number;
-  borderStyle?: BorderStyle;
-  cornerRadius?: number;
-  // General properties for transformations
-  rotation?: number;
-  scaleX?: number;
-  scaleY?: number;
-  // Additional properties for element behavior
-  draggable?: boolean;
-  preserveAspectRatio?: boolean;
+  id: string
+  type: string
+  x: number
+  y: number
+  width: number
+  height: number
+  color: string
+  opacity: number
+  text?: string
+  textColor?: string
+  textBgColor?: string
+  textBgOpacity?: number
+  textBgOpacityInput?: string
+  fontSize?: number
+  fontFamily?: string
+  fontStyles?: FontStyles
+  textCase?: TextCase
+  textAlignment?: TextAlignment
+  lineHeight?: number
+  backgroundColor?: string
+  backgroundOpacity?: number
+  fillColor?: string
+  fillColorOpacity?: number
+  borderColor?: string
+  borderWidth?: number
+  borderStyle?: BorderStyle
+  borderColorOpacity?: number
+  cornerRadius?: number
+  rotation?: number
+  scaleX?: number
+  scaleY?: number
+  draggable?: boolean
+  preserveAspectRatio?: boolean
+  src?: string
+  textColorOpacity?: number
 }
 
 export interface ToolSettings {
@@ -102,3 +110,6 @@ export interface ToolSettings {
     hardness: number
   }
 }
+
+// Define a union type for all renderable objects
+export type RenderableObject = LineData | ElementData;

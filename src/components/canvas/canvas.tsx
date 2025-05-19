@@ -1,7 +1,7 @@
 import type React from "react";
 import { useTool } from "@/context/tool-context";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Stage, Layer, Line, Rect, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Line as KonvaLine, Rect, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   createCheckerboardPattern,
@@ -13,11 +13,22 @@ import EraserCursor from "@/components/canvas/tools/eraser-cursor";
 import ElementRenderer from "@/components/canvas/tools/element-renderer";
 import CropTool from "@/components/canvas/tools/crop-tool";
 import { formatDimensionDisplay } from "@/utils/format-utils";
+import type { RenderableObject, LineData, ElementData, ShapeType, Tool, FontStyles } from "@/types/canvas";
 
 const Canvas: React.FC = () => {
+  const toolContext = useTool();
   const {
     activeTool,
+    setActiveTool: setContextActiveTool,
     activeElement,
+    isAddModeActive,
+    currentAddToolType,
+    setIsAddModeActive,
+    setCurrentAddToolType,
+    renderableObjects,
+    setRenderableObjects,
+    fontSize: defaultFontSize,
+    fontFamily: defaultFontFamily,
     color,
     secondaryColor,
     brushSize,
@@ -46,28 +57,20 @@ const Canvas: React.FC = () => {
     setMiniMapDataURL,
     setVisibleCanvasRectOnMiniMap,
     registerStagePositionUpdater,
-    registerLinesRestorer,
-  } = useTool();
+    registerRenderableObjectsRestorer,
+  } = toolContext;
 
   const drawingManager = useDrawing({
-    color,
-    secondaryColor,
-    brushSize,
-    eraserSize,
-    opacity,
-    eraserOpacity,
-    eraserHardness,
-    brushMirrorMode,
-    eraserMirrorMode,
-    activeToolType: activeTool?.type ?? null,
     canvasWidth: contextStageSize?.width ?? 0,
     canvasHeight: contextStageSize?.height ?? 0
   });
 
   const elementsManager = useElementsManagement({
-    color,
-    secondaryColor,
-    opacity
+    color: color,
+    secondaryColor: secondaryColor,
+    opacity: opacity,
+    fontSize: defaultFontSize,
+    fontFamily: defaultFontFamily,
   });
 
   const isDragging = useRef(false);
@@ -85,24 +88,33 @@ const Canvas: React.FC = () => {
   const zoomStep = 20;
 
   const croppingManager = useCropping({
-    cropRect,
-    setCropRect,
+    cropRect: cropRect,
+    setCropRect: setCropRect,
     stageSize: contextStageSize,
     setStageSize: setContextStageSize,
-    selectedAspectRatio,
-    setSelectedAspectRatio,
-    setIsCropping,
-    setIsCanvasManuallyResized,
-    lines: drawingManager.lines,
-    setLines: drawingManager.setLines,
-    elements: elementsManager.elements,
-    setElements: elementsManager.setElements,
+    selectedAspectRatio: selectedAspectRatio,
+    setSelectedAspectRatio: setSelectedAspectRatio,
+    setIsCropping: setIsCropping,
+    setIsCanvasManuallyResized: setIsCanvasManuallyResized,
+    lines: renderableObjects.filter(obj => 'tool' in obj) as LineData[],
+    setLines: (newLines) => {
+      const elements = renderableObjects.filter(obj => !('tool' in obj)) as ElementData[];
+      setRenderableObjects([...elements, ...newLines]);
+    },
+    elements: renderableObjects.filter(obj => !('tool' in obj)) as ElementData[],
+    setElements: (newElements) => {
+      const lines = renderableObjects.filter(obj => 'tool' in obj) as LineData[];
+      setRenderableObjects([...lines, ...newElements]);
+    },
     containerRef: containerRef as React.RefObject<HTMLDivElement | null>,
-    zoom,
+    zoom: zoom,
     setStagePosition
   });
 
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+
+  const contentWidth = contextStageSize ? contextStageSize.width * (zoom / 100) : 0;
+  const contentHeight = contextStageSize ? contextStageSize.height * (zoom / 100) : 0;
 
   useEffect(() => {
     if (initialImage && initialImage.src) {
@@ -160,9 +172,6 @@ const Canvas: React.FC = () => {
     return () => window.removeEventListener("resize", updateSizes);
   }, [contextStageSize, isCanvasManuallyResized, setContextStageSize]);
 
-  const contentWidth = contextStageSize ? contextStageSize.width * (zoom / 100) : 0;
-  const contentHeight = contextStageSize ? contextStageSize.height * (zoom / 100) : 0;
-
   useEffect(() => {
     if (contextStageSize && containerRef.current) {
       const containerWidth = containerRef.current.clientWidth;
@@ -191,7 +200,7 @@ const Canvas: React.FC = () => {
         setStagePosition({ x: newX, y: newY });
       }
     }
-  }, [contextStageSize, containerSize.width, containerSize.height, zoom]);
+  }, [contextStageSize, containerSize.width, containerSize.height, zoom, stagePosition, setStagePosition]);
 
   const handleScroll = (direction: "horizontal" | "vertical", newPosition: number) => {
     setStagePosition((prev: { x: number, y: number }) => ({
@@ -202,37 +211,26 @@ const Canvas: React.FC = () => {
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
-
     if (!containerRef.current || !stageRef.current || !contextStageSize) return;
-
     const containerRect = containerRef.current.getBoundingClientRect();
     const currentScale = zoom / 100;
     const scaleBy = 1.1;
     const newScaleDirection = e.deltaY < 0 ? currentScale * scaleBy : currentScale / scaleBy;
     const boundedScale = Math.min(Math.max(newScaleDirection, 0.1), 5);
     const newZoom = Math.round(boundedScale * 100);
-
     if (newZoom === zoom) return;
-
     const { width: currentContainerWidth, height: currentContainerHeight } = containerSize;
-
     const newContentWidth = contextStageSize.width * boundedScale;
     const newContentHeight = contextStageSize.height * boundedScale;
-
-    const scrollbarsWillBeVisible =
-        newContentWidth > currentContainerWidth || newContentHeight > currentContainerHeight;
-
+    const scrollbarsWillBeVisible = newContentWidth > currentContainerWidth || newContentHeight > currentContainerHeight;
     let newPosition;
-
     if (scrollbarsWillBeVisible) {
       const mouseXInContainer = e.clientX - containerRect.left;
       const mouseYInContainer = e.clientY - containerRect.top;
-
       const canvasPointBefore = {
         x: (mouseXInContainer - stagePosition.x) / currentScale,
         y: (mouseYInContainer - stagePosition.y) / currentScale,
       };
-
       newPosition = {
         x: mouseXInContainer - canvasPointBefore.x * boundedScale,
         y: mouseYInContainer - canvasPointBefore.y * boundedScale,
@@ -243,7 +241,6 @@ const Canvas: React.FC = () => {
         y: (currentContainerHeight - newContentHeight) / 2,
       };
     }
-
     setZoom(newZoom);
     setStagePosition(newPosition);
   };
@@ -251,55 +248,33 @@ const Canvas: React.FC = () => {
   const handleDoubleClick = () => {
     const newZoom = 100;
     setZoom(newZoom);
-
     if (!containerRef.current || !contextStageSize) return;
-
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
     const scaleValue = newZoom / 100;
-
     const scaledContentWidth = contextStageSize.width * scaleValue;
     const scaledContentHeight = contextStageSize.height * scaleValue;
-
-    let newX, newY;
-
-    if (scaledContentWidth <= containerWidth) {
-      newX = (containerWidth - scaledContentWidth) / 2;
-    } else {
-      newX = 0;
-    }
-
-    if (scaledContentHeight <= containerHeight) {
-      newY = (containerHeight - scaledContentHeight) / 2;
-    } else {
-      newY = 0;
-    }
-
+    let newX = (scaledContentWidth <= containerWidth) ? (containerWidth - scaledContentWidth) / 2 : 0;
+    let newY = (scaledContentHeight <= containerHeight) ? (containerHeight - scaledContentHeight) / 2 : 0;
     setStagePosition({ x: newX, y: newY });
   };
 
   const handleZoomButtonClick = (zoomChange: number) => {
     if (!containerRef.current || !stageRef.current || !contextStageSize) return;
-
     const currentScale = zoom / 100;
-
     const containerCenterX = containerSize.width / 2;
     const containerCenterY = containerSize.height / 2;
-
     const canvasPointBefore = {
       x: (containerCenterX - stagePosition.x) / currentScale,
       y: (containerCenterY - stagePosition.y) / currentScale,
     };
-
     const newZoom = Math.min(Math.max(zoom + zoomChange, 10), 500);
     if (newZoom === zoom) return;
     const newScale = newZoom / 100;
-
     const newPosition = {
       x: containerCenterX - canvasPointBefore.x * newScale,
       y: containerCenterY - canvasPointBefore.y * newScale,
     };
-
     setZoom(newZoom);
     setStagePosition(newPosition);
   };
@@ -309,11 +284,9 @@ const Canvas: React.FC = () => {
 
   const handleMouseMoveOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
-
     const isOverZoomCtrl = zoomControlsRef.current && zoomControlsRef.current.contains(e.target as Node);
     const isOverHorizontalScroll = horizontalScrollbarRef.current && horizontalScrollbarRef.current.contains(e.target as Node);
     const isOverVerticalScroll = verticalScrollbarRef.current && verticalScrollbarRef.current.contains(e.target as Node);
-
     if (isOverZoomCtrl || isOverHorizontalScroll || isOverVerticalScroll) {
       if (!isHoveringUiElement) setIsHoveringUiElement(true);
       if (containerRef.current) containerRef.current.style.cursor = 'default';
@@ -322,15 +295,11 @@ const Canvas: React.FC = () => {
       return;
     }
     if (isHoveringUiElement) setIsHoveringUiElement(false);
-
     const containerRect = containerRef.current.getBoundingClientRect();
-    const scale = zoom / 100;
-
-    const mouseX = (e.clientX - containerRect.left - stagePosition.x) / scale;
-    const mouseY = (e.clientY - containerRect.top - stagePosition.y) / scale;
-
+    const currentScale = zoom / 100;
+    const mouseX = (e.clientX - containerRect.left - stagePosition.x) / currentScale;
+    const mouseY = (e.clientY - containerRect.top - stagePosition.y) / currentScale;
     setCursorPositionOnCanvas({ x: mouseX, y: mouseY });
-
     if (activeTool?.type === 'brush') {
       if (containerRef.current) containerRef.current.style.cursor = "none";
       setShowBrushCursor(true);
@@ -344,18 +313,19 @@ const Canvas: React.FC = () => {
       setShowBrushCursor(false);
       setShowEraserCursor(false);
     }
-
     if (isDragging.current) {
-      if (e.buttons === 4) {
+      if (e.buttons === 4 && activeTool?.type !== 'brush' && activeTool?.type !== 'eraser') {
         const dx = e.clientX - lastMousePosition.current.x;
         const dy = e.clientY - lastMousePosition.current.y;
-        setStagePosition({
-          x: stagePosition.x + dx,
-          y: stagePosition.y + dy,
-        });
+        const currentContentWidth = contextStageSize ? contextStageSize.width * currentScale : 0;
+        const currentContentHeight = contextStageSize ? contextStageSize.height * currentScale : 0;
+        setStagePosition((prev) => ({
+          x: Math.max(Math.min(0, prev.x + dx), containerSize.width - currentContentWidth),
+          y: Math.max(Math.min(0, prev.y + dy), containerSize.height - currentContentHeight),
+        }));
       } else if ((activeTool?.type === 'brush' || activeTool?.type === 'eraser') &&
-          (e.buttons === 1 || e.buttons === 2) &&
-          drawingManager.getIsDrawing()) {
+                 (e.buttons === 1 || e.buttons === 2) &&
+                 drawingManager.getIsDrawing()) {
         drawingManager.continueDrawing({ x: mouseX, y: mouseY });
       }
     }
@@ -377,54 +347,67 @@ const Canvas: React.FC = () => {
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!containerRef.current || !stageRef.current) return;
     const evt = e.evt;
+    const stage = stageRef.current;
+    const pointerPosition = stage.getPointerPosition();
 
-    if (evt.button === 1) {
-      isDragging.current = true;
-      return;
-    }
+    if (!pointerPosition) return;
 
-    // Get the actual target from Konva event
-    const target = e.target;
-    // Check if we clicked directly on the stage background (not on any element)
-    const clickedOnStage = target === stageRef.current || target.name() === "background";
+    if (isAddModeActive && currentAddToolType && activeTool) {
+      let creationType: ShapeType | "text" | "custom-image" | null = null;
 
-    // Clear selection if clicked on the background
-    if (clickedOnStage && elementsManager.selectedElementIndex !== null) {
-      elementsManager.setSelectedElementIndex(null);
+      if (activeTool.type === "text" && currentAddToolType === "text") {
+        creationType = "text";
+      } else if (activeTool.type === "shape") {
+        if (currentAddToolType !== "brush" && currentAddToolType !== "eraser" && currentAddToolType !== "text"){
+            creationType = currentAddToolType as ShapeType | "custom-image";
+        }
+      }
+
+      if (creationType) {
+        let settingsForElement: Partial<ElementData> = {};
+        if (activeElement) { 
+            if (creationType === "text" && activeElement.type === "text") {
+                settingsForElement.text = "Type here"; 
+            } else if (creationType === "custom-image" && activeElement.type === "custom-image") {
+                const imageElement = activeElement as ElementData & { src?: string, width?: number, height?: number };
+                settingsForElement.src = imageElement.src;
+                settingsForElement.width = imageElement.width;
+                settingsForElement.height = imageElement.height;
+            }
+        }
+        elementsManager.addElement(creationType, pointerPosition, evt.button === 2, undefined, settingsForElement);
+        setIsAddModeActive(false); 
+        setCurrentAddToolType(null);
+        return; 
+      }
     }
 
     if (activeTool?.type === 'brush' || activeTool?.type === 'eraser') {
-      const stage = stageRef.current;
-      const position = stage.getPointerPosition();
-
-      if (position) {
-        isDragging.current = true;
-        const isRightClick = evt.button === 2;
-
-        if (activeTool?.type === 'brush') {
-          drawingManager.startDrawing('brush', position, isRightClick);
-        } else if (activeTool?.type === 'eraser') {
-          drawingManager.startDrawing('eraser', position);
-        }
+      isDragging.current = true;
+      const isRightClick = evt.button === 2;
+      if (activeTool?.type === 'brush') {
+        drawingManager.startDrawing('brush', pointerPosition, isRightClick);
+      } else if (activeTool?.type === 'eraser') {
+        drawingManager.startDrawing('eraser', pointerPosition);
       }
-    } else if (activeTool?.type === 'shape') {
-      const stage = stageRef.current;
-      const position = stage.getPointerPosition();
+      return; 
+    }
 
-      // Only add a new shape if we clicked on the stage background
-      if (position && activeElement && clickedOnStage) {
-        elementsManager.addElement(activeElement.type, position, evt.button === 2);
-      }
-    } else if (activeTool?.type === 'text') {
-      const stage = stageRef.current;
-      const position = stage.getPointerPosition();
+    const target = e.target;
+    const clickedOnStageBackground = target === stageRef.current || target.name() === "background";
 
-      // Only add a new text element if we clicked on the stage background
-      if (position && activeElement && clickedOnStage) {
-        // Use the settings from activeElement if available
-        const textSettings = activeElement.text || {};
-        elementsManager.addElement(activeElement.type, position, evt.button === 2, undefined, textSettings);
+    if (clickedOnStageBackground) {
+      if (elementsManager.selectedElementId) {
+        elementsManager.setSelectedElementId(null); 
       }
+      if (evt.button === 1) { 
+        isDragging.current = true; 
+      }
+      return;
+    }
+
+    if (evt.button === 1) { 
+        isDragging.current = true; 
     }
   };
 
@@ -443,7 +426,9 @@ const Canvas: React.FC = () => {
     if (drawingManager.getIsDrawing()) {
       drawingManager.endDrawing();
     }
-    isDragging.current = false;
+    if (isDragging.current) { 
+        isDragging.current = false;
+    }
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -451,7 +436,7 @@ const Canvas: React.FC = () => {
     return false;
   };
 
-  const scale = zoom / 100;
+  const currentDisplayScale = zoom / 100;
 
   useEffect(() => {
     if (triggerApplyCrop) {
@@ -461,42 +446,33 @@ const Canvas: React.FC = () => {
 
   const handleSetStagePositionFromMiniMap = useCallback((coords: { x: number, y: number }, type: 'center' | 'drag') => {
     if (!stageRef.current || !contextStageSize || !containerRef.current) return;
-
     const currentScale = zoom / 100;
     const { width: stageWidth, height: stageHeight } = contextStageSize;
     const { clientWidth: containerWidth, clientHeight: containerHeight } = containerRef.current;
-
     let newStageX = stagePosition.x;
     let newStageY = stagePosition.y;
-
     if (type === 'center') {
       const targetCanvasX = coords.x * stageWidth;
       const targetCanvasY = coords.y * stageHeight;
-
       newStageX = containerWidth / 2 - targetCanvasX * currentScale;
       newStageY = containerHeight / 2 - targetCanvasY * currentScale;
     } else if (type === 'drag') {
       newStageX = -coords.x * stageWidth * currentScale;
       newStageY = -coords.y * stageHeight * currentScale;
     }
-
     const scaledContentWidth = stageWidth * currentScale;
     const scaledContentHeight = stageHeight * currentScale;
-
     if (scaledContentWidth > containerWidth) {
       newStageX = Math.max(containerWidth - scaledContentWidth, Math.min(0, newStageX));
     } else {
       newStageX = (containerWidth - scaledContentWidth) / 2;
     }
-
     if (scaledContentHeight > containerHeight) {
       newStageY = Math.max(containerHeight - scaledContentHeight, Math.min(0, newStageY));
     } else {
       newStageY = (containerHeight - scaledContentHeight) / 2;
     }
-
     setStagePosition({ x: newStageX, y: newStageY });
-
   }, [contextStageSize, zoom, stagePosition, containerSize.width, containerSize.height, setStagePosition]);
 
   useEffect(() => {
@@ -506,40 +482,36 @@ const Canvas: React.FC = () => {
   }, [registerStagePositionUpdater, handleSetStagePositionFromMiniMap]);
 
   useEffect(() => {
-    if (stageRef.current && contextStageSize && containerRef.current) {
-      const dataURL = stageRef.current.toDataURL({
-        pixelRatio: 0.1,
-      });
-      setMiniMapDataURL(dataURL);
+    if (registerRenderableObjectsRestorer) {
+      registerRenderableObjectsRestorer(setRenderableObjects);
+    }
+  }, [registerRenderableObjectsRestorer, setRenderableObjects]);
 
+  useEffect(() => {
+    if (stageRef.current && contextStageSize && containerRef.current) {
+      const dataURL = stageRef.current.toDataURL({ pixelRatio: 0.1 });
+      setMiniMapDataURL(dataURL);
       const canvasWidth = contextStageSize.width;
       const canvasHeight = contextStageSize.height;
       const viewPortWidth = containerRef.current.clientWidth;
       const viewPortHeight = containerRef.current.clientHeight;
-
-      const visibleXOnCanvas = -stagePosition.x / scale;
-      const visibleYOnCanvas = -stagePosition.y / scale;
-      const visibleWidthOnCanvas = viewPortWidth / scale;
-      const visibleHeightOnCanvas = viewPortHeight / scale;
-
+      const visibleXOnCanvas = -stagePosition.x / currentDisplayScale;
+      const visibleYOnCanvas = -stagePosition.y / currentDisplayScale;
+      const visibleWidthOnCanvas = viewPortWidth / currentDisplayScale;
+      const visibleHeightOnCanvas = viewPortHeight / currentDisplayScale;
       const relX = Math.max(0, Math.min(1, visibleXOnCanvas / canvasWidth));
       const relY = Math.max(0, Math.min(1, visibleYOnCanvas / canvasHeight));
       const relWidth = Math.max(0, Math.min(1, visibleWidthOnCanvas / canvasWidth));
       const relHeight = Math.max(0, Math.min(1, visibleHeightOnCanvas / canvasHeight));
-
       setVisibleCanvasRectOnMiniMap({
-        x: relX,
-        y: relY,
-        width: relWidth,
-        height: relHeight,
+        x: relX, y: relY, width: relWidth, height: relHeight,
       });
     } else {
       setMiniMapDataURL(null);
       setVisibleCanvasRectOnMiniMap(null);
     }
   }, [
-    drawingManager.lines,
-    elementsManager.elements,
+    renderableObjects, 
     backgroundImage,
     zoom,
     stagePosition,
@@ -547,14 +519,8 @@ const Canvas: React.FC = () => {
     containerSize,
     setMiniMapDataURL,
     setVisibleCanvasRectOnMiniMap,
-    scale
+    currentDisplayScale
   ]);
-
-  useEffect(() => {
-    if (registerLinesRestorer) {
-      registerLinesRestorer(drawingManager.setLines);
-    }
-  }, [registerLinesRestorer, drawingManager.setLines]);
 
   return (
       <div
@@ -563,7 +529,9 @@ const Canvas: React.FC = () => {
           onMouseMove={handleMouseMoveOnContainer}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
-          onMouseDown={(e) => activeTool?.type === "cursor" && handleMouseDown({ evt: e } as any)}
+          onMouseDown={(e) => {
+            // Middle mouse button click on container for panning is handled by onWheel or main onMouseDown logic
+          }}
           onContextMenu={handleContextMenu}
           onWheel={handleWheel}
           onDoubleClick={handleDoubleClick}
@@ -571,7 +539,7 @@ const Canvas: React.FC = () => {
         <div
             className="relative"
             style={{
-              transform: `scale(${scale})`,
+              transform: `scale(${currentDisplayScale})`,
               transformOrigin: "0 0",
               width: contextStageSize?.width ?? 0,
               height: contextStageSize?.height ?? 0,
@@ -653,10 +621,13 @@ const Canvas: React.FC = () => {
                     />
                 )}
             </Layer>
-            <Layer>
-              {drawingManager.lines.map((line, i) => (
-                  <Line
-                      key={`line-${i}`}
+            <Layer perfectDrawEnabled={false}>
+              {renderableObjects.map((obj, index) => {
+                if ('tool' in obj) {
+                  const line = obj as LineData;
+                  return (
+                    <KonvaLine
+                      key={line.id}
                       points={line.points}
                       stroke={line.tool === "eraser" ? "#ffffff" : line.color}
                       strokeWidth={line.strokeWidth}
@@ -665,23 +636,27 @@ const Canvas: React.FC = () => {
                       lineJoin="round"
                       opacity={line.opacity}
                       globalCompositeOperation={line.tool === "eraser" ? "destination-out" : "source-over"}
+                      listening={false}
                   />
-              ))}
-              {elementsManager.renderElements().map(({ key, element, index }) => (
+                  );
+                } else {
+                  const element = obj as ElementData;
+                  return (
                   <ElementRenderer
-                      key={key}
+                      key={element.id}
                       element={element}
-                      index={index}
-                      onDragEnd={elementsManager.handleDragEnd}
-                      onClick={elementsManager.handleElementClick}
-                      onTextEdit={elementsManager.updateTextElement}
-                      onTransform={(index, attrs) => elementsManager.updateElement(index, attrs)}
-                      isSelected={index === elementsManager.selectedElementIndex}
+                      onDragEnd={(id, newX, newY) => elementsManager.handleDragEnd(id, newX, newY)}
+                      onClick={(id, KonvaE) => elementsManager.handleElementClick(id, KonvaE)}
+                      onTextEdit={(id, newText) => elementsManager.updateTextElement(id, newText)}
+                      onTransform={(id, attrs) => elementsManager.updateElement(id, attrs as Partial<ElementData>)}
+                      isSelected={element.id === elementsManager.selectedElementId}
                   />
-              ))}
+                  );
+                }
+              })}
               <CropTool
                   stageSize={contextStageSize}
-                  scale={scale}
+                  scale={currentDisplayScale}
                   cropRectRef={croppingManager.cropRectRef as any}
                   transformerRef={croppingManager.transformerRef as any}
                   handleCropRectDragEnd={croppingManager.handleCropRectDragEnd}

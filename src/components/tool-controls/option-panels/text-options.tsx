@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,10 +39,20 @@ import {
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { lightenColor } from "./common";
-import type { TextCase, Element, ElementData, FontStyles, TextAlignment, BorderStyle } from "@/types/canvas";
+import type { TextCase, Element, ElementData, FontStyles, TextAlignment, BorderStyle, Tool } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
+import { Slider } from "@/components/ui/slider";
+
+// Add this at the top of the file with other imports
+declare global {
+  interface Window {
+    webster: {
+      getCurrentTextSettings?: () => Element;
+    };
+  }
+}
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
@@ -72,7 +82,7 @@ const FontSelector: React.FC<{
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <span style={{ fontFamily: value }}>{value}</span>
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -84,12 +94,12 @@ const FontSelector: React.FC<{
               {fonts.map((font) => (
                 <DropdownMenuItem
                   key={font}
-                  className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer"
+                  className={`flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer ${value === font ? "bg-[#3F434AFF] rounded-sm" : ""}`}
                   onClick={() => onChange(font)}
                   style={{ fontFamily: font }}
                 >
-                  {value === font && <Check size={14} className="text-blue-400" />}
-                  <span className={value !== font ? "ml-5" : ""}>{font}</span>
+                  {/* {value === font && <Check size={14} className="text-blue-400" />} */}
+                  <span>{font}</span>
                 </DropdownMenuItem>
               ))}
             </div>
@@ -137,12 +147,14 @@ interface TextSettings {
 
 const TextOptions: React.FC = () => {
   const {
-    setColor,
-    color,
-    setBackgroundColor,
-    backgroundColor,
-    backgroundOpacity,
-    setBackgroundOpacity,
+    // Destructure text-specific properties from context
+    textColor: contextTextColor,
+    setTextColor: contextSetTextColor,
+    textBgColor: contextTextBgColor,
+    setTextBgColor: contextSetTextBgColor,
+    textBgOpacity: contextTextBgOpacity,
+    setTextBgOpacity: contextSetTextBgOpacity,
+    // General text properties from context
     setFontSize,
     fontSize,
     setLineHeight,
@@ -156,91 +168,93 @@ const TextOptions: React.FC = () => {
     setTextCase,
     textCase,
     setActiveElement,
-    setBorderColor,
-    borderColor,
-    setBorderWidth,
-    borderWidth,
-    setBorderStyle,
-    borderStyle,
+    // Get new text color opacity from context
+    textColorOpacity,
+    setTextColorOpacity,
+    // Border properties from context (assuming they are shared or applicable to text)
+    borderColor: contextBorderColor, // Renaming to avoid conflict if used elsewhere for general border
+    setBorderColor: contextSetBorderColor,
+    borderWidth: contextBorderWidth, // Renaming
+    setBorderWidth: contextSetBorderWidth,
+    borderStyle: contextBorderStyle, // Renaming
+    setBorderStyle: contextSetBorderStyle,
     activeElement,
+    // Add mode context
+    isAddModeActive,
+    setIsAddModeActive,
+    currentAddToolType,
+    setCurrentAddToolType,
+    setActiveTool: setContextActiveTool,
+    activeTool,
   } = useTool();
 
   const {
-    selectedElementIndex,
+    selectedElementId,
     duplicateSelectedElement,
     removeSelectedElement,
-    elements,
+    getElementDataFromRenderables,
     updateSelectedElementStyle
   } = useElementsManager();
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
-  const [textColor, setTextColor] = useState("#ffffff");
-  const [textBgColor, setTextBgColor] = useState("transparent");
-  const [textBgOpacity, setTextBgOpacity] = useState(0);
-
-  // Keep track of the current text settings
-  const [textSettings, setTextSettings] = useState<TextSettings>({
-    color: "#ffffff",
-    backgroundColor: "transparent",
-    backgroundOpacity: 0,
-    fontSize: 16,
-    fontFamily: "Arial",
-    fontStyles: { bold: false, italic: false, underline: false, strikethrough: false },
-    textCase: "none",
-    textAlignment: "center",
-    lineHeight: 1,
-    borderColor: "#ffffff",
-    borderWidth: 1,
-    borderStyle: "solid"
-  });
+  // Removed local states for textColor, textBgColor, textBgOpacity
+  const textBgOpacityInputRef = useRef<HTMLInputElement>(null);
+  const [tempTextBgOpacityInput, setTempTextBgOpacityInput] = useState<string>(() => String(Math.round(contextTextBgOpacity)));
+  // New refs and temp state for text color opacity
+  const textColorOpacityInputRef = useRef<HTMLInputElement>(null);
+  const [tempTextColorOpacityInput, setTempTextColorOpacityInput] = useState<string>(() => String(Math.round(textColorOpacity)));
 
   // Sync tool state with selected element
   useEffect(() => {
-    if (selectedElementIndex !== null) {
-      const selectedElement = elements[selectedElementIndex];
+    if (selectedElementId !== null) {
+      const elements = getElementDataFromRenderables();
+      const selectedElement = elements.find(el => el.id === selectedElementId);
       if (selectedElement && selectedElement.type === "text") {
-        // Update tool state with selected element properties
-        setTextColor(selectedElement.color || "#ffffff");
-        setTextBgColor(selectedElement.backgroundColor || "transparent");
-        setTextBgOpacity(selectedElement.backgroundOpacity !== undefined ? selectedElement.backgroundOpacity : 0);
+        // Update tool state (context) with selected element properties
+        contextSetTextColor(selectedElement.color || "#ffffff");
+        setTextColorOpacity(selectedElement.textColorOpacity !== undefined ? selectedElement.textColorOpacity : 100); // Sync text color opacity
+        contextSetTextBgColor(selectedElement.backgroundColor || "transparent");
+        contextSetTextBgOpacity(selectedElement.backgroundOpacity !== undefined ? selectedElement.backgroundOpacity : 0);
         setFontSize(selectedElement.fontSize || 16);
         setLineHeight(selectedElement.lineHeight || 1);
         setFontFamily(selectedElement.fontFamily || "Arial");
         setTextAlignment(selectedElement.textAlignment || "center");
         setFontStyles(selectedElement.fontStyles || { bold: false, italic: false, underline: false, strikethrough: false });
         setTextCase(selectedElement.textCase || "none");
-        setBorderColor(selectedElement.borderColor || "#ffffff");
-        setBorderWidth(selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 1);
-        setBorderStyle(selectedElement.borderStyle || "solid");
+        contextSetBorderColor(selectedElement.borderColor || "#ffffff"); // Use context setter
+        contextSetBorderWidth(selectedElement.borderWidth !== undefined ? selectedElement.borderWidth : 1); // Use context setter
+        contextSetBorderStyle(selectedElement.borderStyle || "solid"); // Use context setter
       }
     }
-  }, [selectedElementIndex, elements]);
+  }, [selectedElementId, getElementDataFromRenderables, contextSetTextColor, setTextColorOpacity, contextSetTextBgColor, contextSetTextBgOpacity, setFontSize, setLineHeight, setFontFamily, setTextAlignment, setFontStyles, setTextCase, contextSetBorderColor, contextSetBorderWidth, contextSetBorderStyle]);
 
-  // Update selected element when text settings change
+  // Update selected element when text settings change (context values are the source of truth)
   useEffect(() => {
-    if (selectedElementIndex !== null) {
-      const selectedElement = elements[selectedElementIndex];
+    if (selectedElementId !== null) {
+      const elements = getElementDataFromRenderables();
+      const selectedElement = elements.find(el => el.id === selectedElementId);
       if (selectedElement && selectedElement.type === "text") {
-        const updatedStyles = {
-          color: textColor,
-          backgroundColor: textBgColor,
-          backgroundOpacity: textBgOpacity,
+        const updatedStyles: Partial<ElementData> = {
+          color: contextTextColor,
+          textColorOpacity: textColorOpacity, // Add text color opacity to update
+          backgroundColor: contextTextBgColor,
+          backgroundOpacity: contextTextBgOpacity,
           fontSize,
           lineHeight,
           fontFamily,
           textAlignment,
           fontStyles: { ...fontStyles },
           textCase,
-          borderColor,
-          borderWidth,
-          borderStyle
+          borderColor: contextBorderColor,
+          borderWidth: contextBorderWidth,
+          borderStyle: contextBorderStyle
         };
-        
+
         // Only update if values have actually changed
         const hasChanges = Object.entries(updatedStyles).some(([key, value]) => {
           if (key === 'fontStyles') {
-            return Object.entries(value).some(([styleKey, styleValue]) => 
+            return Object.entries(value as FontStyles).some(([styleKey, styleValue]) =>
               selectedElement.fontStyles?.[styleKey as keyof FontStyles] !== styleValue
             );
           }
@@ -253,63 +267,22 @@ const TextOptions: React.FC = () => {
       }
     }
   }, [
-    textColor, textBgColor, textBgOpacity, fontSize, lineHeight,
-    fontFamily, textAlignment, fontStyles, textCase, borderColor,
-    borderWidth, borderStyle, selectedElementIndex
-  ]);
-
-  // Update textSettings when any property changes
-  useEffect(() => {
-    setTextSettings({
-      color,
-      backgroundColor,
-      backgroundOpacity,
-      fontSize,
-      fontFamily,
-      fontStyles,
-      textCase,
-      textAlignment,
-      lineHeight,
-      borderColor,
-      borderWidth,
-      borderStyle
-    });
-  }, [
-    color, backgroundColor, backgroundOpacity, fontSize, lineHeight,
-    fontFamily, textAlignment, fontStyles, textCase, borderColor,
-    borderWidth, borderStyle
-  ]);
-
-  // Update activeElement when text settings change
-  useEffect(() => {
-    if (activeElement?.type === "text") {
-      const updatedTextElement = {
-        ...activeElement,
-        text: {
-          color: textColor,
-          backgroundColor: textBgColor,
-          backgroundOpacity: textBgOpacity,
-          fontSize: fontSize,
-          fontFamily: fontFamily,
-          fontStyles: { ...fontStyles },
-          textCase: textCase,
-          lineHeight: lineHeight,
-          textAlignment: textAlignment
-        }
-      };
-      setActiveElement(updatedTextElement);
-    }
-  }, [
-    textColor,
-    textBgColor,
-    textBgOpacity,
+    contextTextColor,
+    textColorOpacity, // Add to dependency array
+    contextTextBgColor,
+    contextTextBgOpacity,
     fontSize,
+    lineHeight,
     fontFamily,
+    textAlignment,
     fontStyles,
     textCase,
-    lineHeight,
-    textAlignment,
-    activeElement?.type
+    contextBorderColor,
+    contextBorderWidth,
+    contextBorderStyle,
+    selectedElementId,
+    getElementDataFromRenderables,
+    updateSelectedElementStyle
   ]);
 
   // Available fonts
@@ -324,36 +297,124 @@ const TextOptions: React.FC = () => {
     "Ubuntu", "Open Sans", "Roboto", "Lato"
   ];
 
-  const handleAddText = () => {
-    // Create text element with all current text settings
-    const textElement = {
-      id: "text",
-      type: "text",
-      icon: Type,
-      text: {
-        color: textColor,
-        backgroundColor: textBgColor,
-        backgroundOpacity: textBgOpacity,
-        fontSize: fontSize,
-        fontFamily: fontFamily,
-        fontStyles: {
-          bold: fontStyles.bold,
-          italic: fontStyles.italic,
-          underline: fontStyles.underline,
-          strikethrough: fontStyles.strikethrough
-        },
-        textCase: textCase,
-        lineHeight: lineHeight,
-        textAlignment: textAlignment
-      }
-    };
+  // Function to get the current text settings
+  const getCurrentTextSettings = (): Element => ({ // Ensure return type matches Element
+    id: "text-template", // Use a template ID
+    type: "text",
+    icon: Type,
+    // Settings here should match the structure expected by useElementsManagement for 'text'
+    // and what ElementData expects for text.
+    // The 'text' sub-object matches the `Element` type.
+    text: {
+      color: contextTextColor,
+      backgroundColor: contextTextBgColor,
+      backgroundOpacity: contextTextBgOpacity,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      fontStyles: { ...fontStyles },
+      textCase: textCase,
+      lineHeight: lineHeight,
+      textAlignment: textAlignment,
+    },
+    // Also include direct properties if Element can have them, or if ElementData is the target
+     settings: { // This structure might be more aligned with ElementData
+       color: contextTextColor,
+       backgroundColor: contextTextBgColor,
+       backgroundOpacity: contextTextBgOpacity,
+       fontSize: fontSize,
+       fontFamily: fontFamily,
+       fontStyles: { ...fontStyles },
+       textCase: textCase,
+       lineHeight: lineHeight,
+       textAlignment: textAlignment,
+       borderColor: contextBorderColor,
+       borderWidth: contextBorderWidth,
+       borderStyle: contextBorderStyle,
+     }
+  });
 
-    // Set as active element
-    setActiveElement(textElement);
+  const handleAddText = () => {
+    // The text tool should already be active if this panel is visible.
+    // No need to call setContextActiveTool here.
+    // const textTool: Tool = { 
+    //   id: "text-tool", // This ID differs from toolbar's "text", potentially causing re-keying
+    //   name: "Text",
+    //   type: "text", 
+    //   icon: Type 
+    // }; 
+    // setContextActiveTool(textTool); 
+    
+    setActiveElement(getCurrentTextSettings()); 
+    setIsAddModeActive(true);
+    setCurrentAddToolType("text");
+  };
+
+  // Export getCurrentTextSettings through useEffect for access from other components
+  useEffect(() => {
+    if (window.webster === undefined) {
+      window.webster = {};
+    }
+    window.webster.getCurrentTextSettings = getCurrentTextSettings;
+  }, [
+    contextTextColor,
+    textColorOpacity, // Add to dependency array
+    contextTextBgColor,
+    contextTextBgOpacity,
+    fontSize,
+    fontFamily,
+    fontStyles,
+    textCase,
+    lineHeight,
+    textAlignment,
+    contextBorderColor, // Add border properties to dependency array
+    contextBorderWidth,
+    contextBorderStyle
+    // getCurrentTextSettings is not stable if it's not wrapped in useCallback
+    // and its dependencies are all listed here
+  ]);
+
+  // Helper function to convert hex/rgb and opacity (0-100) to RGBA string
+  const colorToRGBA = (color: string, opacityPercent: number): string => {
+    if (color === 'transparent') {
+      return `rgba(0,0,0,0)`; // Fully transparent
+    }
+    const opacity = Math.max(0, Math.min(100, opacityPercent)) / 100;
+    let r = 0, g = 0, b = 0;
+
+    if (color.startsWith('#')) {
+      const hex = color.substring(1);
+      if (hex.length === 3) {
+        r = parseInt(hex[0] + hex[0], 16);
+        g = parseInt(hex[1] + hex[1], 16);
+        b = parseInt(hex[2] + hex[2], 16);
+      } else if (hex.length === 6) {
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
+      }
+    } else if (color.startsWith('rgb')) { // Basic rgb() and rgba() support
+        const parts = color.match(/\d+/g);
+        if (parts && parts.length >= 3) {
+            r = parseInt(parts[0], 10);
+            g = parseInt(parts[1], 10);
+            b = parseInt(parts[2], 10);
+            // Opacity from rgba() string is ignored, opacityPercent argument takes precedence
+        }
+    } else {
+        // For named colors, this basic converter won't work without a canvas trick or a library.
+        // However, for the preview, we can try to render it and let the browser handle it.
+        // For a consistent RGBA preview, it's better to ensure input is hex/rgb or use a robust parser.
+        console.warn("Basic colorToRGBA cannot derive RGB from named color for preview: ", color);
+        // Fallback for preview: return the color itself if not transparent, opacity might not apply visually in all contexts with named colors.
+        return opacity === 1 ? color : `rgba(0,0,0,${opacity})`; // Fallback to black with opacity if color is unknown and not fully opaque
+    }
+    return `rgba(${r},${g},${b},${opacity})`;
   };
 
   // Check if the selected element is a text element
-  const isTextElementSelected = selectedElementIndex !== null && elements[selectedElementIndex]?.type === "text";
+  const isTextElementSelected = selectedElementId !== null && 
+    getElementDataFromRenderables().find(el => el.id === selectedElementId)?.type === "text" &&
+    activeTool?.type === "text";
 
   // Handle duplicate button click
   const handleDuplicate = () => {
@@ -369,6 +430,78 @@ const TextOptions: React.FC = () => {
     }
   };
 
+  const handleTextBgOpacitySliderValueChange = (value: number[]) => {
+    const newTextBgOpacity = Math.round(value[0]);
+    contextSetTextBgOpacity(newTextBgOpacity); // Use context setter
+    setTempTextBgOpacityInput(String(newTextBgOpacity));
+  };
+
+  const handleTextBgOpacityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let inputValue = e.target.value;
+
+    inputValue = inputValue.replace(/[^\d]/g, "");
+
+    if (inputValue === "") {
+      setTempTextBgOpacityInput("");
+      return;
+    }
+
+    let num = parseInt(inputValue, 10);
+
+    if (isNaN(num)) {
+      setTempTextBgOpacityInput(inputValue);
+      return;
+    }
+
+    if (num > 100) {
+      num = 100;
+      inputValue = String(100);
+    }
+
+    setTempTextBgOpacityInput(inputValue);
+  };
+
+  const handleTextBgOpacityInputBlur = () => {
+    let currentNum = parseInt(tempTextBgOpacityInput, 10);
+
+    if (isNaN(currentNum) || tempTextBgOpacityInput.trim() === "") {
+      currentNum = 0; // Default to 0 if input is invalid
+    }
+    currentNum = Math.max(0, Math.min(100, currentNum));
+    contextSetTextBgOpacity(currentNum); // Use context setter
+    setTempTextBgOpacityInput(String(currentNum));
+  };
+
+  const handleTextColorOpacitySliderValueChange = (value: number[]) => {
+    const newTextColorOpacity = Math.round(value[0]);
+    setTextColorOpacity(newTextColorOpacity);
+    setTempTextColorOpacityInput(String(newTextColorOpacity));
+  };
+
+  const handleTextColorOpacityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let inputValue = e.target.value;
+    inputValue = inputValue.replace(/[^\d]/g, "");
+    if (inputValue === "") {
+      setTempTextColorOpacityInput("");
+      return;
+    }
+    let num = parseInt(inputValue, 10);
+    if (isNaN(num)) {
+      setTempTextColorOpacityInput(inputValue);
+      return;
+    }
+    if (num > 100) num = 100;
+    setTempTextColorOpacityInput(String(num));
+  };
+
+  const handleTextColorOpacityInputBlur = () => {
+    let currentNum = parseInt(tempTextColorOpacityInput, 10);
+    if (isNaN(currentNum) || tempTextColorOpacityInput.trim() === "") currentNum = 0;
+    currentNum = Math.max(0, Math.min(100, currentNum));
+    setTextColorOpacity(currentNum);
+    setTempTextColorOpacityInput(String(currentNum));
+  };
+
   // Replace the existing color picker buttons with new ones
   const renderColorPickers = () => (
     <>
@@ -382,15 +515,53 @@ const TextOptions: React.FC = () => {
           <p className="text-xs text-[#D4D4D5FF]">Text</p>
           <div
             className="w-5 h-5 rounded-xl border border-gray-500"
-            style={{ backgroundColor: textColor }}
+            style={{ backgroundColor: contextTextColor, opacity: textColorOpacity / 100 }} // Use context value & text color opacity
           />
         </Button>
         {showColorPicker && (
           <div className="absolute z-50 top-full left-0 mt-2">
+            {/* Text color opacity control */}
+            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
+              <div className="flex justify-between items-center mb-1">
+                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
+                 <div
+                  className="flex items-center h-6 bg-[#202225FF] border-2 border-[#44474AFF] rounded px-1.5 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 cursor-text"
+                  onClick={() => textColorOpacityInputRef.current?.focus()}
+                >
+                  <Input
+                    ref={textColorOpacityInputRef}
+                    type="text"
+                    value={tempTextColorOpacityInput}
+                    onChange={handleTextColorOpacityInputChange}
+                    onBlur={handleTextColorOpacityInputBlur}
+                    onKeyDown={(e) => { if (e.key === 'Enter') textColorOpacityInputRef.current?.blur(); }}
+                    className="w-7 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0"
+                    maxLength={3}
+                  />
+                  <span className="text-xs text-[#A8AAACFF]">%</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  id="text-color-opacity-slider"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[textColorOpacity]}
+                  onValueChange={handleTextColorOpacitySliderValueChange}
+                  className="flex-grow"
+                />
+              </div>
+            </div>
             <ColorPicker
-              color={textColor}
+              color={contextTextColor} 
               setColor={(newColor) => {
-                setTextColor(newColor);
+                contextSetTextColor(newColor); 
+                // If color is changed and opacity was 0, set it to 100
+                if (textColorOpacity === 0 && newColor !== 'transparent') { // Assuming transparent is not a direct set for text color here
+                   setTextColorOpacity(100);
+                   setTempTextColorOpacityInput("100");
+                }
               }}
               onClose={() => setShowColorPicker(false)}
             />
@@ -410,43 +581,71 @@ const TextOptions: React.FC = () => {
           <p className="text-xs text-[#D4D4D5FF]">Background</p>
           <div
             className="w-5 h-5 rounded-xl border border-gray-500"
-            style={{ backgroundColor: textBgColor === 'transparent' ? '#ffffff' : textBgColor }}
+            style={{ 
+              backgroundColor: colorToRGBA(contextTextBgColor, contextTextBgOpacity)
+            }} 
           />
         </Button>
         {showBgColorPicker && (
           <div className="absolute z-50 top-full left-0 mt-2">
-            <ColorPicker
-              color={textBgColor === 'transparent' ? '#ffffff' : textBgColor}
-              setColor={(newColor) => {
-                setTextBgColor(newColor);
-              }}
-              onClose={() => setShowBgColorPicker(false)}
-            />
             {/* Background opacity control */}
-            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded">
+            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
               <div className="flex justify-between items-center mb-1">
                 <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
-                <span className="text-xs text-[#D4D4D5FF]">{textBgOpacity}%</span>
+                <div
+                  className="flex items-center h-6 bg-[#202225FF] border-2 border-[#44474AFF] rounded px-1.5 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 cursor-text"
+                  onClick={() => textBgOpacityInputRef.current?.focus()}
+                >
+                  <Input
+                    ref={textBgOpacityInputRef}
+                    type="text"
+                    value={tempTextBgOpacityInput}
+                    onChange={handleTextBgOpacityInputChange}
+                    onBlur={handleTextBgOpacityInputBlur}
+                    onKeyDown={(e) => { if (e.key === 'Enter') textBgOpacityInputRef.current?.blur(); }}
+                    className="w-7 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0"
+                    maxLength={3}
+                  />
+                  <span className="text-xs text-[#A8AAACFF]">%</span>
+                </div>
               </div>
-              <Input
-                type="range"
-                min="0"
-                max="100"
-                value={textBgOpacity}
-                onChange={(e) => setTextBgOpacity(parseInt(e.target.value))}
-                className="w-full p-0 m-0"
-              />
+              <div className="flex items-center space-x-2">
+                <Slider
+                  id="text-bg-opacity-slider"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[contextTextBgOpacity]} // Use context value
+                  onValueChange={handleTextBgOpacitySliderValueChange}
+                  className="flex-grow"
+                />
+              </div>
               <Button
                 variant="ghost"
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
                 onClick={() => {
-                  setTextBgColor('transparent');
-                  setTextBgOpacity(100);
+                  contextSetTextBgColor('transparent'); // Use context setter
+                  contextSetTextBgOpacity(0); // Use context setter
+                  setTempTextBgOpacityInput("0");
                 }}
               >
                 Transparent
               </Button>
             </div>
+            <ColorPicker
+              color={contextTextBgColor === 'transparent' ? '#ffffff' : contextTextBgColor} // Use context value
+              setColor={(newColor) => {
+                contextSetTextBgColor(newColor); // Use context setter
+                 if (newColor === 'transparent') {
+                    contextSetTextBgOpacity(0);
+                    setTempTextBgOpacityInput("0");
+                 } else if (contextTextBgOpacity === 0 && newColor !== 'transparent') {
+                    contextSetTextBgOpacity(100);
+                    setTempTextBgOpacityInput("100");
+                 }
+              }}
+              onClose={() => setShowBgColorPicker(false)}
+            />
           </div>
         )}
       </div>
@@ -454,108 +653,64 @@ const TextOptions: React.FC = () => {
   );
 
   // Toggle individual text style independently
-  const toggleStyle = (style: keyof typeof fontStyles) => {
-    // Create a new copy of the fontStyles object with the updated value for the specified style
+  const toggleStyle = (style: keyof FontStyles) => {
     const updatedFontStyles = {
       ...fontStyles,
       [style]: !fontStyles[style]
     };
-
-    // Update the state with the new object
     setFontStyles(updatedFontStyles);
-
-    // Update the text settings
-    setTextSettings(prev => ({
-      ...prev,
-      fontStyles: updatedFontStyles
-    }));
-
-    // If there is a selected element, update its style
-    if (selectedElementIndex !== null) {
+    if (selectedElementId !== null) {
       updateSelectedElementStyle({ fontStyles: updatedFontStyles });
     }
   };
 
   const handleCaseChange = (caseType: TextCase) => {
-    // Update the state of the text case
     setTextCase(caseType);
-
-    // Update the text settings
-    setTextSettings({
-      ...textSettings,
-      textCase: caseType
-    });
-
-    // If there is a selected element, update its case
-    if (selectedElementIndex !== null) {
+    if (selectedElementId !== null) {
       updateSelectedElementStyle({ textCase: caseType });
     }
   };
 
   // Handler for text alignment change
   const handleAlignmentChange = (alignment: TextAlignment) => {
-    // Update the state of the text alignment
     setTextAlignment(alignment);
-
-    // Update the text settings
-    setTextSettings({
-      ...textSettings,
-      textAlignment: alignment
-    });
-
-    // If there is a selected element, update its alignment
-    if (selectedElementIndex !== null) {
+    if (selectedElementId !== null) {
       updateSelectedElementStyle({ textAlignment: alignment });
     }
   };
 
-  // Add background opacity control
-  const handleBackgroundOpacityChange = (value: number) => {
-    const clampedValue = Math.min(100, Math.max(0, value));
-
-    // Update the state of the background opacity
-    setBackgroundOpacity(clampedValue);
-
-    // Update the text settings
-    setTextSettings({
-      ...textSettings,
-      backgroundOpacity: clampedValue
-    });
-
-    // If there is a selected element, update its background opacity
-    if (selectedElementIndex !== null) {
-      updateSelectedElementStyle({ backgroundOpacity: clampedValue });
-    }
-  };
-
   const resetAllStyles = () => {
-    setColor("#ffffff");
-    setBackgroundColor("transparent");
-    setBackgroundOpacity(0);
     setFontSize(16);
     setFontFamily("Arial");
     setFontStyles({ bold: false, italic: false, underline: false, strikethrough: false });
     setTextCase("none");
     setTextAlignment("center");
     setLineHeight(1);
-    setBorderColor("#ffffff");
-    setBorderWidth(1);
-    setBorderStyle("solid");
+    contextSetTextColor("#ffffff");
+    setTextColorOpacity(100); // Reset text color opacity
+    setTempTextColorOpacityInput("100"); // Reset temp input for text color opacity
+    contextSetTextBgColor("transparent");
+    contextSetTextBgOpacity(100);
+    setTempTextBgOpacityInput("100");
+    contextSetBorderColor("#000000");
+    contextSetBorderWidth(0);
+    contextSetBorderStyle("hidden");
 
-    if (selectedElementIndex !== null) {
+    if (selectedElementId !== null) {
       updateSelectedElementStyle({
-        color: "#ffffff",
-        backgroundColor: "transparent",
-        backgroundOpacity: 0,
         fontSize: 16,
         fontFamily: "Arial",
         fontStyles: { bold: false, italic: false, underline: false, strikethrough: false },
         textCase: "none",
         textAlignment: "center",
         lineHeight: 1,
-        borderColor: "#ffffff",
-        borderWidth: 1,
-        borderStyle: "solid"
+        color: "#ffffff",
+        textColorOpacity: 100, // Reset text color opacity in element
+        backgroundColor: "transparent",
+        backgroundOpacity: 100,
+        borderColor: "#000000",
+        borderWidth: 0,
+        borderStyle: "hidden",
       });
     }
   };
@@ -569,8 +724,8 @@ const TextOptions: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                  ${fontStyles.bold ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.bold ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
                 onClick={() => toggleStyle('bold')}
               >
                 <Bold size={12} className={fontStyles.bold ? 'text-white' : 'text-[#D4D4D5FF]'} />
@@ -587,8 +742,8 @@ const TextOptions: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                  ${fontStyles.italic ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.italic ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
                 onClick={() => toggleStyle('italic')}
               >
                 <Italic size={12} className={fontStyles.italic ? 'text-white' : 'text-[#D4D4D5FF]'} />
@@ -605,8 +760,8 @@ const TextOptions: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                  ${fontStyles.underline ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.underline ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
                 onClick={() => toggleStyle('underline')}
               >
                 <Underline size={12} className={fontStyles.underline ? 'text-white' : 'text-[#D4D4D5FF]'} />
@@ -623,8 +778,8 @@ const TextOptions: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer relative
-                  ${fontStyles.strikethrough ? 'bg-[#3F434AFF] shadow-inner' : 'bg-[#1e1f22]'}`}
+                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+                  ${fontStyles.strikethrough ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
                 onClick={() => toggleStyle('strikethrough')}
               >
                 <Strikethrough size={12} className={fontStyles.strikethrough ? 'text-white' : 'text-[#D4D4D5FF]'} />
@@ -647,9 +802,10 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] ${
-                activeElement?.type === "text" ? 'bg-[#3F434AFF] text-white' : 'text-[#D4D4D5FF]'
-              }`}
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
+                ${activeElement?.type === "text" && isAddModeActive && currentAddToolType === "text" 
+                  ? 'bg-[#3F434AFF] text-white' 
+                  : 'text-[#D4D4D5FF]'}`}
               onClick={handleAddText}
             >
               <PlusCircle size={14} strokeWidth={2} />
@@ -667,9 +823,8 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] ${
-                !isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'
-              }`}
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
+                ${!isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'}`}
               onClick={handleDuplicate}
               disabled={!isTextElementSelected}
             >
@@ -688,9 +843,8 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] ${
-                !isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'
-              }`}
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
+                ${!isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'}`}
               onClick={handleDelete}
               disabled={!isTextElementSelected}
             >
@@ -726,12 +880,12 @@ const TextOptions: React.FC = () => {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 mr-5 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
             <Label className="text-xs text-white scale-120">
-              {textCase === "none" ? <Baseline size={14} strokeWidth={1.5}/> :
-                textCase === "uppercase" ? <CaseUpper size={14} strokeWidth={1.5}/> :
-                  textCase === "lowercase" ? <CaseLower size={14} strokeWidth={1.5}/> :
-                    textCase === "capitalize" ? <CaseSensitive size={14} strokeWidth={1.5}/> : <Baseline size={14} strokeWidth={1.5}/>}
+              {textCase === "none" ? <Baseline size={14} strokeWidth={1.5} /> :
+                textCase === "uppercase" ? <CaseUpper size={14} strokeWidth={1.5} /> :
+                  textCase === "lowercase" ? <CaseLower size={14} strokeWidth={1.5} /> :
+                    textCase === "capitalize" ? <CaseSensitive size={14} strokeWidth={1.5} /> : <Baseline size={14} strokeWidth={1.5} />}
             </Label>
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">
@@ -743,7 +897,7 @@ const TextOptions: React.FC = () => {
                 <DropdownMenuItem
                   className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'none' ? 'bg-[#3F434AFF]' : ''}`}
                   onClick={() => handleCaseChange('none')}>
-                  <Baseline size={14} color="white" strokeWidth={1.5} className="scale-120"/>
+                  <Baseline size={14} color="white" strokeWidth={1.5} className="scale-120" />
                 </DropdownMenuItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -759,7 +913,7 @@ const TextOptions: React.FC = () => {
                 <DropdownMenuItem
                   className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'uppercase' ? 'bg-[#3F434AFF]' : ''}`}
                   onClick={() => handleCaseChange('uppercase')}>
-                  <CaseUpper size={14} color="white" strokeWidth={1.5} className="scale-120"/>
+                  <CaseUpper size={14} color="white" strokeWidth={1.5} className="scale-120" />
                 </DropdownMenuItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -775,7 +929,7 @@ const TextOptions: React.FC = () => {
                 <DropdownMenuItem
                   className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'lowercase' ? 'bg-[#3F434AFF]' : ''}`}
                   onClick={() => handleCaseChange('lowercase')}>
-                  <CaseLower size={14} color="white" strokeWidth={1.5} className="scale-120"/>
+                  <CaseLower size={14} color="white" strokeWidth={1.5} className="scale-120" />
                 </DropdownMenuItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -791,7 +945,7 @@ const TextOptions: React.FC = () => {
                 <DropdownMenuItem
                   className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'capitalize' ? 'bg-[#3F434AFF]' : ''}`}
                   onClick={() => handleCaseChange('capitalize')}>
-                  <CaseSensitive size={14} color="white" strokeWidth={1.5} className="scale-120"/>
+                  <CaseSensitive size={14} color="white" strokeWidth={1.5} className="scale-120" />
                 </DropdownMenuItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -826,7 +980,7 @@ const TextOptions: React.FC = () => {
                   textAlignment === "right" ? <AlignRight size={16} /> :
                     textAlignment === "justify" ? <AlignJustify size={16} /> : <AlignCenter size={16} />}
             </Label>
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5}/>
+            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">

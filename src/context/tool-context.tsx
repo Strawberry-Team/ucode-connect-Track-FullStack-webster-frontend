@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from "react"
-import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType, LineData } from "@/types/canvas"
+import type { Tool, Element, ToolSettings, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType, LineData, ElementData, RenderableObject } from "@/types/canvas"
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
+
+// Define a union type for all renderable objects
+// export type RenderableObject = LineData | ElementData; // Moved to types/canvas.ts
 
 export interface HistoryEntry {
   id: string;
   timestamp: Date;
-  type: 'brushStroke' | 'eraserStroke' | 'unknown'; // Добавим 'unknown' для общности
+  type: 'brushStroke' | 'eraserStroke' | 'unknown' | 'elementAdded' | 'elementModified' | 'elementRemoved'; // Expanded history types
   description: React.ReactNode;
-  linesSnapshot: LineData[]; // Снапшот линий для этого состояния
-  isActive: boolean; // Активно ли это состояние в текущей временной шкале
+  linesSnapshot: RenderableObject[]; // Snapshot of all renderable objects
+  isActive: boolean;
 }
 
 interface Rect {
@@ -51,6 +54,12 @@ interface ToolContextValue {
   toolSettings: ToolSettings
 
   // Additional parameters for text
+  textColor: string
+  setTextColor: (color: string) => void
+  textBgColor: string
+  setTextBgColor: (color: string) => void
+  textBgOpacity: number
+  setTextBgOpacity: (opacity: number) => void
   fontSize: number
   setFontSize: (size: number) => void
   fontFamily: string
@@ -79,8 +88,14 @@ interface ToolContextValue {
   setBorderWidth: (width: number) => void
   borderStyle: BorderStyle
   setBorderStyle: (style: BorderStyle) => void
+  borderColorOpacity: number
+  setBorderColorOpacity: (opacity: number) => void
   cornerRadius: number
   setCornerRadius: (radius: number) => void
+
+  // Text specific opacity for text color
+  textColorOpacity: number
+  setTextColorOpacity: (opacity: number) => void
 
   brushMirrorMode: MirrorMode
   setBrushMirrorMode: (mode: MirrorMode) => void
@@ -132,17 +147,41 @@ interface ToolContextValue {
   currentHistoryIndex: number; // Индекс текущего активного состояния в истории
   addHistoryEntry: (entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => void;
   revertToHistoryState: (historyId: string) => void;
-  registerLinesRestorer: (restorer: (lines: LineData[]) => void) => void;
+  registerRenderableObjectsRestorer: (restorer: (objects: RenderableObject[]) => void) => void;
+
+  // New state for all renderable objects
+  renderableObjects: RenderableObject[];
+  addRenderableObject: (obj: RenderableObject) => void;
+  updateLinePoints: (lineId: string, pointsToAdd: number[]) => void; // More specific update
+  updateMultipleLinePoints: (updates: Array<{ id: string; pointsToAdd: number[] }>) => void; // For mirroring
+  setRenderableObjects: (objects: RenderableObject[]) => void;
+
+  // New state for add mode
+  isAddModeActive: boolean;
+  setIsAddModeActive: (isActive: boolean) => void;
+  currentAddToolType: ShapeType | "text" | "brush" | "eraser" | null;
+  setCurrentAddToolType: (type: ShapeType | "text" | "brush" | "eraser" | null) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
 
 export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTool, setActiveTool] = useState<Tool | null>(null)
+  const [activeTool, setActiveToolInternal] = useState<Tool | null>(null)
   const [activeElement, setActiveElement] = useState<Element | null>(null)
   const [color, setColor] = useState("#000000")
   const [secondaryColor, setSecondaryColor] = useState("#ffffff")
   const [brushSize, setBrushSize] = useState(20)
+  
+  // Add text-specific states
+  const [textColor, setTextColor] = useState("#000000")
+  const [textBgColor, setTextBgColor] = useState("transparent")
+  const [textBgOpacity, setTextBgOpacity] = useState(100)
+  const [textColorOpacity, setTextColorOpacity] = useState(100)
+  const [fillColor, setFillColor] = useState("#ffffff")
+  const [fillColorOpacity, setFillColorOpacity] = useState(100)
+  const [borderColor, setBorderColor] = useState("#000000")
+  const [borderColorOpacity, setBorderColorOpacity] = useState(100)
+
   const [eraserSize, setEraserSize] = useState(20)
   const [opacity, setOpacity] = useState(100)
   const [eraserOpacity, setEraserOpacity] = useState(100)
@@ -178,10 +217,51 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState<number>(-1);
 
   // Регистраторы для восстановления состояния
-  const linesRestorerRef = useRef<((lines: LineData[]) => void) | null>(null);
+  const renderableObjectsRestorerRef = useRef<((objects: RenderableObject[]) => void) | null>(null);
 
-  const registerLinesRestorer = useCallback((restorer: (lines: LineData[]) => void) => {
-    linesRestorerRef.current = restorer;
+  // New state for all renderable objects
+  const [renderableObjects, setRenderableObjects] = useState<RenderableObject[]>([]);
+
+  // New state for add mode
+  const [isAddModeActive, setIsAddModeActive] = useState<boolean>(false);
+  const [currentAddToolType, setCurrentAddToolType] = useState<ShapeType | "text" | "brush" | "eraser" | null>(null);
+
+  const setActiveTool = useCallback((tool: Tool | null) => {
+    setActiveToolInternal(tool);
+    setIsAddModeActive(false); // Reset add mode when tool changes
+    setCurrentAddToolType(null); // Reset add tool type
+  }, []);
+
+  const addRenderableObject = useCallback((obj: RenderableObject) => {
+    setRenderableObjects(prev => [...prev, obj]);
+  }, []);
+
+  const updateLinePoints = useCallback((lineId: string, pointsToAdd: number[]) => {
+    setRenderableObjects(prev =>
+      prev.map(obj => {
+        if ('id' in obj && obj.id === lineId && 'tool' in obj && ('points' in obj)) {
+          return { ...obj, points: [...obj.points, ...pointsToAdd] };
+        }
+        return obj;
+      })
+    );
+  }, []);
+
+  const updateMultipleLinePoints = useCallback((updates: Array<{ id: string; pointsToAdd: number[] }>) => {
+    setRenderableObjects(prev => {
+      const updatesMap = new Map(updates.map(u => [u.id, u.pointsToAdd]));
+      return prev.map(obj => {
+        if ('id' in obj && updatesMap.has(obj.id) && 'tool' in obj && ('points' in obj)) {
+          const pointsToAdd = updatesMap.get(obj.id)!;
+          return { ...obj, points: [...obj.points, ...pointsToAdd] };
+        }
+        return obj;
+      });
+    });
+  }, []);
+
+  const registerRenderableObjectsRestorer = useCallback((restorer: (objects: RenderableObject[]) => void) => {
+    renderableObjectsRestorerRef.current = restorer;
   }, []);
 
   const addHistoryEntry = useCallback((entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => {
@@ -218,10 +298,11 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
     }
 
-    if (linesRestorerRef.current) {
-      linesRestorerRef.current([...targetEntry.linesSnapshot]); 
+    if (renderableObjectsRestorerRef.current) {
+      const deepCopiedSnapshot = targetEntry.linesSnapshot.map(obj => ({...obj})); 
+      renderableObjectsRestorerRef.current(deepCopiedSnapshot);
     } else {
-      console.warn("Lines restorer not registered in ToolContext.");
+      console.warn("RenderableObjects restorer not registered in ToolContext.");
     }
     
     setHistory(prevHistory =>
@@ -259,12 +340,9 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [backgroundOpacity, setBackgroundOpacity] = useState(100)
 
   // States for shapes
-  const [borderColor, setBorderColor] = useState("#000000")
   const [borderWidth, setBorderWidth] = useState(2)
   const [borderStyle, setBorderStyle] = useState<BorderStyle>("solid")
   const [cornerRadius, setCornerRadius] = useState(0)
-  const [fillColor, setFillColor] = useState("#ffffff")
-  const [fillColorOpacity, setFillColorOpacity] = useState(0)
 
   // Shape settings state
   const [shapeType, setShapeType] = useState<ShapeType>("rectangle")
@@ -327,6 +405,12 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toolSettings,
 
         // Additional parameters for text
+        textColor,
+        setTextColor,
+        textBgColor,
+        setTextBgColor,
+        textBgOpacity,
+        setTextBgOpacity,
         fontSize,
         setFontSize,
         fontFamily,
@@ -351,12 +435,18 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBorderWidth,
         borderStyle,
         setBorderStyle,
+        borderColorOpacity,
+        setBorderColorOpacity,
         cornerRadius,
         setCornerRadius,
         fillColor,
         setFillColor,
         fillColorOpacity,
         setFillColorOpacity,
+
+        // Text color opacity
+        textColorOpacity,
+        setTextColorOpacity,
 
         brushMirrorMode,
         setBrushMirrorMode,
@@ -398,7 +488,18 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentHistoryIndex,
         addHistoryEntry,
         revertToHistoryState,
-        registerLinesRestorer,
+        registerRenderableObjectsRestorer,
+        // New context values
+        renderableObjects,
+        addRenderableObject,
+        updateLinePoints,
+        updateMultipleLinePoints,
+        setRenderableObjects,
+        // Add mode
+        isAddModeActive,
+        setIsAddModeActive,
+        currentAddToolType,
+        setCurrentAddToolType,
       }}
     >
       {children}
