@@ -15,7 +15,7 @@ const useDrawing = ({
   canvasWidth,
   canvasHeight
 }: DrawingProps) => {
-  const [lines, setLines] = useState<LineData[]>([]);
+  // const [lines, setLines] = useState<LineData[]>([]);
   const isDrawing = useRef(false);
 
     const {
@@ -28,7 +28,6 @@ const useDrawing = ({
         brushMirrorMode,
         eraserMirrorMode,
         activeTool,
-        addHistoryEntry,
         addRenderableObject,
         renderableObjects,
         updateLinePoints,
