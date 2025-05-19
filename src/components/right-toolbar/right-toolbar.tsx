@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Map, History as HistoryIcon } from 'lucide-react'; // Пример иконок
+import {History as HistoryIcon, Navigation} from 'lucide-react';
 import NavigatorPanel from './navigator-panel';
 import HistoryPanel from './history-panel';
 
@@ -51,7 +51,7 @@ const RightToolbar: React.FC = () => {
                 className={`w-10 h-10 group hover:bg-[#383A3EFF] ${activePanels.navigator ? 'bg-[#414448FF]' : ''}`}
                 onClick={() => togglePanel('navigator')}
               >
-                <Map className={`!w-4.5 !h-4.5 ${activePanels.navigator ? 'text-white' : 'text-[#A8AAACFF] group-hover:text-white'}`} />
+                <Navigation className={`!w-4.5 !h-4.5 ${activePanels.navigator ? 'text-white' : 'text-[#A8AAACFF] group-hover:text-white'}`} />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left" align="center" title="Navigator">

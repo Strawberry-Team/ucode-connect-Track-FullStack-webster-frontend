@@ -40,7 +40,7 @@ export const MirrorSelector: React.FC<{
 
   return (
     <div className="flex items-center space-x-2">
-      <Label className="text-xs text-[#D4D4D5FF] pl-3">Mirror mode:</Label>
+      <Label className="text-[14px] text-[#D4D4D5FF] pl-3">Mirror mode:</Label>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">

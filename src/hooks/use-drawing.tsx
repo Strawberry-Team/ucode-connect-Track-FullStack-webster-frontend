@@ -36,7 +36,7 @@ const useDrawing = ({
 
   const centerX = canvasWidth / 2;
   const centerY = canvasHeight / 2;
-  const { addHistoryEntry, history, currentHistoryIndex } = useTool();
+  const { addHistoryEntry, history, currentHistoryIndex, setLastDrawingEndTime } = useTool();
 
     const getCurrentMirrorMode = useCallback((): MirrorMode => {
         if (activeTool?.type === 'brush') {
@@ -178,6 +178,7 @@ const useDrawing = ({
         }
         isDrawing.current = false;
         currentStrokeLineIds.current = [];
+        // setLastDrawingEndTime(Date.now());
     }, [activeTool, addHistoryEntry, renderableObjects]);
 
     const getIsDrawing = () => isDrawing.current;

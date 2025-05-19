@@ -105,7 +105,7 @@ const NumberInputWithPopover: React.FC<NumberInputWithPopoverProps> = ({
 
   return (
     <>
-      <Label className="text-xs text-[#D4D4D5FF] pl-3">{label}:</Label>
+      <Label className="text-[14px] text-[#D4D4D5FF] pl-3">{label}:</Label>
       <Popover open={menuOpen} onOpenChange={setMenuOpen}>
         <PopoverTrigger asChild>
           <div 

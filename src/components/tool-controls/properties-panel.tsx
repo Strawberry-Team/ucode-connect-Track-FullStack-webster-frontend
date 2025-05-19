@@ -7,7 +7,10 @@ import {
   EraserOptions, 
   ShapeOptions, 
   TextOptions,
-  CropOptions
+  CropOptions,
+  HandOptions,
+  LiquifyOptions,
+  BlurOptions
 } from "./option-panels"
 
 const PropertiesPanel: React.FC = () => {
@@ -30,6 +33,12 @@ const PropertiesPanel: React.FC = () => {
         return <ShapeOptions />
       case "crop":
         return <CropOptions />
+      case "hand":
+        return <HandOptions />
+      case "liquify":
+        return <LiquifyOptions />
+      case "blur":
+        return <BlurOptions />
       default:
         return null
     }

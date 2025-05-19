@@ -9,13 +9,152 @@ import { ImageUp, Plus } from 'lucide-react';
 const DashboardPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { setStageSize, setIsCanvasManuallyResized, setInitialImage } = useTool();
+  const { 
+    setStageSize, 
+    setIsCanvasManuallyResized, 
+    setInitialImage, 
+    setRenderableObjects,
+    setActiveTool,
+    setActiveElement,
+    setColor,
+    setSecondaryColor,
+    setBrushSize,
+    setEraserSize,
+    setOpacity,
+    setEraserOpacity,
+    setEraserHardness,
+    setZoom,
+    setBrushMirrorMode,
+    setEraserMirrorMode,
+    setCursorPositionOnCanvas,
+    addHistoryEntry,
+    setIsAddModeActive,
+    setCurrentAddToolType,
+    setStagePosition,
+    setLastDrawingEndTime,
+    // Параметры текста
+    setTextColor,
+    setTextBgColor,
+    setTextBgOpacity,
+    setFontSize,
+    setFontFamily,
+    setFontStyles,
+    setTextCase,
+    setTextAlignment,
+    setLineHeight,
+    setBackgroundColor,
+    setBackgroundOpacity,
+    setTextColorOpacity,
+    // Параметры фигур
+    setFillColor,
+    setFillColorOpacity,
+    setBorderColor,
+    setBorderWidth,
+    setBorderStyle,
+    setBorderColorOpacity,
+    setCornerRadius,
+    setShapeType,
+    setShapeTransform,
+    // Параметры Liquify
+    setLiquifyBrushSize,
+    setLiquifyStrength,
+    setLiquifyMode,
+    setIsImageReadyForLiquify,
+    // Параметры Blur
+    setBlurBrushSize,
+    setBlurStrength
+  } = useTool();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Функция для сброса всех настроек инструментов к значениям по умолчанию
+  const resetAllToolSettings = () => {
+    // Сбрасываем активный инструмент и элемент
+    setActiveTool(null);
+    setActiveElement(null);
+    
+    // Сбрасываем основные настройки
+    setColor("#000000");
+    setSecondaryColor("#ffffff");
+    setBrushSize(20);
+    setEraserSize(20);
+    setOpacity(100);
+    setEraserOpacity(100);
+    setEraserHardness(100);
+    setZoom(100);
+    setBrushMirrorMode("None");
+    setEraserMirrorMode("None");
+    
+    // Сбрасываем позицию курсора
+    setCursorPositionOnCanvas(null);
+    
+    // Очищаем историю (создаем пустую историю с новым проектом)
+    // Устанавливаем пустой массив renderableObjects, и это будет первая запись в истории
+    const emptyObjects: never[] = [];
+    setRenderableObjects(emptyObjects);
+    addHistoryEntry({
+      type: 'unknown',
+      description: 'Новый проект',
+      linesSnapshot: emptyObjects
+    });
+    
+    // Сбрасываем режим добавления
+    setIsAddModeActive(false);
+    setCurrentAddToolType(null);
+    
+    // Сбрасываем позицию холста
+    setStagePosition({x: 0, y: 0});
+    setLastDrawingEndTime(null);
+    
+    // Сбрасываем настройки текста
+    setTextColor("#000000");
+    setTextBgColor("transparent");
+    setTextBgOpacity(100);
+    setFontSize(16);
+    setFontFamily("Arial");
+    setFontStyles({
+      bold: false,
+      italic: false,
+      underline: false,
+      strikethrough: false
+    });
+    setTextCase("none");
+    setTextAlignment("center");
+    setLineHeight(1);
+    setBackgroundColor("transparent");
+    setBackgroundOpacity(100);
+    setTextColorOpacity(100);
+    
+    // Сбрасываем настройки фигур
+    setFillColor("#ffffff");
+    setFillColorOpacity(100);
+    setBorderColor("#000000");
+    setBorderWidth(2);
+    setBorderStyle("solid");
+    setBorderColorOpacity(100);
+    setCornerRadius(0);
+    setShapeType("rectangle");
+    setShapeTransform({
+      rotate: 0,
+      scaleX: 1,
+      scaleY: 1
+    });
+    
+    // Сбрасываем настройки инструмента Liquify
+    setLiquifyBrushSize(20);
+    setLiquifyStrength(50);
+    setLiquifyMode("push");
+    setIsImageReadyForLiquify(false);
+    
+    // Сбрасываем настройки инструмента Blur
+    setBlurBrushSize(20);
+    setBlurStrength(20);
+  };
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
   const handleCreateNewProject = (name: string, width: number, height: number) => {
+    resetAllToolSettings();
     setInitialImage(null);
     setStageSize({ width, height });
     setIsCanvasManuallyResized(true);
@@ -29,6 +168,7 @@ const DashboardPage: React.FC = () => {
       reader.onload = (e) => {
         const img = new window.Image();
         img.onload = () => {
+          resetAllToolSettings();
           setInitialImage({ src: img.src, width: img.naturalWidth, height: img.naturalHeight, file });
           setStageSize({ width: img.naturalWidth, height: img.naturalHeight });
           setIsCanvasManuallyResized(true);
