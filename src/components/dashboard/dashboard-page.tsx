@@ -2,12 +2,19 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTool } from '@/context/tool-context';
 import CreateProjectModal from './create-project-modal.tsx';
+import AuthContainer from '../auth/auth-container';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ImageUp, Plus } from 'lucide-react';
+import { ImageUp, Plus, User, X, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { UserMenuDropdown } from './user-menu-dropdown';
+import { useUser } from '@/context/user-context';
+import { toast } from 'sonner';
 
 const DashboardPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuthVisible, setIsAuthVisible] = useState(false);
+  const { loggedInUser, isLoadingAuth, loginUserContext, logoutUserContext } = useUser();
   const navigate = useNavigate();
   const { 
     setStageSize, 
@@ -32,7 +39,6 @@ const DashboardPage: React.FC = () => {
     setCurrentAddToolType,
     setStagePosition,
     setLastDrawingEndTime,
-    // Параметры текста
     setTextColor,
     setTextBgColor,
     setTextBgOpacity,
@@ -45,7 +51,6 @@ const DashboardPage: React.FC = () => {
     setBackgroundColor,
     setBackgroundOpacity,
     setTextColorOpacity,
-    // Параметры фигур
     setFillColor,
     setFillColorOpacity,
     setBorderColor,
@@ -55,24 +60,19 @@ const DashboardPage: React.FC = () => {
     setCornerRadius,
     setShapeType,
     setShapeTransform,
-    // Параметры Liquify
     setLiquifyBrushSize,
     setLiquifyStrength,
     setLiquifyMode,
     setIsImageReadyForLiquify,
-    // Параметры Blur
     setBlurBrushSize,
     setBlurStrength
   } = useTool();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Функция для сброса всех настроек инструментов к значениям по умолчанию
   const resetAllToolSettings = () => {
-    // Сбрасываем активный инструмент и элемент
     setActiveTool(null);
     setActiveElement(null);
     
-    // Сбрасываем основные настройки
     setColor("#000000");
     setSecondaryColor("#ffffff");
     setBrushSize(20);
@@ -84,11 +84,8 @@ const DashboardPage: React.FC = () => {
     setBrushMirrorMode("None");
     setEraserMirrorMode("None");
     
-    // Сбрасываем позицию курсора
     setCursorPositionOnCanvas(null);
     
-    // Очищаем историю (создаем пустую историю с новым проектом)
-    // Устанавливаем пустой массив renderableObjects, и это будет первая запись в истории
     const emptyObjects: never[] = [];
     setRenderableObjects(emptyObjects);
     addHistoryEntry({
@@ -97,15 +94,12 @@ const DashboardPage: React.FC = () => {
       linesSnapshot: emptyObjects
     });
     
-    // Сбрасываем режим добавления
     setIsAddModeActive(false);
     setCurrentAddToolType(null);
     
-    // Сбрасываем позицию холста
     setStagePosition({x: 0, y: 0});
     setLastDrawingEndTime(null);
     
-    // Сбрасываем настройки текста
     setTextColor("#000000");
     setTextBgColor("transparent");
     setTextBgOpacity(100);
@@ -124,7 +118,6 @@ const DashboardPage: React.FC = () => {
     setBackgroundOpacity(100);
     setTextColorOpacity(100);
     
-    // Сбрасываем настройки фигур
     setFillColor("#ffffff");
     setFillColorOpacity(100);
     setBorderColor("#000000");
@@ -139,19 +132,24 @@ const DashboardPage: React.FC = () => {
       scaleY: 1
     });
     
-    // Сбрасываем настройки инструмента Liquify
     setLiquifyBrushSize(20);
     setLiquifyStrength(50);
     setLiquifyMode("push");
     setIsImageReadyForLiquify(false);
     
-    // Сбрасываем настройки инструмента Blur
     setBlurBrushSize(20);
     setBlurStrength(20);
   };
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
+
+  const toggleAuthVisibility = () => {
+    if (!loggedInUser) {
+      setIsAuthVisible(!isAuthVisible);
+      console.log("Toggling auth visibility to:", !isAuthVisible);
+    }
+  };
 
   const handleCreateNewProject = (name: string, width: number, height: number) => {
     resetAllToolSettings();
@@ -189,41 +187,132 @@ const DashboardPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  const handleAuthSuccess = (user: import('@/types/auth').User) => {
+    console.log('Пользователь успешно авторизован в DashboardPage, обновляем контекст:', user);
+    loginUserContext(user);
+    setIsAuthVisible(false);
+  };
+
+  const handleLogout = () => {
+    logoutUserContext();
+    setIsAuthVisible(false);
+    toast.success("Logged Out", { description: "You have been successfully logged out.", duration: 3000 });
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#292C31FF] text-gray-200 p-4">
-      <Card className="w-full max-w-md bg-[#25282CFF] border-2 border-dashed border-gray-600 shadow-xl">
-        <CardContent className="p-8 flex flex-col items-center text-center">
-          <ImageUp size={80} className="mb-6 text-gray-400" strokeWidth={1.5} />
-          
-          <h2 className="text-2xl font-semibold mb-2 text-gray-100">Start new project</h2>
-          <p className="text-gray-400 mb-8">
-            Upload an image or start with a blank canvas.
-          </p>
+    <div className="flex items-center justify-center min-h-screen bg-[#292C31FF] text-gray-200 p-6">
+      <div className="w-full max-w-lg">
+        <motion.div
+          className="flex flex-col items-center justify-center relative"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+        >
+          <Card className={`w-full max-w-md bg-[#25282CFF] border-2 border-dashed border-gray-600 shadow-xl relative overflow-hidden transition-opacity duration-300 ${isLoadingAuth ? 'opacity-75' : 'opacity-100'}`}>
+            {isLoadingAuth && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#25282CFF] bg-opacity-50 z-20 rounded-lg">
+                <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
+              </div>
+            )}
+            <div className={`relative z-10 ${isLoadingAuth ? 'pointer-events-none' : ''}`}>
+              <div className="absolute -top-3 right-3 z-10">
+                {loggedInUser ? (
+                  <UserMenuDropdown user={loggedInUser} onLogout={handleLogout} />
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={toggleAuthVisibility}
+                    className="cursor-pointer w-12 h-12 rounded-full flex items-center justify-center bg-[#32353CFF] text-blue-400 hover:bg-[#3A3D44FF] hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#25282CFF] border border-gray-600 shadow-md overflow-hidden relative"
+                    aria-label={isAuthVisible ? "Close authentication" : "Open authentication"}
+                    disabled={isLoadingAuth}
+                  >
+                    <motion.div
+                      animate={isAuthVisible ? { rotate: 180, y: 0 } : { rotate: 0, y: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      {isAuthVisible ? <X size={25} /> : <User size={25} />}
+                    </motion.div>
+                  </motion.button>
+                )}
+              </div>
 
-          <Button 
-            onClick={handleOpenImageClick} 
-            className="w-[250px] h-10 rounded-full mb-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold"
-          >
-            <Plus className="!h-6 !w-6" />
-            Open Image
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageFileChange}
-            accept="image/*"
-            className="hidden"
-          />
-
-          <Button 
-            onClick={handleOpenModal} 
-            variant="outline" 
-            className="w-[250px] bg-transparent hover:bg-[#303237FF] border-2 border-[#414448FF] h-10 rounded-full text-[#A7A8AAFF] hover:text-white font-semibold"
-          >
-            Create new
-          </Button>
-        </CardContent>
-      </Card>
+              <CardContent className="p-0 flex items-stretch">
+                <div className="relative overflow-hidden" style={{ height: '350px' }}>
+                  <motion.div 
+                    className="flex flex-row w-[200%] h-full"
+                    animate={{ 
+                      x: isAuthVisible && !loggedInUser ? "-50%" : "0%"
+                    }}
+                    transition={{
+                      type: "spring", stiffness: 100, damping: 20, mass: 1.2,
+                      restDelta: 0.001, restSpeed: 0.001
+                    }}
+                  >
+                    <div className="w-1/2 h-full flex items-center justify-center">
+                      <motion.div 
+                        className="flex flex-col items-center text-center px-8 w-full"
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: isAuthVisible && !loggedInUser ? 0 : 1 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
+                        <ImageUp size={60} className="mb-6 text-gray-400" strokeWidth={1.5} />
+                        <h2 className="text-xl font-semibold mb-2 text-gray-100">Start new project</h2>
+                        <p className="text-gray-400 mb-2">
+                          Upload an image or start with a blank canvas.
+                        </p>
+                        {!loggedInUser && (
+                          <p className="text-gray-400 mb-6">
+                            Want to save your projects and access all features? Sign In!
+                          </p>
+                        )}
+                        <Button 
+                          onClick={handleOpenImageClick} 
+                          variant="secondary" 
+                          className="w-full max-w-[220px] h-10 rounded-full mb-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                          disabled={isLoadingAuth}
+                        >
+                          <Plus className="!h-5 !w-5 mr-1" />
+                          Open Image
+                        </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleImageFileChange}
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isLoadingAuth}
+                        />
+                        <Button 
+                          onClick={handleOpenModal} 
+                          variant="outline" 
+                          className="w-full max-w-[220px] bg-transparent hover:bg-[#303237FF] border-2 border-[#414448FF] h-10 rounded-full text-[#A7A8AAFF] hover:text-white font-semibold"
+                          disabled={isLoadingAuth}
+                        >
+                          Create new
+                        </Button>
+                      </motion.div>
+                    </div>
+                    <div className="w-1/2 h-full flex items-center justify-center px-8">
+                      {!loggedInUser && (
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: isAuthVisible ? 1 : 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          className="w-full"
+                        >
+                          <AuthContainer onAuthSuccess={handleAuthSuccess} />
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                </div>
+              </CardContent>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
 
       <CreateProjectModal
         isOpen={isModalOpen}
