@@ -28,7 +28,7 @@ const BlurOptions: React.FC = () => {
   if (!isImageReadyForLiquify) {
     return (
       <div className="flex items-center justify-center h-full">
-        <span className="text-[14px] text-[#A8AAACFF] text-center">
+        <span className="text-xs text-[#A8AAACFF] text-center">
           Add an image to the canvas to use the Blur tool.
         </span>
       </div>

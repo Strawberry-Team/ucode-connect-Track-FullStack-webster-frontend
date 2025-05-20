@@ -284,7 +284,7 @@ const CropOptions: React.FC = () => {
       <Crop strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] flex-shrink-0" />
 
       <div className="flex items-center space-x-1.5">
-      <Label className="text-[14px] text-[#D4D4D5FF] pl-3">W:</Label>
+      <Label className="text-xs text-[#D4D4D5FF] pl-3">W:</Label>
         <Input
           id="crop-width"
           type="number"
@@ -297,7 +297,7 @@ const CropOptions: React.FC = () => {
         />
       </div>
       <div className="flex items-center space-x-1.5">
-      <Label className="text-[14px] text-[#D4D4D5FF]">H:</Label>
+      <Label className="text-xs text-[#D4D4D5FF]">H:</Label>
         <Input
           id="crop-height"
           type="number"
@@ -310,7 +310,7 @@ const CropOptions: React.FC = () => {
         />
       </div>
       <div className="flex items-center space-x-1.5">
-        <Label className="text-[14px] text-[#D4D4D5FF] pl-3">Preset:</Label>
+        <Label className="text-xs text-[#D4D4D5FF] pl-3">Preset:</Label>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={!isCropping || !stageSize}>
             <Button

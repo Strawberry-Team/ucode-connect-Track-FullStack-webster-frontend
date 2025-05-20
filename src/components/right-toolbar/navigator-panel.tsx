@@ -72,7 +72,7 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
     <div className={`w-full ${heightClass} border-t-1 border-[#171719FF] bg-[#292C31FF] text-[#A8AAACFF]  flex flex-col`}>
       <div className="flex items-center bg-[#24262BFF] p-1">
         <div className="flex-1"></div>
-        <h3 className="text-[15px] font-semibold text-[#E8E8E8FF] text-center">Navigator</h3>
+        <h3 className="text-xs font-semibold text-[#E8E8E8FF] text-center">Navigator</h3>
         <div className="flex-1 flex justify-end">
           <button onClick={onClose} className="cursor-pointer text-gray-400 hover:text-white text-2xl mr-1 leading-none">×</button>
         </div>
@@ -83,7 +83,7 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
           <div className="w-[120px] h-[150px] bg-[#202225FF] border border-[#44474AFF] rounded flex-shrink-0 flex items-center justify-center">
             <MiniMap />
           </div>
-          <div className="text-[14px] flex-grow pt-px flex flex-col space-y-4">
+          <div className="text-xs flex-grow pt-px flex flex-col space-y-4">
             <div className="space-y-1">
               <div className="flex items-center">
                 <span className="inline-block w-5 text-[#A8AAACFF] shrink-0">X:</span>

@@ -4,15 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  RotateCcw,
   Square,
   ChevronDown,
   Circle,
   Image as ImageIcon,
   FileUp,
-  MousePointerSquareDashed,
   RectangleHorizontal,
-  Eclipse,
   Triangle as TriangleIcon,
   Pentagon,
   Hexagon,
@@ -20,22 +17,13 @@ import {
   Heart,
   ArrowRight,
   Minus,
-  Check,
   FileImage,
   SquareRoundCorner,
-  FlipHorizontal,
-  FlipVertical,
   Squircle,
   Trash2,
   Copy,
   PlusCircle,
-  Type
 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,13 +31,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
-import { lightenColor } from "./common";
 import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import type { ShapeType, BorderStyle, Element, Tool, ElementData } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
+import { colorToRGBA } from "@/components/tool-controls/option-panels/common";
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
@@ -373,10 +361,11 @@ const ShapeOptions: React.FC = () => {
     }
   }
 
+  //  Changed condition for activating buttons - now they are available,
+  // if an element is selected that is a shape (not text)
   const isShapeElementSelected = selectedElementId !== null &&
     selectedElementData !== null && // Ensure element is found
-    isConsideredShapeType &&        // Ensure it's a shape/image type
-    (activeTool?.type === "shape" || activeTool?.type === "cursor"); // Allow if shape or cursor tool is active
+    isConsideredShapeType;         // Ensure it's a shape/image type
 
   // Sync tool state with selected element
   useEffect(() => {
@@ -667,44 +656,6 @@ const ShapeOptions: React.FC = () => {
     setTempBorderColorOpacityInput(String(currentNum));
   };
 
-  // Helper function to convert hex/rgb and opacity (0-100) to RGBA string
-  const colorToRGBA = (color: string, opacityPercent: number): string => {
-    if (color === 'transparent') {
-      return `rgba(0,0,0,0)`; // Fully transparent
-    }
-    const opacity = Math.max(0, Math.min(100, opacityPercent)) / 100;
-    let r = 0, g = 0, b = 0;
-
-    if (color.startsWith('#')) {
-      const hex = color.substring(1);
-      if (hex.length === 3) {
-        r = parseInt(hex[0] + hex[0], 16);
-        g = parseInt(hex[1] + hex[1], 16);
-        b = parseInt(hex[2] + hex[2], 16);
-      } else if (hex.length === 6) {
-        r = parseInt(hex.substring(0, 2), 16);
-        g = parseInt(hex.substring(2, 4), 16);
-        b = parseInt(hex.substring(4, 6), 16);
-      }
-    } else if (color.startsWith('rgb')) { // Basic rgb() and rgba() support
-      const parts = color.match(/\d+/g);
-      if (parts && parts.length >= 3) {
-        r = parseInt(parts[0], 10);
-        g = parseInt(parts[1], 10);
-        b = parseInt(parts[2], 10);
-        // Opacity from rgba() string is ignored, opacityPercent argument takes precedence
-      }
-    } else {
-      // For named colors, this basic converter won't work without a canvas trick or a library.
-      // However, for the preview, we can try to render it and let the browser handle it.
-      // For a consistent RGBA preview, it's better to ensure input is hex/rgb or use a robust parser.
-      console.warn("Basic colorToRGBA cannot derive RGB from named color for preview: ", color);
-      // Fallback for preview: return the color itself if not transparent, opacity might not apply visually in all contexts with named colors.
-      return opacity === 1 ? color : `rgba(0,0,0,${opacity})`; // Fallback to black with opacity if color is unknown and not fully opaque
-    }
-    return `rgba(${r},${g},${b},${opacity})`;
-  };
-
   const renderColorPickers = () => (
     <>
       {/* Fill Color Picker */}
@@ -881,8 +832,8 @@ const ShapeOptions: React.FC = () => {
             <Button
               variant="ghost"
               className={`flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded ${activeTool?.type === "shape" && isAddModeActive && currentAddToolType === shapeType
-                  ? "bg-[#3F434AFF] text-white"
-                  : "text-[#D4D4D5FF]"
+                ? "bg-[#3F434AFF] text-white"
+                : "text-[#D4D4D5FF]"
                 }`}
               onClick={handleAddShape}>
               <PlusCircle size={14} />
@@ -948,7 +899,7 @@ const ShapeOptions: React.FC = () => {
         onMenuWillOpen={closeOtherPickers}
       />
 
-      {/* Shape transform */}
+      {/* Shape transform
       <TooltipProvider>
         <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
           <DropdownMenuTrigger asChild>
@@ -1010,7 +961,7 @@ const ShapeOptions: React.FC = () => {
             </TooltipProvider>
           </DropdownMenuContent>
         </DropdownMenu>
-      </TooltipProvider>
+      </TooltipProvider> */}
 
       {renderColorPickers()}
 

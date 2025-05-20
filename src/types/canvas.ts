@@ -38,6 +38,7 @@ export interface LineData {
 export type TextAlignment = "left" | "center" | "right" | "justify";
 export type TextCase = "none" | "uppercase" | "lowercase" | "capitalize";
 export type BorderStyle = "solid" | "dashed" | "dotted" | "double" | "hidden";
+export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 export type ShapeType =
   | "rectangle"
   | "square"

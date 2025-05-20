@@ -28,7 +28,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
       
       <div className="flex items-center bg-[#24262BFF] p-1">
         <div className="flex-1"></div>
-        <h3 className="text-[15px] font-semibold text-[#E8E8E8FF] text-center">History</h3>
+        <h3 className="text-xs font-semibold text-[#E8E8E8FF] text-center">History</h3>
         <div className="flex-1 flex justify-end">
           <button onClick={onClose} className="cursor-pointer text-gray-400 hover:text-white text-2xl mr-1 leading-none">×</button>
         </div>

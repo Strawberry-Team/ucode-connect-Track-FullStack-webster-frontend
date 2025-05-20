@@ -754,13 +754,45 @@ const Canvas: React.FC = () => {
       if (selectedKonvaNode && trRef.current) {
         trRef.current.nodes([selectedKonvaNode]);
         trRef.current.getLayer()?.batchDraw();
-        trRef.current.keepRatio(true);
-        trRef.current.rotationSnaps([0, 90, 180, 270]);
-        trRef.current.rotateAnchorOffset(20);
+        
+        // Configuration similar to ElementRenderer's Transformer
+        trRef.current.keepRatio(true); // Ensure aspect ratio is maintained
+        trRef.current.rotationSnaps([0, 45, 90, 135, 180, 225, 270, 315]);
+        trRef.current.rotationSnapTolerance(5); // Tolerance for rotation snapping
+        trRef.current.rotateAnchorOffset(30); // Distance of rotation anchor from shape
+        trRef.current.borderDash([3, 3]); // Dashed border for transformer
+        trRef.current.anchorStroke('#0096FF'); // Anchor stroke color
+        trRef.current.anchorFill('#FFFFFF'); // Anchor fill color
+        trRef.current.anchorSize(8); // Size of anchors
+        trRef.current.borderStroke('#0096FF'); // Transformer border color
+        trRef.current.padding(2); // Padding around the node
+
         trRef.current.enabledAnchors([
-            'top-left', 'top-right', 'bottom-left', 'bottom-right',
-            'middle-left', 'middle-right', 'top-center', 'bottom-center'
+            'top-left', 'top-center', 'top-right',
+            'middle-left', 'middle-right',
+            'bottom-left', 'bottom-center', 'bottom-right'
         ]);
+
+        // Bound box function to enforce minimum size
+        trRef.current.boundBoxFunc((oldBox, newBox) => {
+            const minSize = 20;
+            newBox.width = Math.max(minSize, newBox.width);
+            newBox.height = Math.max(minSize, newBox.height);
+
+            if (trRef.current?.keepRatio()) {
+                const aspectRatio = oldBox.width / oldBox.height;
+                if (Math.abs(newBox.width / newBox.height - aspectRatio) > 1e-2) { 
+                    const widthChangedMore = Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height);
+                    if (widthChangedMore) {
+                        newBox.height = newBox.width / aspectRatio;
+                    } else {
+                        newBox.width = newBox.height * aspectRatio;
+                    }
+                }
+            }
+            return newBox;
+        });
+
       } else if (trRef.current) {
         trRef.current.nodes([]); // Clear nodes if none selected
         trRef.current.getLayer()?.batchDraw();
@@ -892,6 +924,15 @@ const Canvas: React.FC = () => {
                       offsetY={(line as any).offsetY ?? 0}
                       listening={isBrushTransformModeActive && activeTool?.type === 'brush'}
                       name={line.id}
+                      draggable={isBrushTransformModeActive && activeTool?.type === 'brush' && !!(line as any).offsetX && !!(line as any).offsetY}
+                      onDragEnd={(e) => {
+                        if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                            // Ensure the line was prepared for transform (has offsetX/Y)
+                            if ((line as any).offsetX !== undefined && (line as any).offsetY !== undefined) {
+                                drawingManager.updateLinePositionAndHistory(line.id, e.target.x(), e.target.y());
+                            }
+                        }
+                      }}
                       onClick={(e) => {
                         if (isBrushTransformModeActive && activeTool?.type === 'brush') {
                           e.cancelBubble = true;
@@ -914,7 +955,7 @@ const Canvas: React.FC = () => {
                           if (node) setSelectedKonvaNode(node);
                         }
                       }}
-                  />
+                    />
                   );
                 } else {
                   const element = obj as ElementData;
@@ -943,7 +984,6 @@ const Canvas: React.FC = () => {
               {selectedKonvaNode && isBrushTransformModeActive && activeTool?.type === 'brush' && (
                   <Transformer
                       ref={trRef}
-                      boundBoxFunc={(oldBox, newBox) => newBox} // Basic bound box
                       onTransformEnd={() => {
                           if (selectedKonvaNode && selectedLineId) {
                               drawingManager.updateLineTransform(selectedLineId, {
@@ -955,6 +995,16 @@ const Canvas: React.FC = () => {
                               });
                           }
                       }}
+                      // Add other visual configurations copied from ElementRenderer's Transformer if needed
+                      // For cursors, Konva typically handles them based on anchor roles.
+                      // Visual properties for anchors:
+                      anchorStroke="#0096FF"
+                      anchorFill="#FFFFFF"
+                      anchorSize={8}
+                      borderStroke="#0096FF"
+                      borderDash={[3, 3]}
+                      rotateAnchorOffset={30}
+                      padding={2}
                   />
               )}
                     </Layer>

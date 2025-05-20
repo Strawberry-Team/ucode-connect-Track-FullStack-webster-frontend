@@ -328,7 +328,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ color: initialColor, setColor
               style={{ backgroundColor: initialColor }}
             />
           </div>
-          <div className="w-[100px] flex flex-col space-y-1 text-[10px] text-[#A8AAAC]">
+          <div className="w-[100px] flex flex-col space-y-1 text-xs text-[#A8AAAC]">
             <div className="flex justify-between space-x-1">
               {[ 'R', 'G', 'B' ].map((label) => (
                 <div key={label} className="flex flex-col items-center">

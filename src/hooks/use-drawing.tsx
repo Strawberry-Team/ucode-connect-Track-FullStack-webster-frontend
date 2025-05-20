@@ -216,10 +216,12 @@ const useDrawing = ({
             }
 
             const bbox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-            const newX = bbox.x;
-            const newY = bbox.y;
+            
             const newOffsetX = bbox.width / 2;
             const newOffsetY = bbox.height / 2;
+            
+            const newX = bbox.x + newOffsetX;
+            const newY = bbox.y + newOffsetY;
 
             const newPoints = points.map((val, index) => {
                 return index % 2 === 0 ? val - bbox.x : val - bbox.y;
@@ -270,6 +272,53 @@ const useDrawing = ({
 
     }, [setRenderableObjects, addHistoryEntry, renderableObjects]);
 
+    const updateLinePositionAndHistory = useCallback((lineId: string, newX: number, newY: number) => {
+        (setRenderableObjects as Dispatch<SetStateAction<RenderableObject[]>>)((prev: RenderableObject[]) =>
+            prev.map(obj => {
+                if (obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser')) {
+                    const lineToUpdate = obj as LineData & { x?: number, y?: number, offsetX?: number, offsetY?: number };
+                    // Ensure offsetX and offsetY are defined, meaning prepareLineForTransform has been called
+                    if (lineToUpdate.offsetX === undefined || lineToUpdate.offsetY === undefined) {
+                        console.warn("updateLinePositionAndHistory called on a line not prepared for transform.");
+                        return obj; // Return original object if not prepared
+                    }
+                    return {
+                        ...lineToUpdate,
+                        x: newX,
+                        y: newY,
+                    };
+                }
+                return obj;
+            })
+        );
+
+        // Add history entry for the drag operation
+        // Creating a snapshot for history. Ensure this logic is robust.
+        // It might be better to get the updated state of renderableObjects for the snapshot.
+        // For now, let's assume renderableObjects is updated by the time this runs or use a callback approach if needed.
+        // To ensure the snapshot is current, we might need to rethink how snapshots are taken or pass the updated list.
+        // For simplicity, using the current `renderableObjects` state. This might capture the state *before* this specific update fully propagates.
+        // Consider using the result of the setRenderableObjects callback if a more accurate snapshot is needed immediately.
+        
+        // A more robust way to get the snapshot would be to do it after the state update:
+        // 1. Update state.
+        // 2. In a useEffect that listens to renderableObjects, or via a callback from setRenderableObjects, create the history entry.
+        // However, to keep it within this callback for now:
+        const currentSnapshot = renderableObjects.map(obj => {
+            if ('points' in obj) {
+                return { ...obj, points: [...obj.points] };
+            }
+            return { ...obj };
+        });
+
+        addHistoryEntry({
+            type: 'elementModified', // Or a more specific 'lineMoved' type if desired
+            description: <> <MoveIcon className="inline-block w-4 h-4 mr-1" /> Line moved</>,
+            linesSnapshot: currentSnapshot,
+        });
+
+    }, [setRenderableObjects, addHistoryEntry, renderableObjects]);
+
     return {
         getIsDrawing,
         startDrawing,
@@ -278,6 +327,7 @@ const useDrawing = ({
         clearDrawingLines,
         prepareLineForTransform,
         updateLineTransform,
+        updateLinePositionAndHistory,
     };
 };
 

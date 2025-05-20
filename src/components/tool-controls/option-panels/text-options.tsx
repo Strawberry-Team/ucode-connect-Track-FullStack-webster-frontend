@@ -22,28 +22,21 @@ import {
   CaseSensitive,
   CaseUpper,
   CaseLower,
-  Check
 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/components/ui/tooltip";
-import { lightenColor } from "./common";
-import type { TextCase, Element, ElementData, FontStyles, TextAlignment, BorderStyle, Tool } from "@/types/canvas";
+import type { TextCase, Element, ElementData, FontStyles, TextAlignment, BorderStyle } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
+import { colorToRGBA } from "@/components/tool-controls/option-panels/common";
 
 // Add this at the top of the file with other imports
 declare global {
@@ -384,44 +377,6 @@ const TextOptions: React.FC = () => {
     // and its dependencies are all listed here
   ]);
 
-  // Helper function to convert hex/rgb and opacity (0-100) to RGBA string
-  const colorToRGBA = (color: string, opacityPercent: number): string => {
-    if (color === 'transparent') {
-      return `rgba(0,0,0,0)`; // Fully transparent
-    }
-    const opacity = Math.max(0, Math.min(100, opacityPercent)) / 100;
-    let r = 0, g = 0, b = 0;
-
-    if (color.startsWith('#')) {
-      const hex = color.substring(1);
-      if (hex.length === 3) {
-        r = parseInt(hex[0] + hex[0], 16);
-        g = parseInt(hex[1] + hex[1], 16);
-        b = parseInt(hex[2] + hex[2], 16);
-      } else if (hex.length === 6) {
-        r = parseInt(hex.substring(0, 2), 16);
-        g = parseInt(hex.substring(2, 4), 16);
-        b = parseInt(hex.substring(4, 6), 16);
-      }
-    } else if (color.startsWith('rgb')) { // Basic rgb() and rgba() support
-      const parts = color.match(/\d+/g);
-      if (parts && parts.length >= 3) {
-        r = parseInt(parts[0], 10);
-        g = parseInt(parts[1], 10);
-        b = parseInt(parts[2], 10);
-        // Opacity from rgba() string is ignored, opacityPercent argument takes precedence
-      }
-    } else {
-      // For named colors, this basic converter won't work without a canvas trick or a library.
-      // However, for the preview, we can try to render it and let the browser handle it.
-      // For a consistent RGBA preview, it's better to ensure input is hex/rgb or use a robust parser.
-      console.warn("Basic colorToRGBA cannot derive RGB from named color for preview: ", color);
-      // Fallback for preview: return the color itself if not transparent, opacity might not apply visually in all contexts with named colors.
-      return opacity === 1 ? color : `rgba(0,0,0,${opacity})`; // Fallback to black with opacity if color is unknown and not fully opaque
-    }
-    return `rgba(${r},${g},${b},${opacity})`;
-  };
-
   // Check if the selected element is a text element
   const isTextElementSelected = selectedElementId !== null &&
     getElementDataFromRenderables().find(el => el.id === selectedElementId)?.type === "text" &&
@@ -517,10 +472,10 @@ const TextOptions: React.FC = () => {
   const renderColorPickers = () => (
     <>
       {/* Text Color Picker */}
-      <div className="relative">
+      <div className="relative ml-3 mr-5">
         <Button
           variant="ghost"
-          className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+          className="h-7 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
           onClick={() => setShowColorPicker(!showColorPicker)}
         >
           <p className="text-xs text-[#D4D4D5FF]">Text</p>
@@ -579,7 +534,7 @@ const TextOptions: React.FC = () => {
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
       {/* Background Color Picker */}
-      <div className="relative">
+      <div className="relative ml-2">
         <Button
           variant="ghost"
           className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
@@ -723,79 +678,82 @@ const TextOptions: React.FC = () => {
 
   // Render style buttons
   const renderStyleButtons = () => (
-    <div className="flex items-center px-2 text-xs text-white rounded">
-      <div className="bg-[#292C31FF] border-2 border-[#44474AFF] rounded text-white text-xs p-0 min-w-[100px] grid grid-cols-4">
-        {/* Bold */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+    <div className="flex items-center space-x-2 ml-3 mr-5">
+      <Label className="text-xs text-[#D4D4D5FF]">Style:</Label>
+      <div className="flex items-center text-xs text-white rounded">
+        <div className="bg-[#292C31FF] border-2 border-[#44474AFF] rounded text-white text-xs p-0 min-w-[100px] grid grid-cols-4">
+          {/* Bold */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
                   ${fontStyles.bold ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
-                onClick={() => toggleStyle('bold')}
-              >
-                <Bold size={12} className={fontStyles.bold ? 'text-white' : 'text-[#D4D4D5FF]'} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Bold</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+                  onClick={() => toggleStyle('bold')}
+                >
+                  <Bold size={12} className={fontStyles.bold ? 'text-white' : 'text-[#D4D4D5FF]'} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Bold</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Italic */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+          {/* Italic */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
                   ${fontStyles.italic ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
-                onClick={() => toggleStyle('italic')}
-              >
-                <Italic size={12} className={fontStyles.italic ? 'text-white' : 'text-[#D4D4D5FF]'} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Italic</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+                  onClick={() => toggleStyle('italic')}
+                >
+                  <Italic size={12} className={fontStyles.italic ? 'text-white' : 'text-[#D4D4D5FF]'} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Italic</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Underline */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+          {/* Underline */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
                   ${fontStyles.underline ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
-                onClick={() => toggleStyle('underline')}
-              >
-                <Underline size={12} className={fontStyles.underline ? 'text-white' : 'text-[#D4D4D5FF]'} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Underline</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+                  onClick={() => toggleStyle('underline')}
+                >
+                  <Underline size={12} className={fontStyles.underline ? 'text-white' : 'text-[#D4D4D5FF]'} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Underline</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Strikethrough */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
+          {/* Strikethrough */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className={`flex items-center justify-center min-w-6 min-h-6 hover:bg-[#3F434AFF] rounded-none cursor-pointer relative
                   ${fontStyles.strikethrough ? 'bg-[#3F434AFF] shadow-inner text-white' : 'bg-[#1e1f22]'}`}
-                onClick={() => toggleStyle('strikethrough')}
-              >
-                <Strikethrough size={12} className={fontStyles.strikethrough ? 'text-white' : 'text-[#D4D4D5FF]'} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Strikethrough</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+                  onClick={() => toggleStyle('strikethrough')}
+                >
+                  <Strikethrough size={12} className={fontStyles.strikethrough ? 'text-white' : 'text-[#D4D4D5FF]'} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Strikethrough</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   );
@@ -882,85 +840,88 @@ const TextOptions: React.FC = () => {
       {renderStyleButtons()}
 
       {/* Text case */}
-      <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 mr-5 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
-            <Label className="text-xs text-white scale-120">
-              {textCase === "none" ? <Baseline size={14} strokeWidth={1.5} /> :
-                textCase === "uppercase" ? <CaseUpper size={14} strokeWidth={1.5} /> :
-                  textCase === "lowercase" ? <CaseLower size={14} strokeWidth={1.5} /> :
-                    textCase === "capitalize" ? <CaseSensitive size={14} strokeWidth={1.5} /> : <Baseline size={14} strokeWidth={1.5} />}
-            </Label>
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">
+      <div className="flex items-center space-x-2">
+        <Label className="text-xs text-[#D4D4D5FF]">Case:</Label>
+        <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center min-w-3 min-h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
+              <Label className="text-xs text-white scale-120">
+                {textCase === "none" ? <Baseline size={14} strokeWidth={1.5} /> :
+                  textCase === "uppercase" ? <CaseUpper size={14} strokeWidth={1.5} /> :
+                    textCase === "lowercase" ? <CaseLower size={14} strokeWidth={1.5} /> :
+                      textCase === "capitalize" ? <CaseSensitive size={14} strokeWidth={1.5} /> : <Baseline size={14} strokeWidth={1.5} />}
+              </Label>
+              <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">
 
-          {/* Normal */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'none' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleCaseChange('none')}>
-                  <Baseline size={14} color="white" strokeWidth={1.5} className="scale-120" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Normal</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Normal */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'none' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleCaseChange('none')}>
+                    <Baseline size={14} color="white" strokeWidth={1.5} className="scale-120" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Normal</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Uppercase */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'uppercase' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleCaseChange('uppercase')}>
-                  <CaseUpper size={14} color="white" strokeWidth={1.5} className="scale-120" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Uppercase</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Uppercase */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'uppercase' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleCaseChange('uppercase')}>
+                    <CaseUpper size={14} color="white" strokeWidth={1.5} className="scale-120" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Uppercase</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Lowercase */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'lowercase' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleCaseChange('lowercase')}>
-                  <CaseLower size={14} color="white" strokeWidth={1.5} className="scale-120" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Lowercase</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Lowercase */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'lowercase' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleCaseChange('lowercase')}>
+                    <CaseLower size={14} color="white" strokeWidth={1.5} className="scale-120" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Lowercase</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Capitalize */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'capitalize' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleCaseChange('capitalize')}>
-                  <CaseSensitive size={14} color="white" strokeWidth={1.5} className="scale-120" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Capitalize</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {/* Capitalize */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-2 py-1.5 hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] rounded-none cursor-pointer ${textCase === 'capitalize' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleCaseChange('capitalize')}>
+                    <CaseSensitive size={14} color="white" strokeWidth={1.5} className="scale-120" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Capitalize</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {renderColorPickers()}
 
@@ -977,85 +938,88 @@ const TextOptions: React.FC = () => {
       />
 
       {/* Text alignment */}
-      <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 mr-5 ml-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
-            <Label className="text-xs text-white">
-              {textAlignment === "left" ? <AlignLeft size={16} /> :
-                textAlignment === "center" ? <AlignCenter size={16} /> :
-                  textAlignment === "right" ? <AlignRight size={16} /> :
-                    textAlignment === "justify" ? <AlignJustify size={16} /> : <AlignCenter size={16} />}
-            </Label>
-            <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">
+      <div className="flex items-center space-x-2 mr-5 ml-3">
+        <Label className="text-xs text-[#D4D4D5FF]">Align:</Label>
+        <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
+              <Label className="text-xs text-white">
+                {textAlignment === "left" ? <AlignLeft size={16} /> :
+                  textAlignment === "center" ? <AlignCenter size={16} /> :
+                    textAlignment === "right" ? <AlignRight size={16} /> :
+                      textAlignment === "justify" ? <AlignJustify size={16} /> : <AlignCenter size={16} />}
+              </Label>
+              <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[150px] grid grid-cols-4">
 
-          {/* Left */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'left' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleAlignmentChange('left')}>
-                  <AlignLeft size={14} color="white" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Left</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Left */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'left' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleAlignmentChange('left')}>
+                    <AlignLeft size={14} color="white" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Left</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Center */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'center' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleAlignmentChange('center')}>
-                  <AlignCenter size={14} color="white" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Center</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Center */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'center' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleAlignmentChange('center')}>
+                    <AlignCenter size={14} color="white" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Center</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Right */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'right' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleAlignmentChange('right')}>
-                  <AlignRight size={14} color="white" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Right</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Right */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'right' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleAlignmentChange('right')}>
+                    <AlignRight size={14} color="white" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Right</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Justify */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem
-                  className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'justify' ? 'bg-[#3F434AFF]' : ''}`}
-                  onClick={() => handleAlignmentChange('justify')}>
-                  <AlignJustify size={14} color="white" />
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Justify</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {/* Justify */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className={`flex items-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${textAlignment === 'justify' ? 'bg-[#3F434AFF]' : ''}`}
+                    onClick={() => handleAlignmentChange('justify')}>
+                    <AlignJustify size={14} color="white" />
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Justify</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <div className="h-6 border-l border-[#44474AFF]"></div>
 

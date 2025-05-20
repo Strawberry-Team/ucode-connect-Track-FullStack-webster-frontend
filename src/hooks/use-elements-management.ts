@@ -241,11 +241,12 @@ const useElementsManagement = ({
     const clickedElement = elementResult.element;
     let canBeSelectedBasedOnToolAndElementType = false;
 
-    if (activeTool?.type === "cursor") {
+    //  Shapes can be selected regardless of the active tool
+    if (clickedElement.type !== "text") {
         canBeSelectedBasedOnToolAndElementType = true;
-    } else if (activeTool?.type === "text" && clickedElement.type === "text") {
-        canBeSelectedBasedOnToolAndElementType = true;
-    } else if (activeTool?.type === "shape" && clickedElement.type !== "text") {
+    } 
+    // For text elements, we keep the previous behavior
+    else if (activeTool?.type === "cursor" || activeTool?.type === "text") {
         canBeSelectedBasedOnToolAndElementType = true;
     }
 
