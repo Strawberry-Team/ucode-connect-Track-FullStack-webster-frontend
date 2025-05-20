@@ -4,9 +4,10 @@ interface ColorPickerProps {
   color: string;
   setColor: (color: string) => void;
   onClose?: () => void;
+  additionalRefs?: React.RefObject<HTMLElement>[];
 }
 
-const ColorPicker: React.FC<ColorPickerProps> = ({ color: initialColor, setColor, onClose }) => {
+const ColorPicker: React.FC<ColorPickerProps> = ({ color: initialColor, setColor, onClose, additionalRefs }) => {
   const [localColor, setLocalColor] = useState(initialColor);
   const [hsv, setHsv] = useState({ h: 0, s: 0, v: 0 });
   const [isDraggingHue, setIsDraggingHue] = useState(false);
@@ -15,19 +16,68 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ color: initialColor, setColor
   const hueRef = useRef<HTMLDivElement>(null);
   const svRef = useRef<HTMLDivElement>(null);
 
+  // Effect 1: Synchronize with initialColor prop
   useEffect(() => {
-    const rgb = {
-      r: parseInt(localColor.slice(1, 3), 16),
-      g: parseInt(localColor.slice(3, 5), 16),
-      b: parseInt(localColor.slice(5, 7), 16),
-    };
-    if (!isNaN(rgb.r) && !isNaN(rgb.g) && !isNaN(rgb.b)) {
+    const rgb = hexToRgb(initialColor);
+    if (rgb) {
+      // initialColor is a valid hex
+      setLocalColor(initialColor);
       const hsvResult = rgbToHsv(rgb.r, rgb.g, rgb.b);
       setHsv(hsvResult);
     } else {
-      setHsv({ h: 0, s: 0, v: 0 });
+      // initialColor is 'transparent' or other invalid hex.
+      // Default the picker to white.
+      const defaultDisplayHex = "#ffffff";
+      setLocalColor(defaultDisplayHex);
+      const defaultRgb = hexToRgb(defaultDisplayHex)!; // Known valid
+      setHsv(rgbToHsv(defaultRgb.r, defaultRgb.g, defaultRgb.b));
     }
-  }, [localColor]);
+  }, [initialColor]);
+
+  // Effect 2: Update HSV when localColor changes (e.g., from presets, hex input, or picker interaction itself)
+  useEffect(() => {
+    // This effect assumes localColor is the source of truth for HSV after initial setup.
+    const currentRgb = hexToRgb(localColor);
+    if (currentRgb) {
+      const hsvResult = rgbToHsv(currentRgb.r, currentRgb.g, currentRgb.b);
+      // Conditional setHsv to prevent potential micro-loops if hsv state is already accurate
+      if (Math.round(hsvResult.h) !== hsv.h || Math.round(hsvResult.s) !== hsv.s || Math.round(hsvResult.v) !== hsv.v) {
+        setHsv(hsvResult);
+      }
+    } else {
+      // If localColor somehow becomes invalid (e.g. during typing bad hex)
+      // Fallback HSV to white. This should be a rare case if localColor is managed well.
+      const fallbackDisplayHex = "#ffffff";
+      const fallbackRgb = hexToRgb(fallbackDisplayHex)!; // Known valid
+      setHsv(rgbToHsv(fallbackRgb.r, fallbackRgb.g, fallbackRgb.b));
+    }
+  }, [localColor]); // Only depends on localColor
+
+  // Effect for handling clicks outside the color picker
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      // Check if the click is outside the ColorPicker itself
+      const clickedOutsidePicker = pickerRef.current && !pickerRef.current.contains(target);
+      
+      if (clickedOutsidePicker) {
+        // If clicked outside picker, check if it was inside any of the additional "safe" refs
+        const clickedInsideAdditionalRef = additionalRefs?.some(
+          (ref) => ref.current && ref.current.contains(target)
+        );
+
+        if (!clickedInsideAdditionalRef) {
+          onClose?.(); // Only close if not clicked inside an additional ref or the picker itself
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [onClose, pickerRef, additionalRefs]); // Add additionalRefs to dependencies
 
   const rgbToHsv = (r: number, g: number, b: number) => {
     r /= 255;

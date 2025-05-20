@@ -1,7 +1,7 @@
 import type React from "react";
 import {useTool} from "@/context/tool-context";
 import {useRef, useState, useEffect, useCallback} from "react";
-import {Stage, Layer, Line as KonvaLine, Rect, Image as KonvaImage} from "react-konva";
+import {Stage, Layer, Line as KonvaLine, Rect, Image as KonvaImage, Transformer} from "react-konva";
 import Konva from "konva";
 import {
     createCheckerboardPattern,
@@ -84,6 +84,9 @@ const Canvas: React.FC = () => {
         blurBrushSize,
         blurStrength,
         setIsImageReadyForLiquify,
+        isBrushTransformModeActive,
+        selectedLineId,
+        setSelectedLineId
     } = toolContext;
 
     const drawingManager = useDrawing({
@@ -429,9 +432,15 @@ const Canvas: React.FC = () => {
         const mouseX = (e.clientX - containerRect.left - stagePosition.x) / currentScale;
         const mouseY = (e.clientY - containerRect.top - stagePosition.y) / currentScale;
         setCursorPositionOnCanvas({x: mouseX, y: mouseY});
+
         if (activeTool?.type === 'brush') {
-            if (containerRef.current) containerRef.current.style.cursor = "none";
-            setShowBrushCursor(true);
+            if (isBrushTransformModeActive) {
+                if (containerRef.current) containerRef.current.style.cursor = "default";
+                setShowBrushCursor(false);
+            } else {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowBrushCursor(true);
+            }
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
@@ -545,12 +554,14 @@ const Canvas: React.FC = () => {
         }
 
         if (activeTool?.type === 'brush' || activeTool?.type === 'eraser') {
-            isDragging.current = true;
-            const isRightClick = evt.button === 2;
-            if (activeTool?.type === 'brush') {
-                drawingManager.startDrawing('brush', pointerPosition, isRightClick);
-            } else if (activeTool?.type === 'eraser') {
-                drawingManager.startDrawing('eraser', pointerPosition);
+            if ((activeTool.type === 'brush' && !isBrushTransformModeActive) || activeTool.type === 'eraser') {
+                isDragging.current = true;
+                const isRightClick = evt.button === 2;
+                if (activeTool?.type === 'brush') {
+                    drawingManager.startDrawing('brush', pointerPosition, isRightClick);
+                } else if (activeTool?.type === 'eraser') {
+                    drawingManager.startDrawing('eraser', pointerPosition);
+                }
             }
             return;
         }
@@ -722,6 +733,40 @@ const Canvas: React.FC = () => {
     currentDisplayScale
   ]);
 
+    // Local transformer state
+    const trRef = useRef<Konva.Transformer>(null);
+    const [selectedKonvaNode, setSelectedKonvaNode] = useState<Konva.Node | null>(null);
+
+    useEffect(() => {
+      if (selectedLineId && stageRef.current && isBrushTransformModeActive && activeTool?.type === 'brush') {
+        const node = stageRef.current.findOne('.' + selectedLineId); // Konva selector by name/id
+        if (node) {
+            setSelectedKonvaNode(node);
+        } else {
+            setSelectedKonvaNode(null);
+        }
+      } else {
+        setSelectedKonvaNode(null);
+      }
+    }, [selectedLineId, isBrushTransformModeActive, activeTool, renderableObjects]);
+
+    useEffect(() => {
+      if (selectedKonvaNode && trRef.current) {
+        trRef.current.nodes([selectedKonvaNode]);
+        trRef.current.getLayer()?.batchDraw();
+        trRef.current.keepRatio(true);
+        trRef.current.rotationSnaps([0, 90, 180, 270]);
+        trRef.current.rotateAnchorOffset(20);
+        trRef.current.enabledAnchors([
+            'top-left', 'top-right', 'bottom-left', 'bottom-right',
+            'middle-left', 'middle-right', 'top-center', 'bottom-center'
+        ]);
+      } else if (trRef.current) {
+        trRef.current.nodes([]); // Clear nodes if none selected
+        trRef.current.getLayer()?.batchDraw();
+      }
+    }, [selectedKonvaNode]);
+
     return (
         <div
             className="w-full h-full bg-[#171719FF] overflow-hidden relative"
@@ -838,7 +883,37 @@ const Canvas: React.FC = () => {
                       lineJoin="round"
                       opacity={line.opacity}
                       globalCompositeOperation={line.tool === "eraser" ? "destination-out" : "source-over"}
-                      listening={false}
+                      x={(line as any).x ?? 0}
+                      y={(line as any).y ?? 0}
+                      rotation={(line as any).rotation ?? 0}
+                      scaleX={(line as any).scaleX ?? 1}
+                      scaleY={(line as any).scaleY ?? 1}
+                      offsetX={(line as any).offsetX ?? 0}
+                      offsetY={(line as any).offsetY ?? 0}
+                      listening={isBrushTransformModeActive && activeTool?.type === 'brush'}
+                      name={line.id}
+                      onClick={(e) => {
+                        if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                          e.cancelBubble = true;
+                          if (!(line as any).offsetX && !(line as any).offsetY) {
+                            drawingManager.prepareLineForTransform(line.id);
+                          }
+                          setSelectedLineId(line.id);
+                          const node = stageRef.current?.findOne('.' + line.id);
+                          if (node) setSelectedKonvaNode(node);
+                        }
+                      }}
+                      onTap={(e) => {
+                        if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                          e.cancelBubble = true;
+                          if (!(line as any).offsetX && !(line as any).offsetY) {
+                            drawingManager.prepareLineForTransform(line.id);
+                          }
+                          setSelectedLineId(line.id);
+                          const node = stageRef.current?.findOne('.' + line.id);
+                          if (node) setSelectedKonvaNode(node);
+                        }
+                      }}
                   />
                   );
                 } else {
@@ -864,6 +939,24 @@ const Canvas: React.FC = () => {
                   handleCropRectDragEnd={croppingManager.handleCropRectDragEnd}
                   handleCropRectTransformEnd={croppingManager.handleCropRectTransformEnd}
               />
+              {/* Transformer for selected brush lines */}
+              {selectedKonvaNode && isBrushTransformModeActive && activeTool?.type === 'brush' && (
+                  <Transformer
+                      ref={trRef}
+                      boundBoxFunc={(oldBox, newBox) => newBox} // Basic bound box
+                      onTransformEnd={() => {
+                          if (selectedKonvaNode && selectedLineId) {
+                              drawingManager.updateLineTransform(selectedLineId, {
+                                  x: selectedKonvaNode.x(),
+                                  y: selectedKonvaNode.y(),
+                                  rotation: selectedKonvaNode.rotation(),
+                                  scaleX: selectedKonvaNode.scaleX(),
+                                  scaleY: selectedKonvaNode.scaleY(),
+                              });
+                          }
+                      }}
+                  />
+              )}
                     </Layer>
                 </Stage>
             </div>

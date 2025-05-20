@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback } from "react";
-import type { LineData } from "@/types/canvas";
+import type { LineData, RenderableObject } from "@/types/canvas";
 import { calculateEffectiveEraserSize, calculateEraserPressure } from "@/utils/canvas-utils";
 import type { MirrorMode } from "@/context/tool-context";
 import { useTool } from "@/context/tool-context";
 import { Brush, Eraser } from "lucide-react";
 import { toast } from "sonner";
+import { MoveIcon } from "lucide-react";
+import type { Dispatch, SetStateAction } from 'react';
 
 export interface DrawingProps {
   canvasWidth: number;
@@ -32,6 +34,7 @@ const useDrawing = ({
         renderableObjects,
         updateLinePoints,
         updateMultipleLinePoints,
+        setRenderableObjects,
     } = useTool();
 
   const centerX = canvasWidth / 2;
@@ -128,7 +131,9 @@ const useDrawing = ({
       brushSize,
       opacity,
       eraserSize,
-      eraserHardness
+      eraserHardness,
+      currentHistoryIndex,
+      history
   ]);
 
 
@@ -178,22 +183,101 @@ const useDrawing = ({
         }
         isDrawing.current = false;
         currentStrokeLineIds.current = [];
-        // setLastDrawingEndTime(Date.now());
     }, [activeTool, addHistoryEntry, renderableObjects]);
 
     const getIsDrawing = () => isDrawing.current;
 
     const clearDrawingLines = useCallback(() => {
         const filteredObjects = renderableObjects.filter(obj => !('tool' in obj));
-        console.warn("'clearDrawingLines' is a placeholder. Awaiting full history/object management integration for proper line clearing without affecting other elements.");
-    }, [renderableObjects]);
+        setRenderableObjects(filteredObjects);
+    }, [renderableObjects, setRenderableObjects]);
+
+    const prepareLineForTransform = useCallback((lineId: string) => {
+        (setRenderableObjects as Dispatch<SetStateAction<RenderableObject[]>>)((prev: RenderableObject[]) => {
+            const lineIndex = prev.findIndex(obj => obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser'));
+            if (lineIndex === -1) return prev;
+
+            const lineToPrepare = prev[lineIndex] as LineData & { x?: number, y?: number, rotation?: number, scaleX?: number, scaleY?: number, offsetX?: number, offsetY?: number };
+            
+            if (lineToPrepare.offsetX !== undefined && lineToPrepare.offsetY !== undefined) {
+                return prev;
+            }
+
+            const points = lineToPrepare.points;
+            if (points.length < 2) return prev;
+
+            let minX = points[0], maxX = points[0];
+            let minY = points[1], maxY = points[1];
+            for (let i = 2; i < points.length; i += 2) {
+                minX = Math.min(minX, points[i]);
+                maxX = Math.max(maxX, points[i]);
+                minY = Math.min(minY, points[i+1]);
+                maxY = Math.max(maxY, points[i+1]);
+            }
+
+            const bbox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+            const newX = bbox.x;
+            const newY = bbox.y;
+            const newOffsetX = bbox.width / 2;
+            const newOffsetY = bbox.height / 2;
+
+            const newPoints = points.map((val, index) => {
+                return index % 2 === 0 ? val - bbox.x : val - bbox.y;
+            });
+
+            const updatedLine = {
+                ...lineToPrepare,
+                points: newPoints,
+                x: newX,
+                y: newY,
+                offsetX: newOffsetX,
+                offsetY: newOffsetY,
+                rotation: 0,
+                scaleX: 1,
+                scaleY: 1,
+            };
+            
+            const newRenderableObjects = [...prev];
+            newRenderableObjects[lineIndex] = updatedLine;
+            return newRenderableObjects;
+        });
+    }, [setRenderableObjects]);
+
+    const updateLineTransform = useCallback((lineId: string, newAttrs: { x: number, y: number, rotation: number, scaleX: number, scaleY: number }) => {
+        (setRenderableObjects as Dispatch<SetStateAction<RenderableObject[]>>)((prev: RenderableObject[]) => 
+            prev.map(obj => {
+                if (obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser')) {
+                    const lineToUpdate = obj as LineData & { x?: number, y?: number, rotation?: number, scaleX?: number, scaleY?: number, offsetX?: number, offsetY?: number };
+                    return { 
+                        ...lineToUpdate, 
+                        x: newAttrs.x,
+                        y: newAttrs.y,
+                        rotation: newAttrs.rotation,
+                        scaleX: newAttrs.scaleX,
+                        scaleY: newAttrs.scaleY,
+                    };
+                }
+                return obj;
+            })
+        );
+
+        const snapshot = renderableObjects.map(obj => ({...obj}));
+        addHistoryEntry({
+            type: 'elementModified',
+            description: <> <MoveIcon className="inline-block w-4 h-4 mr-1" /> Line transformed</>,
+            linesSnapshot: snapshot,
+        });
+
+    }, [setRenderableObjects, addHistoryEntry, renderableObjects]);
 
     return {
         getIsDrawing,
         startDrawing,
         continueDrawing,
         endDrawing,
-        clearDrawingLines
+        clearDrawingLines,
+        prepareLineForTransform,
+        updateLineTransform,
     };
 };
 

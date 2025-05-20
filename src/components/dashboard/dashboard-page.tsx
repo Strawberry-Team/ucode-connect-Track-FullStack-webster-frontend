@@ -16,10 +16,10 @@ const DashboardPage: React.FC = () => {
   const [isAuthVisible, setIsAuthVisible] = useState(false);
   const { loggedInUser, isLoadingAuth, loginUserContext, logoutUserContext } = useUser();
   const navigate = useNavigate();
-  const { 
-    setStageSize, 
-    setIsCanvasManuallyResized, 
-    setInitialImage, 
+  const {
+    setStageSize,
+    setIsCanvasManuallyResized,
+    setInitialImage,
     setRenderableObjects,
     setActiveTool,
     setActiveElement,
@@ -72,7 +72,7 @@ const DashboardPage: React.FC = () => {
   const resetAllToolSettings = () => {
     setActiveTool(null);
     setActiveElement(null);
-    
+
     setColor("#000000");
     setSecondaryColor("#ffffff");
     setBrushSize(20);
@@ -83,9 +83,9 @@ const DashboardPage: React.FC = () => {
     setZoom(100);
     setBrushMirrorMode("None");
     setEraserMirrorMode("None");
-    
+
     setCursorPositionOnCanvas(null);
-    
+
     const emptyObjects: never[] = [];
     setRenderableObjects(emptyObjects);
     addHistoryEntry({
@@ -93,13 +93,13 @@ const DashboardPage: React.FC = () => {
       description: 'Новый проект',
       linesSnapshot: emptyObjects
     });
-    
+
     setIsAddModeActive(false);
     setCurrentAddToolType(null);
-    
-    setStagePosition({x: 0, y: 0});
+
+    setStagePosition({ x: 0, y: 0 });
     setLastDrawingEndTime(null);
-    
+
     setTextColor("#000000");
     setTextBgColor("transparent");
     setTextBgOpacity(100);
@@ -117,7 +117,7 @@ const DashboardPage: React.FC = () => {
     setBackgroundColor("transparent");
     setBackgroundOpacity(100);
     setTextColorOpacity(100);
-    
+
     setFillColor("#ffffff");
     setFillColorOpacity(100);
     setBorderColor("#000000");
@@ -131,12 +131,12 @@ const DashboardPage: React.FC = () => {
       scaleX: 1,
       scaleY: 1
     });
-    
+
     setLiquifyBrushSize(20);
     setLiquifyStrength(50);
     setLiquifyMode("push");
     setIsImageReadyForLiquify(false);
-    
+
     setBlurBrushSize(20);
     setBlurStrength(20);
   };
@@ -240,9 +240,9 @@ const DashboardPage: React.FC = () => {
 
               <CardContent className="p-0 flex items-stretch">
                 <div className="relative overflow-hidden" style={{ height: '350px' }}>
-                  <motion.div 
+                  <motion.div
                     className="flex flex-row w-[200%] h-full"
-                    animate={{ 
+                    animate={{
                       x: isAuthVisible && !loggedInUser ? "-50%" : "0%"
                     }}
                     transition={{
@@ -251,7 +251,7 @@ const DashboardPage: React.FC = () => {
                     }}
                   >
                     <div className="w-1/2 h-full flex items-center justify-center">
-                      <motion.div 
+                      <motion.div
                         className="flex flex-col items-center text-center px-8 w-full"
                         initial={{ opacity: 1 }}
                         animate={{ opacity: isAuthVisible && !loggedInUser ? 0 : 1 }}
@@ -262,14 +262,9 @@ const DashboardPage: React.FC = () => {
                         <p className="text-gray-400 mb-2">
                           Upload an image or start with a blank canvas.
                         </p>
-                        {!loggedInUser && (
-                          <p className="text-gray-400 mb-6">
-                            Want to save your projects and access all features? Sign In!
-                          </p>
-                        )}
-                        <Button 
-                          onClick={handleOpenImageClick} 
-                          variant="secondary" 
+                        <Button
+                          onClick={handleOpenImageClick}
+                          variant="secondary"
                           className="w-full max-w-[220px] h-10 rounded-full mb-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold"
                           disabled={isLoadingAuth}
                         >
@@ -284,19 +279,24 @@ const DashboardPage: React.FC = () => {
                           className="hidden"
                           disabled={isLoadingAuth}
                         />
-                        <Button 
-                          onClick={handleOpenModal} 
-                          variant="outline" 
+                        <Button
+                          onClick={handleOpenModal}
+                          variant="outline"
                           className="w-full max-w-[220px] bg-transparent hover:bg-[#303237FF] border-2 border-[#414448FF] h-10 rounded-full text-[#A7A8AAFF] hover:text-white font-semibold"
                           disabled={isLoadingAuth}
                         >
                           Create new
                         </Button>
+                        {!loggedInUser && (
+                        <p className="text-gray-400 mb-6">
+                          Want to save your projects and access all features? Sign In!
+                        </p>
+                      )}
                       </motion.div>
                     </div>
                     <div className="w-1/2 h-full flex items-center justify-center px-8">
                       {!loggedInUser && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: isAuthVisible ? 1 : 0 }}
                           transition={{ duration: 0.3, ease: "easeInOut" }}

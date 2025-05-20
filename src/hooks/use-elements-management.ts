@@ -239,22 +239,26 @@ const useElementsManagement = ({
     if (!elementResult) return;
 
     const clickedElement = elementResult.element;
-    let canBeSelected = false;
+    let canBeSelectedBasedOnToolAndElementType = false;
 
     if (activeTool?.type === "cursor") {
-        canBeSelected = true;
+        canBeSelectedBasedOnToolAndElementType = true;
     } else if (activeTool?.type === "text" && clickedElement.type === "text") {
-        canBeSelected = true;
+        canBeSelectedBasedOnToolAndElementType = true;
     } else if (activeTool?.type === "shape" && clickedElement.type !== "text") {
-        canBeSelected = true;
+        canBeSelectedBasedOnToolAndElementType = true;
     }
 
-    if (canBeSelected) {
+    if (canBeSelectedBasedOnToolAndElementType) {
         setSelectedElementId(id);
     } else {
-        if (activeTool && activeTool.type !== "cursor") {
-             setSelectedElementId(null);
-        }
+        // If the current tool is not for selecting this element type,
+        // clicking the element should not change the selection state.
+        // Deselection is typically handled by clicking the stage background.
+        // So, if an element is already selected, and we click it with an incompatible tool,
+        // it should remain selected (e.g. if text is selected and user clicks it with brush tool).
+        // If nothing is selected, or something else is selected, and we click with incompatible tool,
+        // selection state also shouldn't change here.
     }
   }, [activeTool, getElementById, setSelectedElementId]);
 

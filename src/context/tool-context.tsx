@@ -13,6 +13,9 @@ import type {
     RenderableObject
 } from "@/types/canvas"
 
+// Import MousePointer2 for default tool
+import { MousePointer2 } from "lucide-react";
+
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 
 export interface HistoryEntry {
@@ -201,12 +204,25 @@ interface ToolContextValue {
     setBlurBrushSize: (size: number) => void;
     blurStrength: number;
     setBlurStrength: (strength: number) => void;
+
+    // New state for brush transform mode
+    isBrushTransformModeActive: boolean;
+    setBrushTransformModeActive: (isActive: boolean) => void;
+    selectedLineId: string | null;
+    setSelectedLineId: (id: string | null) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
 
 export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}) => {
-    const [activeTool, setActiveToolInternal] = useState<Tool | null>(null)
+    // Define a default tool (e.g., cursor)
+    const defaultTool: Tool = {
+        id: "cursor",
+        name: "Cursor",
+        type: "cursor",
+        icon: MousePointer2,
+    };
+    const [activeTool, setActiveToolInternal] = useState<Tool | null>(defaultTool)
     const [activeElement, setActiveElement] = useState<Element | null>(null)
     const [color, setColor] = useState("#000000")
     const [secondaryColor, setSecondaryColor] = useState("#ffffff")
@@ -287,10 +303,19 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [isAddModeActive, setIsAddModeActive] = useState<boolean>(false);
     const [currentAddToolType, setCurrentAddToolType] = useState<ShapeType | "text" | "brush" | "eraser" | null>(null);
 
+    // New state for brush transform mode
+    const [isBrushTransformModeActive, setBrushTransformModeActive] = useState<boolean>(false);
+    const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
+
     const setActiveTool = useCallback((tool: Tool | null) => {
         setActiveToolInternal(tool);
         setIsAddModeActive(false); // Reset add mode when tool changes
         setCurrentAddToolType(null); // Reset add tool type
+        // Also reset brush transform mode if tool changes from brush
+        if (tool?.type !== 'brush') {
+            setBrushTransformModeActive(false);
+            setSelectedLineId(null);
+        }
     }, []);
 
     const addRenderableObject = useCallback((obj: RenderableObject) => {
@@ -588,6 +613,12 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setBlurBrushSize,
                 blurStrength,
                 setBlurStrength,
+
+                // Brush transform mode
+                isBrushTransformModeActive,
+                setBrushTransformModeActive,
+                selectedLineId,
+                setSelectedLineId,
             }}
         >
             {children}

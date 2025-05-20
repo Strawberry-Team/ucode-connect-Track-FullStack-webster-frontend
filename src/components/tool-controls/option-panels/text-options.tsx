@@ -74,11 +74,12 @@ const FontSelector: React.FC<{
   value: string;
   onChange: (value: string) => void;
   fonts: string[];
-}> = ({ value, onChange, fonts }) => {
+  onMenuWillOpen: () => void;
+}> = ({ value, onChange, fonts, onMenuWillOpen }) => {
   return (
     <div className="flex items-center space-x-2">
       <Label className="text-xs text-[#D4D4D5FF] pl-3">Font:</Label>
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) onMenuWillOpen(); }}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
             <span style={{ fontFamily: value }}>{value}</span>
@@ -205,6 +206,16 @@ const TextOptions: React.FC = () => {
   const textColorOpacityInputRef = useRef<HTMLInputElement>(null);
   const [tempTextColorOpacityInput, setTempTextColorOpacityInput] = useState<string>(() => String(Math.round(textColorOpacity)));
 
+  // Refs for opacity/transparent control containers
+  const textColorControlsRef = useRef<HTMLDivElement>(null!); // Use null! for HTMLElement compatibility
+  const textBgControlsRef = useRef<HTMLDivElement>(null!); // Use null! for HTMLElement compatibility
+
+  const closeOtherPickers = () => {
+    // This function can be expanded if other types of pickers/popovers are added
+    setShowColorPicker(false);
+    setShowBgColorPicker(false);
+  };
+
   // Sync tool state with selected element
   useEffect(() => {
     if (selectedElementId !== null) {
@@ -317,20 +328,20 @@ const TextOptions: React.FC = () => {
       textAlignment: textAlignment,
     },
     // Also include direct properties if Element can have them, or if ElementData is the target
-     settings: { // This structure might be more aligned with ElementData
-       color: contextTextColor,
-       backgroundColor: contextTextBgColor,
-       backgroundOpacity: contextTextBgOpacity,
-       fontSize: fontSize,
-       fontFamily: fontFamily,
-       fontStyles: { ...fontStyles },
-       textCase: textCase,
-       lineHeight: lineHeight,
-       textAlignment: textAlignment,
-       borderColor: contextBorderColor,
-       borderWidth: contextBorderWidth,
-       borderStyle: contextBorderStyle,
-     }
+    settings: { // This structure might be more aligned with ElementData
+      color: contextTextColor,
+      backgroundColor: contextTextBgColor,
+      backgroundOpacity: contextTextBgOpacity,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      fontStyles: { ...fontStyles },
+      textCase: textCase,
+      lineHeight: lineHeight,
+      textAlignment: textAlignment,
+      borderColor: contextBorderColor,
+      borderWidth: contextBorderWidth,
+      borderStyle: contextBorderStyle,
+    }
   });
 
   const handleAddText = () => {
@@ -343,8 +354,8 @@ const TextOptions: React.FC = () => {
     //   icon: Type 
     // }; 
     // setContextActiveTool(textTool); 
-    
-    setActiveElement(getCurrentTextSettings()); 
+
+    setActiveElement(getCurrentTextSettings());
     setIsAddModeActive(true);
     setCurrentAddToolType("text");
   };
@@ -393,28 +404,28 @@ const TextOptions: React.FC = () => {
         b = parseInt(hex.substring(4, 6), 16);
       }
     } else if (color.startsWith('rgb')) { // Basic rgb() and rgba() support
-        const parts = color.match(/\d+/g);
-        if (parts && parts.length >= 3) {
-            r = parseInt(parts[0], 10);
-            g = parseInt(parts[1], 10);
-            b = parseInt(parts[2], 10);
-            // Opacity from rgba() string is ignored, opacityPercent argument takes precedence
-        }
+      const parts = color.match(/\d+/g);
+      if (parts && parts.length >= 3) {
+        r = parseInt(parts[0], 10);
+        g = parseInt(parts[1], 10);
+        b = parseInt(parts[2], 10);
+        // Opacity from rgba() string is ignored, opacityPercent argument takes precedence
+      }
     } else {
-        // For named colors, this basic converter won't work without a canvas trick or a library.
-        // However, for the preview, we can try to render it and let the browser handle it.
-        // For a consistent RGBA preview, it's better to ensure input is hex/rgb or use a robust parser.
-        console.warn("Basic colorToRGBA cannot derive RGB from named color for preview: ", color);
-        // Fallback for preview: return the color itself if not transparent, opacity might not apply visually in all contexts with named colors.
-        return opacity === 1 ? color : `rgba(0,0,0,${opacity})`; // Fallback to black with opacity if color is unknown and not fully opaque
+      // For named colors, this basic converter won't work without a canvas trick or a library.
+      // However, for the preview, we can try to render it and let the browser handle it.
+      // For a consistent RGBA preview, it's better to ensure input is hex/rgb or use a robust parser.
+      console.warn("Basic colorToRGBA cannot derive RGB from named color for preview: ", color);
+      // Fallback for preview: return the color itself if not transparent, opacity might not apply visually in all contexts with named colors.
+      return opacity === 1 ? color : `rgba(0,0,0,${opacity})`; // Fallback to black with opacity if color is unknown and not fully opaque
     }
     return `rgba(${r},${g},${b},${opacity})`;
   };
 
   // Check if the selected element is a text element
-  const isTextElementSelected = selectedElementId !== null && 
+  const isTextElementSelected = selectedElementId !== null &&
     getElementDataFromRenderables().find(el => el.id === selectedElementId)?.type === "text" &&
-    activeTool?.type === "text";
+    (activeTool?.type === "text" || activeTool?.type === "cursor"); // Allow if text or cursor tool is active
 
   // Handle duplicate button click
   const handleDuplicate = () => {
@@ -521,10 +532,10 @@ const TextOptions: React.FC = () => {
         {showColorPicker && (
           <div className="absolute z-50 top-full left-0 mt-2">
             {/* Text color opacity control */}
-            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
+            <div ref={textColorControlsRef} className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
               <div className="flex justify-between items-center mb-1">
                 <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
-                 <div
+                <div
                   className="flex items-center h-6 bg-[#202225FF] border-2 border-[#44474AFF] rounded px-1.5 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 cursor-text"
                   onClick={() => textColorOpacityInputRef.current?.focus()}
                 >
@@ -554,16 +565,12 @@ const TextOptions: React.FC = () => {
               </div>
             </div>
             <ColorPicker
-              color={contextTextColor} 
+              color={contextTextColor}
               setColor={(newColor) => {
-                contextSetTextColor(newColor); 
-                // If color is changed and opacity was 0, set it to 100
-                if (textColorOpacity === 0 && newColor !== 'transparent') { // Assuming transparent is not a direct set for text color here
-                   setTextColorOpacity(100);
-                   setTempTextColorOpacityInput("100");
-                }
+                contextSetTextColor(newColor);
               }}
               onClose={() => setShowColorPicker(false)}
+              additionalRefs={[textColorControlsRef]} // Pass the ref here
             />
           </div>
         )}
@@ -581,15 +588,15 @@ const TextOptions: React.FC = () => {
           <p className="text-xs text-[#D4D4D5FF]">Background</p>
           <div
             className="w-5 h-5 rounded-xl border border-gray-500"
-            style={{ 
+            style={{
               backgroundColor: colorToRGBA(contextTextBgColor, contextTextBgOpacity)
-            }} 
+            }}
           />
         </Button>
         {showBgColorPicker && (
           <div className="absolute z-50 top-full left-0 mt-2">
             {/* Background opacity control */}
-            <div className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
+            <div ref={textBgControlsRef} className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
               <div className="flex justify-between items-center mb-1">
                 <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
                 <div
@@ -623,8 +630,9 @@ const TextOptions: React.FC = () => {
               <Button
                 variant="ghost"
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
-                onClick={() => {
-                  contextSetTextBgColor('transparent'); // Use context setter
+                onClick={(e) => {
+                  // e.stopPropagation();
+                  contextSetTextBgColor('#ffffff'); // Use context setter
                   contextSetTextBgOpacity(0); // Use context setter
                   setTempTextBgOpacityInput("0");
                 }}
@@ -636,15 +644,13 @@ const TextOptions: React.FC = () => {
               color={contextTextBgColor === 'transparent' ? '#ffffff' : contextTextBgColor} // Use context value
               setColor={(newColor) => {
                 contextSetTextBgColor(newColor); // Use context setter
-                 if (newColor === 'transparent') {
-                    contextSetTextBgOpacity(0);
-                    setTempTextBgOpacityInput("0");
-                 } else if (contextTextBgOpacity === 0 && newColor !== 'transparent') {
-                    contextSetTextBgOpacity(100);
-                    setTempTextBgOpacityInput("100");
-                 }
+                if (newColor === 'transparent') {
+                  contextSetTextBgOpacity(0);
+                  setTempTextBgOpacityInput("0");
+                }
               }}
               onClose={() => setShowBgColorPicker(false)}
+              additionalRefs={[textBgControlsRef]} // Pass the ref here
             />
           </div>
         )}
@@ -687,11 +693,11 @@ const TextOptions: React.FC = () => {
     setTextAlignment("center");
     setLineHeight(1);
     contextSetTextColor("#ffffff");
-    setTextColorOpacity(100); // Reset text color opacity
-    setTempTextColorOpacityInput("100"); // Reset temp input for text color opacity
+    setTextColorOpacity(100);
+    setTempTextColorOpacityInput("100");
     contextSetTextBgColor("transparent");
-    contextSetTextBgOpacity(100);
-    setTempTextBgOpacityInput("100");
+    contextSetTextBgOpacity(0);
+    setTempTextBgOpacityInput("0");
     contextSetBorderColor("#000000");
     contextSetBorderWidth(0);
     contextSetBorderStyle("hidden");
@@ -707,7 +713,7 @@ const TextOptions: React.FC = () => {
         color: "#ffffff",
         textColorOpacity: 100, // Reset text color opacity in element
         backgroundColor: "transparent",
-        backgroundOpacity: 100,
+        backgroundOpacity: 0, // Reset text background opacity in element to 0
         borderColor: "#000000",
         borderWidth: 0,
         borderStyle: "hidden",
@@ -803,8 +809,8 @@ const TextOptions: React.FC = () => {
             <Button
               variant="ghost"
               className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
-                ${activeElement?.type === "text" && isAddModeActive && currentAddToolType === "text" 
-                  ? 'bg-[#3F434AFF] text-white' 
+                ${activeElement?.type === "text" && isAddModeActive && currentAddToolType === "text"
+                  ? 'bg-[#3F434AFF] text-white'
                   : 'text-[#D4D4D5FF]'}`}
               onClick={handleAddText}
             >
@@ -860,7 +866,7 @@ const TextOptions: React.FC = () => {
       <div className="h-6 border-l border-[#44474AFF]"></div>
 
       {/* Font controls */}
-      <FontSelector value={fontFamily} onChange={setFontFamily} fonts={fonts} />
+      <FontSelector value={fontFamily} onChange={setFontFamily} fonts={fonts} onMenuWillOpen={closeOtherPickers} />
 
       {/* Font size */}
       <NumberInputWithPopover
@@ -876,7 +882,7 @@ const TextOptions: React.FC = () => {
       {renderStyleButtons()}
 
       {/* Text case */}
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 mr-5 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
             <Label className="text-xs text-white scale-120">
@@ -971,7 +977,7 @@ const TextOptions: React.FC = () => {
       />
 
       {/* Text alignment */}
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center min-w-7 min-h-7 px-2 gap-2 mr-5 ml-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22]">
             <Label className="text-xs text-white">

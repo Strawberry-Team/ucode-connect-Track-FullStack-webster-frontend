@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Brush, ChevronDown } from "lucide-react";
+import { Brush, ChevronDown, Move as MoveIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -19,7 +19,10 @@ const BrushOptions: React.FC = () => {
     opacity, 
     setOpacity,
     brushMirrorMode,
-    setBrushMirrorMode
+    setBrushMirrorMode,
+    isBrushTransformModeActive,
+    setBrushTransformModeActive,
+    setSelectedLineId
   } = useTool();
   
   const [brushMenuOpen, setBrushMenuOpen] = useState(false);
@@ -59,6 +62,22 @@ const BrushOptions: React.FC = () => {
       />
       
       <MirrorSelector value={brushMirrorMode} onChange={setBrushMirrorMode} />
+
+      <Button
+        variant="ghost"
+        className={`flex h-7 w-7 p-0 items-center justify-center text-xs rounded hover:bg-[#3F434AFF] 
+          ${isBrushTransformModeActive ? "bg-[#3F434AFF] text-white" : "text-[#A8AAACFF]"}`}
+        onClick={() => {
+          const newMode = !isBrushTransformModeActive;
+          setBrushTransformModeActive(newMode);
+          if (!newMode) {
+            setSelectedLineId(null);
+          }
+        }}
+        title="Transform drawn stroke"
+      >
+        <MoveIcon size={16} />
+      </Button>
     </div>
   );
 };
