@@ -21,7 +21,7 @@ export interface SnappingResult {
   snappedPosition: { x: number; y: number };
 }
 
-const SNAP_THRESHOLD = 5; // Pixels - увеличено для более сильного эффекта прилипания
+const SNAP_THRESHOLD = 10; // Pixels - увеличено для более сильного эффекта прилипания
 
 // Helper to get bounding box edges and center
 const getBoxEdges = (box: BoxProps) => {

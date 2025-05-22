@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTool } from '@/context/tool-context';
 import CreateProjectModal from './create-project-modal.tsx';
@@ -10,6 +10,9 @@ import { motion } from 'framer-motion';
 import { UserMenuDropdown } from './user-menu-dropdown';
 import { useUser } from '@/context/user-context';
 import { toast } from 'sonner';
+import Cookies from 'js-cookie';
+import { getCurrentAuthenticatedUser } from '@/services/user-service';
+import type { User as AuthUser } from '@/types/auth';
 
 const DashboardPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,6 +71,43 @@ const DashboardPage: React.FC = () => {
     setBlurStrength
   } = useTool();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const processAuthTokens = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const accessToken = params.get('accessToken');
+      const refreshToken = params.get('refreshToken');
+
+      if (accessToken && refreshToken) {
+        Cookies.set('accessToken', accessToken, { expires: 1, path: '/', sameSite: 'lax' });
+        Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/', sameSite: 'lax' });
+        
+        window.history.replaceState(null, '', window.location.pathname);
+
+        try {
+          const user = await getCurrentAuthenticatedUser();
+          if (user) {
+            loginUserContext(user as AuthUser);
+            setIsAuthVisible(false); 
+            toast.success("Logged In", { description: "Successfully authenticated via Google.", duration: 3000 });
+          } else {
+            toast.error("Authentication Failed", { description: "Could not verify Google session.", duration: 3000 });
+            Cookies.remove('accessToken', { path: '/' });
+            Cookies.remove('refreshToken', { path: '/' });
+          }
+        } catch (error) {
+          console.error("Error fetching user after Google login:", error);
+          toast.error("Authentication Error", { description: "An error occurred while authenticating.", duration: 3000 });
+          Cookies.remove('accessToken', { path: '/' });
+          Cookies.remove('refreshToken', { path: '/' });
+        }
+      }
+    };
+
+    if (!loggedInUser && !isLoadingAuth) {
+      processAuthTokens();
+    }
+  }, [isLoadingAuth, loggedInUser, loginUserContext]);
 
   const resetAllToolSettings = () => {
     setActiveTool(null);
@@ -239,7 +279,7 @@ const DashboardPage: React.FC = () => {
               </div>
 
               <CardContent className="p-0 flex items-stretch">
-                <div className="relative overflow-hidden" style={{ height: '350px' }}>
+                <div className="relative overflow-hidden" style={{ height: '380px' }}>
                   <motion.div
                     className="flex flex-row w-[200%] h-full"
                     animate={{
@@ -259,7 +299,7 @@ const DashboardPage: React.FC = () => {
                       >
                         <ImageUp size={60} className="mb-6 text-gray-400" strokeWidth={1.5} />
                         <h2 className="text-xl font-semibold mb-2 text-gray-100">Start new project</h2>
-                        <p className="text-gray-400 mb-2">
+                        <p className="text-gray-400 mb-4">
                           Upload an image or start with a blank canvas.
                         </p>
                         <Button
@@ -287,11 +327,7 @@ const DashboardPage: React.FC = () => {
                         >
                           Create new
                         </Button>
-                        {!loggedInUser && (
-                        <p className="text-gray-400 mb-6">
-                          Want to save your projects and access all features? Sign In!
-                        </p>
-                      )}
+                        
                       </motion.div>
                     </div>
                     <div className="w-1/2 h-full flex items-center justify-center px-8">

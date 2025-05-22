@@ -5,9 +5,9 @@ import App from './App.tsx'
 import { UserProvider } from './context/user-context'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <UserProvider>
       <App />
     </UserProvider>
-  </React.StrictMode>,
+  // </React.StrictMode>,
 )

@@ -9,6 +9,8 @@ import { ElementsManagerProvider } from "@/context/elements-manager-context";
 import DashboardPage from "@/components/dashboard/dashboard-page";
 import RightToolbar from "@/components/right-toolbar/right-toolbar";
 import { Toaster } from "@/components/ui/sonner";
+import ConfirmEmailPage from '@/components/auth/confirm-email-page';
+import ProfilePage from '@/components/profile/profile-page';
 
 // Компонент для основной страницы с холстом
 const CanvasPage: React.FC = () => {
@@ -72,6 +74,8 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/canvas" element={<CanvasPage />} />
+          <Route path="/auth/confirm-email/:confirm_token" element={<ConfirmEmailPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
         <Toaster position="top-center" />
       </ToolProvider>

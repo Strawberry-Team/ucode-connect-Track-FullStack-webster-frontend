@@ -4,6 +4,7 @@ import type { ElementData, TextCase, BorderStyle, ShapeType } from "@/types/canv
 import Konva from "konva";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useTool } from "@/context/tool-context";
+import { getSnappingGuides, type BoxProps, type SnapLine as SnapLineType } from "@/hooks/use-snapping.ts";
 
 interface ElementRendererProps {
     element: ElementData;
@@ -12,6 +13,9 @@ interface ElementRendererProps {
     onTextEdit?: (id: string, newText: string) => void;
     onTransform?: (id: string, newAttrs: Partial<ElementData>) => void;
     isSelected?: boolean;
+    allElements: ElementData[];
+    stageSize?: { width: number; height: number };
+    setActiveSnapLines: React.Dispatch<React.SetStateAction<SnapLineType[]>>;
 }
 
 // Function for applying case to text
@@ -153,7 +157,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                                                              onClick,
                                                              onTextEdit,
                                                              onTransform,
-                                                             isSelected
+                                                             isSelected,
+                                                             allElements,
+                                                             stageSize,
+                                                             setActiveSnapLines
                                                          }) => {
     const { activeTool } = useTool();
     const [isEditing, setIsEditing] = useState(false);
@@ -382,7 +389,57 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 handleTextEdit(e);
             }
         },
+        onDragStart: () => {
+            if (canInteractWithElement()) {
+                setActiveSnapLines([]);
+            }
+        },
+        onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => {
+            if (!canInteractWithElement() || !stageSize || stageSize.width === 0 || stageSize.height === 0) {
+                setActiveSnapLines([]);
+                return;
+            }
+
+            const node = e.target;
+            // Use node's design width/height which are set based on element.width/height
+            const designWidth = node.width();
+            const designHeight = node.height();
+
+            const draggingBox: BoxProps = {
+                id: element.id,
+                x: node.x(),
+                y: node.y(),
+                width: designWidth * Math.abs(node.scaleX()),
+                height: designHeight * Math.abs(node.scaleY()),
+                rotation: node.rotation(),
+            };
+
+            const staticKonvaElements: BoxProps[] = allElements
+                .filter(el => el.id !== element.id)
+                .map(el => ({
+                    id: el.id,
+                    x: el.x ?? 0,
+                    y: el.y ?? 0,
+                    width: (el.width ?? 0) * Math.abs(el.scaleX ?? 1),
+                    height: (el.height ?? 0) * Math.abs(el.scaleY ?? 1),
+                    rotation: el.rotation ?? 0,
+                }));
+
+            const { snapLines, snappedPosition } = getSnappingGuides(
+                draggingBox,
+                staticKonvaElements,
+                stageSize.width,
+                stageSize.height
+            );
+
+            setActiveSnapLines(snapLines);
+
+            if (node.x() !== snappedPosition.x || node.y() !== snappedPosition.y) {
+               node.position(snappedPosition);
+            }
+        },
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
+            setActiveSnapLines([]);
             if (onDragEnd && canInteractWithElement()) {
                 onDragEnd(element.id, e.target.x(), e.target.y());
             }

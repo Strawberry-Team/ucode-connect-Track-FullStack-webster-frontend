@@ -18,6 +18,7 @@ import BlurCursor from "@/components/canvas/tools/blur-cursor";
 import {formatDimensionDisplay} from "@/utils/format-utils";
 import type {RenderableObject, LineData, ElementData, ShapeType, Tool, FontStyles} from "@/types/canvas";
 import {getSnappingGuides, type BoxProps, type SnapLine as SnapLineType} from "@/hooks/use-snapping.ts";
+import { useElementsManager } from "@/context/elements-manager-context";
 
 export let resetLiquifyFunction: (() => void) | null = null;
 export let resetBlurFunction: (() => void) | null = null;
@@ -252,29 +253,26 @@ const Canvas: React.FC = () => {
     }, [elementsManager]);
 
     useEffect(() => {
-        const updateSizes = () => {
-            let currentContainerWidth = 0;
-            let currentContainerHeight = 0;
+        const container = containerRef.current;
+        if (!container) return;
 
-            if (containerRef.current) {
-                currentContainerWidth = containerRef.current.clientWidth;
-                currentContainerHeight = containerRef.current.clientHeight;
-                setContainerSize({
-                    width: currentContainerWidth,
-                    height: currentContainerHeight
-                });
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const { width, height } = entry.contentRect;
+                setContainerSize({ width, height });
             }
+        });
 
-            if (!contextStageSize && !isCanvasManuallyResized && currentContainerWidth > 0 && currentContainerHeight > 0) {
-                setContextStageSize({width: currentContainerWidth, height: currentContainerHeight});
-            }
+        resizeObserver.observe(container);
+
+        // Initial size update
+        setContainerSize({ width: container.offsetWidth, height: container.offsetHeight });
+
+        return () => {
+            resizeObserver.unobserve(container);
+            resizeObserver.disconnect();
         };
-
-        updateSizes();
-
-        window.addEventListener("resize", updateSizes);
-        return () => window.removeEventListener("resize", updateSizes);
-    }, [contextStageSize, isCanvasManuallyResized, setContextStageSize, setContainerSize]);
+    }, [setContainerSize]);
 
     useEffect(() => {
         if (contextStageSize && containerRef.current && containerSize) {
@@ -799,6 +797,8 @@ const Canvas: React.FC = () => {
       }
     }, [selectedKonvaNode]);
 
+    const elementsManagerHook = useElementsManager();
+
     return (
         <div
             className="w-full h-full bg-[#171719FF] overflow-hidden relative"
@@ -968,6 +968,9 @@ const Canvas: React.FC = () => {
                       onTextEdit={(id, newText) => elementsManager.updateTextElement(id, newText)}
                       onTransform={(id, attrs) => elementsManager.updateElement(id, attrs as Partial<ElementData>)}
                       isSelected={element.id === elementsManager.selectedElementId}
+                      allElements={elementsManagerHook.getElementDataFromRenderables()}
+                      stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
+                      setActiveSnapLines={setActiveSnapLines}
                   />
                   );
                 }
@@ -1007,6 +1010,17 @@ const Canvas: React.FC = () => {
                       padding={2}
                   />
               )}
+             {/* Render snap lines */}
+              {activeSnapLines.map((line, i) => (
+                <KonvaLine
+                  key={`snapline-${i}`}
+                  points={line.points}
+                  stroke="#6A5ACD" // A violet-blue color, for example
+                  strokeWidth={2}
+                  dash={[7, 4]}
+                  listening={false} // Snap lines should not be interactive
+                />
+              ))}
                     </Layer>
                 </Stage>
             </div>

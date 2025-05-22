@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import LoginForm from './login-form';
 import RegisterForm from './register-form';
 import ForgotPasswordForm from './forgot-password-form';
-import { authenticateUser } from '@/services/auth-service'; 
-import type { LoginCredentials, User } from '@/types/auth'; 
+import { authenticateUser, registerUser } from '@/services/auth-service'; 
+import type { LoginCredentials, User, RegisterCredentials } from '@/types/auth'; 
 import { toast } from 'sonner'; 
 import { motion } from 'framer-motion'; 
 
@@ -62,23 +62,28 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
     }
   };
 
-  const handleRegister = (firstName: string, lastName: string, email: string, password: string) => {
+  const handleRegister = async (firstName: string, lastName: string, email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    console.log('Регистрация:', firstName, lastName, email, password);
-
-    // try {
-    //   const registeredUser = await registerUser({ firstName, lastName, email, password });
-    //   toast.success('Registration Successful!', { description: 'Please login to continue.'});
-    //   if (onAuthSuccess) onAuthSuccess(registeredUser); // или перенаправить на логин
-    // } catch (err:any) {
-    //   const errorMessage = err.message || 'An unexpected error occurred during registration.';
-    //   setError(errorMessage);
-    //   toast.error('Registration Failed', { description: errorMessage });
-    // } finally {
-    //   setIsLoading(false);
-    // }
-    setIsLoading(false);
+    try {
+      const credentials: RegisterCredentials = { firstName, lastName, email, password };
+      await registerUser(credentials);
+      toast.success('Registration Successful!', { 
+        description: 'Please check your email to confirm your account.',
+        duration: 5000, 
+      });
+      setCurrentForm('login'); // Переключаемся на форму логина
+    } catch (err: any) {
+      console.error('Failed to register:', err);
+      const errorMessage = err.message || 'An unexpected error occurred during registration.';
+      setError(errorMessage); 
+      toast.error('Registration Failed', { 
+        description: errorMessage,
+        duration: 4000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResetPassword = (email: string) => {

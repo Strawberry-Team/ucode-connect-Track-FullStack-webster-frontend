@@ -21,4 +21,15 @@ export interface LoginCredentials {
 
 export interface CsrfTokenResponse {
   csrfToken: string;
+}
+
+export interface RegisterCredentials {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  user: User;
 } 

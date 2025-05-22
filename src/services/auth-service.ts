@@ -1,5 +1,5 @@
-import { loginUser } from '@/lib/api/auth';
-import type { LoginCredentials, LoginResponse } from '@/types/auth';
+import { loginUser, registerUser as apiRegisterUser, confirmEmail as apiConfirmEmail } from '@/lib/api/auth';
+import type { LoginCredentials, LoginResponse, RegisterCredentials, RegisterResponse, User } from '@/types/auth';
 import Cookies from 'js-cookie';
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -21,6 +21,15 @@ export const authenticateUser = async (credentials: LoginCredentials): Promise<L
   }
 };
 
+export const registerUser = async (credentials: RegisterCredentials): Promise<RegisterResponse> => {
+  try {
+    const registrationData = await apiRegisterUser(credentials);
+    return registrationData;
+  } catch (error) {
+    console.error('Registration service error:', error);
+    throw error;
+  }
+};
 
 export const logoutUser = () => {
   Cookies.remove(ACCESS_TOKEN_KEY);
@@ -31,4 +40,13 @@ export const logoutUser = () => {
 
 export const getAccessToken = (): string | undefined => {
   return Cookies.get(ACCESS_TOKEN_KEY);
+};
+
+export const confirmEmail = async (token: string): Promise<void> => {
+  try {
+    await apiConfirmEmail(token);
+  } catch (error) {
+    console.error('Email confirmation service error:', error);
+    throw error;
+  }
 };
