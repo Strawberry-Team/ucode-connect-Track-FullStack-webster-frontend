@@ -11,18 +11,74 @@ const MiniMap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const miniMapImageRef = useRef<HTMLDivElement>(null);
   const [miniMapSize, setMiniMapSize] = useState({ width: 0, height: 0 });
+  const lastStageSizeRef = useRef<{ width: number; height: number } | null>(null);
 
   const [isDraggingViewport, setIsDraggingViewport] = useState(false);
   const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
+  // Стабилизированная функция для обновления размеров мини-карты
+  const updateMiniMapSize = useCallback(() => {
     if (containerRef.current) {
-      setMiniMapSize({
-        width: containerRef.current.offsetWidth,
-        height: containerRef.current.offsetHeight,
+      const newWidth = containerRef.current.offsetWidth;
+      const newHeight = containerRef.current.offsetHeight;
+      
+      setMiniMapSize(prevSize => {
+        // Обновляем только если размеры действительно изменились
+        if (prevSize.width !== newWidth || prevSize.height !== newHeight) {
+          return { width: newWidth, height: newHeight };
+        }
+        return prevSize;
       });
     }
-  }, [stageSize, containerRef.current?.offsetWidth, containerRef.current?.offsetHeight]);
+  }, []);
+
+  // Используем ResizeObserver для отслеживания изменений размеров контейнера
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setMiniMapSize(prevSize => {
+          if (prevSize.width !== width || prevSize.height !== height) {
+            return { width, height };
+          }
+          return prevSize;
+        });
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    
+    // Инициализация размеров
+    updateMiniMapSize();
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [updateMiniMapSize]);
+
+  // Отслеживаем изменения stageSize только если они действительно изменились
+  useEffect(() => {
+    if (stageSize && lastStageSizeRef.current) {
+      const sizeChanged = 
+        lastStageSizeRef.current.width !== stageSize.width ||
+        lastStageSizeRef.current.height !== stageSize.height;
+      
+      if (sizeChanged) {
+        // Небольшая задержка для избежания циклических обновлений
+        const timeoutId = setTimeout(() => {
+          updateMiniMapSize();
+        }, 50);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+    
+    if (stageSize) {
+      lastStageSizeRef.current = { ...stageSize };
+    }
+  }, [stageSize, updateMiniMapSize]);
 
   const calculateDisplayDimensions = useCallback(() => {
     if (!stageSize || !miniMapSize.width || !miniMapSize.height) {
@@ -41,7 +97,7 @@ const MiniMap: React.FC = () => {
 
   const { displayWidth, displayHeight } = calculateDisplayDimensions();
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!miniMapImageRef.current || !visibleCanvasRectOnMiniMap || !stageSize || !displayWidth || !displayHeight) return;
 
     const rect = miniMapImageRef.current.getBoundingClientRect();
@@ -65,32 +121,38 @@ const MiniMap: React.FC = () => {
         y: clickY - viewportPxY,
       });
     } else {
+      // Мгновенное перемещение при клике вне viewport'а
       const relativeX = clickX / displayWidth;
       const relativeY = clickY / displayHeight;
-      setStagePositionFromMiniMap({ x: relativeX, y: relativeY }, 'center');
+      requestAnimationFrame(() => {
+        setStagePositionFromMiniMap({ x: relativeX, y: relativeY }, 'center');
+      });
     }
-  };
+  }, [miniMapImageRef, visibleCanvasRectOnMiniMap, stageSize, displayWidth, displayHeight, setStagePositionFromMiniMap]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDraggingViewport || !miniMapImageRef.current || !visibleCanvasRectOnMiniMap || !stageSize || !displayWidth || !displayHeight) return;
 
-    const rect = miniMapImageRef.current.getBoundingClientRect();
-    let mouseX = e.clientX - rect.left;
-    let mouseY = e.clientY - rect.top;
+    // Используем requestAnimationFrame для плавной анимации
+    requestAnimationFrame(() => {
+      const rect = miniMapImageRef.current!.getBoundingClientRect();
+      let mouseX = e.clientX - rect.left;
+      let mouseY = e.clientY - rect.top;
 
-    let newViewportPxX = mouseX - dragStartOffset.x;
-    let newViewportPxY = mouseY - dragStartOffset.y;
-    
-    const viewportPxWidth = visibleCanvasRectOnMiniMap.width * displayWidth;
-    const viewportPxHeight = visibleCanvasRectOnMiniMap.height * displayHeight;
+      let newViewportPxX = mouseX - dragStartOffset.x;
+      let newViewportPxY = mouseY - dragStartOffset.y;
+      
+      const viewportPxWidth = visibleCanvasRectOnMiniMap.width * displayWidth;
+      const viewportPxHeight = visibleCanvasRectOnMiniMap.height * displayHeight;
 
-    newViewportPxX = Math.max(0, Math.min(newViewportPxX, displayWidth - viewportPxWidth));
-    newViewportPxY = Math.max(0, Math.min(newViewportPxY, displayHeight - viewportPxHeight));
+      newViewportPxX = Math.max(0, Math.min(newViewportPxX, displayWidth - viewportPxWidth));
+      newViewportPxY = Math.max(0, Math.min(newViewportPxY, displayHeight - viewportPxHeight));
 
-    const relativeX = newViewportPxX / displayWidth;
-    const relativeY = newViewportPxY / displayHeight;
+      const relativeX = newViewportPxX / displayWidth;
+      const relativeY = newViewportPxY / displayHeight;
 
-    setStagePositionFromMiniMap({ x: relativeX, y: relativeY }, 'drag');
+      setStagePositionFromMiniMap({ x: relativeX, y: relativeY }, 'drag');
+    });
     
   }, [isDraggingViewport, dragStartOffset, visibleCanvasRectOnMiniMap, stageSize, displayWidth, displayHeight, setStagePositionFromMiniMap]);
 
@@ -136,6 +198,13 @@ const MiniMap: React.FC = () => {
             alt="Minimap" 
             className="w-full h-full object-contain select-none"
             draggable={false}
+            style={{
+              imageRendering: 'crisp-edges',
+              filter: 'contrast(1.08) brightness(1.03) saturate(1.1)',
+              WebkitFontSmoothing: 'none',
+              backfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+            }}
           />
           {visibleCanvasRectOnMiniMap && (
             <div
@@ -145,6 +214,9 @@ const MiniMap: React.FC = () => {
                 top: `${visibleCanvasRectOnMiniMap.y * 100}%`,
                 width: `${visibleCanvasRectOnMiniMap.width * 100}%`,
                 height: `${visibleCanvasRectOnMiniMap.height * 100}%`,
+                transition: isDraggingViewport ? 'none' : 'left 0.1s ease-out, top 0.1s ease-out',
+                willChange: 'left, top',
+                transform: 'translateZ(0)',
               }}
             />
           )}

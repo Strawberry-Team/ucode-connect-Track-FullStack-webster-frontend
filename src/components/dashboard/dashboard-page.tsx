@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTool } from '@/context/tool-context';
 import CreateProjectModal from './create-project-modal.tsx';
 import AuthContainer from '../auth/auth-container';
+import RecentProjects from './recent-projects';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUp, Plus, User, X, Loader2 } from 'lucide-react';
@@ -13,10 +14,13 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 import { getCurrentAuthenticatedUser } from '@/services/user-service';
 import type { User as AuthUser } from '@/types/auth';
+import { getRecentProjects, deleteProject, getProjectData, getUserProjects } from '@/utils/project-storage';
+import type { RecentProject } from '@/types/dashboard';
 
 const DashboardPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthVisible, setIsAuthVisible] = useState(false);
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const { loggedInUser, isLoadingAuth, loginUserContext, logoutUserContext } = useUser();
   const navigate = useNavigate();
   const {
@@ -71,6 +75,18 @@ const DashboardPage: React.FC = () => {
     setBlurStrength
   } = useTool();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Загрузка проектов при монтировании компонента или изменении пользователя
+  useEffect(() => {
+    if (loggedInUser) {
+      // Если пользователь авторизован, загружаем только его проекты
+      const userProjects = getUserProjects(loggedInUser.id);
+      setRecentProjects(userProjects);
+    } else {
+      // Если пользователь не авторизован, очищаем список проектов
+      setRecentProjects([]);
+    }
+  }, [loggedInUser]);
 
   useEffect(() => {
     const processAuthTokens = async () => {
@@ -196,7 +212,8 @@ const DashboardPage: React.FC = () => {
     setInitialImage(null);
     setStageSize({ width, height });
     setIsCanvasManuallyResized(true);
-    navigate('/canvas');
+    // Передаем название проекта через URL параметры
+    navigate(`/canvas?name=${encodeURIComponent(name)}`);
   };
 
   const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,7 +227,10 @@ const DashboardPage: React.FC = () => {
           setInitialImage({ src: img.src, width: img.naturalWidth, height: img.naturalHeight, file });
           setStageSize({ width: img.naturalWidth, height: img.naturalHeight });
           setIsCanvasManuallyResized(true);
-          navigate('/canvas');
+          
+          // Используем имя файла как название проекта
+          const fileName = file.name.replace(/\.[^/.]+$/, ""); // Удаляем расширение
+          navigate(`/canvas?name=${encodeURIComponent(fileName)}`);
         };
         img.onerror = () => {
           console.error("Error loading image for size determination.");
@@ -231,17 +251,102 @@ const DashboardPage: React.FC = () => {
     console.log('Пользователь успешно авторизован в DashboardPage, обновляем контекст:', user);
     loginUserContext(user);
     setIsAuthVisible(false);
+    
+    // Загружаем проекты пользователя после успешной авторизации
+    const userProjects = getUserProjects(user.id);
+    setRecentProjects(userProjects);
   };
 
   const handleLogout = () => {
     logoutUserContext();
     setIsAuthVisible(false);
+    // Очищаем список проектов при выходе из аккаунта
+    setRecentProjects([]);
     toast.success("Logged Out", { description: "You have been successfully logged out.", duration: 3000 });
+  };
+
+  // Функция для открытия существующего проекта
+  const handleOpenProject = (projectId: string) => {
+    const projectData = getProjectData(projectId);
+    
+    if (!projectData) {
+      toast.error("Ошибка", { description: "Не удалось загрузить проект", duration: 3000 });
+      return;
+    }
+    
+    resetAllToolSettings();
+    
+    const { project, renderableObjects } = projectData;
+    
+    console.log('Opening project with dimensions:', project.width, 'x', project.height);
+    
+    // Устанавливаем размеры холста из сохраненного проекта (могут быть обрезанными)
+    setStageSize({ width: project.width, height: project.height });
+    setIsCanvasManuallyResized(true);
+    
+    // Загружаем объекты на холст
+    setRenderableObjects(renderableObjects);
+    
+    // Добавляем запись в историю
+    addHistoryEntry({
+      type: 'unknown',
+      description: `Opened project "${project.name}"`,
+      linesSnapshot: renderableObjects
+    });
+    
+    // Переходим на страницу холста с передачей ID проекта и названия
+    navigate(`/canvas?projectId=${encodeURIComponent(project.id)}&name=${encodeURIComponent(project.name)}`);
+  };
+
+  // Функция для удаления проекта
+  const handleDeleteProject = (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем открытие проекта
+    
+    deleteProject(projectId);
+    
+    // Обновляем список проектов
+    if (loggedInUser) {
+      const userProjects = getUserProjects(loggedInUser.id);
+      setRecentProjects(userProjects);
+    } else {
+      setRecentProjects([]);
+    }
+    
+    toast.success("Project deleted", { duration: 3000 });
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const now = new Date();
+      const date = new Date(dateString);
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffInSeconds < 60) {
+        return `${diffInSeconds}s ago`;
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes}m ago`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours}h ago`;
+      } else if (diffInSeconds < 2592000) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days}d ago`;
+      } else if (diffInSeconds < 31536000) {
+        const months = Math.floor(diffInSeconds / 2592000);
+        return `${months}mo ago`;
+      } else {
+        const years = Math.floor(diffInSeconds / 31536000);
+        return `${years}y ago`;
+      }
+    } catch (error) {
+      return "unknown";
+    }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#292C31FF] text-gray-200 p-6">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-4xl">
         <motion.div
           className="flex flex-col items-center justify-center relative"
           initial={{ opacity: 0 }}
@@ -347,6 +452,14 @@ const DashboardPage: React.FC = () => {
               </CardContent>
             </div>
           </Card>
+
+          {/* Секция с последними проектами */}
+          <RecentProjects
+            projects={recentProjects}
+            onOpenProject={handleOpenProject}
+            onDeleteProject={handleDeleteProject}
+            formatDate={formatDate}
+          />
         </motion.div>
       </div>
 

@@ -401,14 +401,33 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             }
 
             const node = e.target;
-            // Use node's design width/height which are set based on element.width/height
             const designWidth = node.width();
             const designHeight = node.height();
+            
+            // Получаем top-left координаты для snapping
+            let topLeftX = node.x();
+            let topLeftY = node.y();
+            
+            // Преобразуем координаты в зависимости от типа элемента
+            if (node.offsetX() > 0 || node.offsetY() > 0) {
+                // Элемент центрирован (текст, изображения)
+                const elementWidth = element.width || 0;
+                const elementHeight = element.height || 0;
+                topLeftX = node.x() - elementWidth / 2;
+                topLeftY = node.y() - elementHeight / 2;
+            } else if (element.type === 'circle' || element.type === 'triangle' || 
+                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
+                // Элементы, которые позиционируются по центру без offsetX/Y
+                const elementWidth = element.width || 0;
+                const elementHeight = element.height || 0;
+                topLeftX = node.x() - elementWidth / 2;
+                topLeftY = node.y() - elementHeight / 2;
+            }
 
             const draggingBox: BoxProps = {
                 id: element.id,
-                x: node.x(),
-                y: node.y(),
+                x: topLeftX,
+                y: topLeftY,
                 width: designWidth * Math.abs(node.scaleX()),
                 height: designHeight * Math.abs(node.scaleY()),
                 rotation: node.rotation(),
@@ -434,14 +453,56 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
             setActiveSnapLines(snapLines);
 
-            if (node.x() !== snappedPosition.x || node.y() !== snappedPosition.y) {
-               node.position(snappedPosition);
+            // Преобразуем snapped координаты обратно в формат, который ожидает Konva node
+            let targetX = snappedPosition.x;
+            let targetY = snappedPosition.y;
+            
+            if (node.offsetX() > 0 || node.offsetY() > 0) {
+                // Для центрированных элементов преобразуем обратно в центр
+                const elementWidth = element.width || 0;
+                const elementHeight = element.height || 0;
+                targetX = snappedPosition.x + elementWidth / 2;
+                targetY = snappedPosition.y + elementHeight / 2;
+            } else if (element.type === 'circle' || element.type === 'triangle' || 
+                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
+                // Для элементов позиционированных по центру
+                const elementWidth = element.width || 0;
+                const elementHeight = element.height || 0;
+                targetX = snappedPosition.x + elementWidth / 2;
+                targetY = snappedPosition.y + elementHeight / 2;
+            }
+
+            if (node.x() !== targetX || node.y() !== targetY) {
+               node.position({ x: targetX, y: targetY });
             }
         },
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
             if (onDragEnd && canInteractWithElement()) {
-                onDragEnd(element.id, e.target.x(), e.target.y());
+                const node = e.target;
+                let newX = node.x();
+                let newY = node.y();
+                
+                // Преобразуем координаты в зависимости от типа элемента
+                // Для элементов с offsetX/Y (текст, изображения) node.x() возвращает центр
+                // Нужно преобразовать в top-left координаты
+                if (node.offsetX() > 0 || node.offsetY() > 0) {
+                    // Элемент центрирован (текст, изображения)
+                    const elementWidth = element.width || 0;
+                    const elementHeight = element.height || 0;
+                    newX = node.x() - elementWidth / 2;
+                    newY = node.y() - elementHeight / 2;
+                } else if (element.type === 'circle' || element.type === 'triangle' || 
+                          element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
+                    // Элементы, которые позиционируются по центру без offsetX/Y
+                    const elementWidth = element.width || 0;
+                    const elementHeight = element.height || 0;
+                    newX = node.x() - elementWidth / 2;
+                    newY = node.y() - elementHeight / 2;
+                }
+                // Для прямоугольников, линий и других элементов node.x() уже возвращает top-left
+                
+                onDragEnd(element.id, newX, newY);
             }
         },
         onTransformEnd: handleTransformEnd,

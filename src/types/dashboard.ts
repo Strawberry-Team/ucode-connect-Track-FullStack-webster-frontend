@@ -4,6 +4,17 @@ export interface Template {
     dimensionsText: string;
     width: number;
     height: number;
-    iconUrl?: string;
+    iconUrl: string;
   }
+  
+export interface RecentProject {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  createdAt: string;
+  lastModified: string;
+  thumbnailUrl?: string;
+  hasInitialImage: boolean;
+}
   

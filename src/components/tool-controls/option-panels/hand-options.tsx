@@ -18,16 +18,23 @@ const HandOptions: React.FC = () => {
 
     const centerCanvas = (currentZoom: number) => {
         if (!contextStageSize || !containerSize || !setStagePosition) return;
+        
         const scale = currentZoom / 100;
         const newX = (containerSize.width - contextStageSize.width * scale) / 2;
         const newY = (containerSize.height - contextStageSize.height * scale) / 2;
-        setStagePosition({ x: newX, y: newY });
+        return { x: newX, y: newY };
     };
 
     const handleSet100Percent = () => {
         const newZoom = 100;
-        setZoom(newZoom);
-        centerCanvas(newZoom);
+        const newPosition = centerCanvas(newZoom);
+        
+        if (newPosition) {
+            setZoom(newZoom, true); // Используем флаг isProgrammatic
+            setStagePosition(newPosition);
+        } else {
+            setZoom(newZoom, true);
+        }
     };
 
     const handleFitToScreen = () => {
@@ -38,8 +45,14 @@ const HandOptions: React.FC = () => {
         let newZoomCalculated = Math.min(scaleX, scaleY) * 100;
 
         const clampedZoom = Math.round(Math.max(minZoom, Math.min(maxZoom, newZoomCalculated)));
-        setZoom(clampedZoom);
-        centerCanvas(clampedZoom);
+        const newPosition = centerCanvas(clampedZoom);
+        
+        if (newPosition) {
+            setZoom(clampedZoom, true); // Используем флаг isProgrammatic
+            setStagePosition(newPosition);
+        } else {
+            setZoom(clampedZoom, true);
+        }
     };
 
     const handleFillScreen = () => {
@@ -51,9 +64,14 @@ const HandOptions: React.FC = () => {
         let finalZoom = Math.max(100, zoomToFill); // Ensure zoom is at least 100% as per user request for "Fill"
 
         const clampedZoom = Math.round(Math.max(minZoom, Math.min(maxZoom, finalZoom)));
-
-        setZoom(clampedZoom);
-        centerCanvas(clampedZoom);
+        const newPosition = centerCanvas(clampedZoom);
+        
+        if (newPosition) {
+            setZoom(clampedZoom, true); // Используем флаг isProgrammatic
+            setStagePosition(newPosition);
+        } else {
+            setZoom(clampedZoom, true);
+        }
     };
 
     return (
@@ -73,7 +91,8 @@ const HandOptions: React.FC = () => {
                 className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Adjust
-            </Button><Button
+            </Button>
+            <Button
                 onClick={handleFillScreen}
                 variant="ghost"
                 className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"

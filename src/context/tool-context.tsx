@@ -62,7 +62,7 @@ interface ToolContextValue {
     eraserHardness: number
     setEraserHardness: (hardness: number) => void
     zoom: number
-    setZoom: (zoom: number) => void
+    setZoom: (zoom: number, isProgrammatic?: boolean) => void
     toolSettings: ToolSettings
 
     // Additional parameters for text
@@ -210,6 +210,9 @@ interface ToolContextValue {
     setBrushTransformModeActive: (isActive: boolean) => void;
     selectedLineId: string | null;
     setSelectedLineId: (id: string | null) => void;
+
+    // Флаг для отслеживания программного изменения масштаба
+    isProgrammaticZoomRef: React.MutableRefObject<boolean>;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -307,6 +310,9 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [isBrushTransformModeActive, setBrushTransformModeActive] = useState<boolean>(false);
     const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
 
+    // Флаг для отслеживания программного изменения масштаба
+    const isProgrammaticZoomRef = useRef<boolean>(false);
+
     const setActiveTool = useCallback((tool: Tool | null) => {
         setActiveToolInternal(tool);
         setIsAddModeActive(false); // Reset add mode when tool changes
@@ -402,7 +408,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
     // Function that MiniMap will call
     const setStagePositionFromMiniMap = useCallback((coords: { x: number; y: number }, type: 'center' | 'drag') => {
-        actualStagePositionUpdater(coords, type);
+        // Используем requestAnimationFrame для плавного обновления
+        requestAnimationFrame(() => {
+            actualStagePositionUpdater(coords, type);
+        });
     }, [actualStagePositionUpdater]);
 
     // Function that Canvas will call to register its function
@@ -467,6 +476,21 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         }
     }
 
+    // Обернутая функция setZoom для отслеживания программных изменений
+    const setZoomWithFlag = useCallback((newZoom: number, isProgrammatic: boolean = false) => {
+        if (isProgrammatic) {
+            isProgrammaticZoomRef.current = true;
+        }
+        setZoom(newZoom);
+        
+        // Сбрасываем флаг через небольшую задержку
+        if (isProgrammatic) {
+            setTimeout(() => {
+                isProgrammaticZoomRef.current = false;
+            }, 100);
+        }
+    }, []);
+
     return (
         <ToolContext.Provider
             value={{
@@ -490,7 +514,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 eraserHardness,
                 setEraserHardness,
                 zoom,
-                setZoom,
+                setZoom: setZoomWithFlag,
                 toolSettings,
 
                 // Additional parameters for text
@@ -619,6 +643,9 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setBrushTransformModeActive,
                 selectedLineId,
                 setSelectedLineId,
+
+                // Флаг для отслеживания программного изменения масштаба
+                isProgrammaticZoomRef,
             }}
         >
             {children}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTool } from '@/context/tool-context';
 import { formatDimensionDisplay } from '@/utils/format-utils';
 import MiniMap from './mini-map';
@@ -17,23 +17,42 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
 
   const [tempZoomInput, setTempZoomInput] = useState<string>(() => String(Math.round(zoom)));
   const zoomInputRef = useRef<HTMLInputElement>(null);
+  const lastZoomRef = useRef<number>(zoom);
+  const isUpdatingZoomRef = useRef<boolean>(false);
 
+  // Обновляем tempZoomInput только когда zoom действительно изменился извне
   useEffect(() => {
-    if (document.activeElement !== zoomInputRef.current) {
-      setTempZoomInput(String(Math.round(zoom)));
+    const roundedZoom = Math.round(zoom);
+    
+    // Не обновляем если мы сами изменяем zoom или если инпут в фокусе
+    if (!isUpdatingZoomRef.current && 
+        document.activeElement !== zoomInputRef.current && 
+        lastZoomRef.current !== roundedZoom) {
+      
+      setTempZoomInput(String(roundedZoom));
+      lastZoomRef.current = roundedZoom;
     }
   }, [zoom]);
 
-
-  const handleSliderValueChange = (value: number[]) => {
+  const handleSliderValueChange = useCallback((value: number[]) => {
     const newZoom = Math.round(value[0]);
-    setZoom(newZoom);
-  };
+    if (newZoom !== zoom) {
+      isUpdatingZoomRef.current = true;
+      setZoom(newZoom);
+      setTempZoomInput(String(newZoom));
+      lastZoomRef.current = newZoom;
+      
+      // Сбрасываем флаг через небольшой таймаут
+      setTimeout(() => {
+        isUpdatingZoomRef.current = false;
+      }, 100);
+    }
+  }, [zoom, setZoom]);
 
   const minZoom = 10;
   const maxZoom = 500;
 
-  const handleZoomInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleZoomInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     let inputValue = e.target.value;
 
     inputValue = inputValue.replace(/[^\d]/g, "");
@@ -56,17 +75,33 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
     }
 
     setTempZoomInput(inputValue);
-  };
+  }, [maxZoom]);
 
-  const handleZoomInputBlur = () => {
+  const handleZoomInputBlur = useCallback(() => {
     let currentNum = parseInt(tempZoomInput, 10);
     if (isNaN(currentNum) || tempZoomInput.trim() === "") {
       currentNum = minZoom;
     }
     currentNum = Math.max(minZoom, Math.min(maxZoom, currentNum));
-    setZoom(currentNum);
+    
+    if (currentNum !== zoom) {
+      isUpdatingZoomRef.current = true;
+      setZoom(currentNum);
+      lastZoomRef.current = currentNum;
+      
+      setTimeout(() => {
+        isUpdatingZoomRef.current = false;
+      }, 100);
+    }
+    
     setTempZoomInput(String(currentNum));
-  };
+  }, [tempZoomInput, zoom, setZoom, minZoom, maxZoom]);
+
+  const handleZoomInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      zoomInputRef.current?.blur();
+    }
+  }, []);
 
   return (
     <div className={`w-full ${heightClass} border-t-1 border-[#171719FF] bg-[#292C31FF] text-[#A8AAACFF]  flex flex-col`}>
@@ -107,7 +142,6 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
               </div>
             </div>
 
-
             <div className="space-y-1">
               <div className="flex items-center">
                 <span className="inline-block w-5 text-[#A8AAACFF] shrink-0">W:</span>
@@ -131,7 +165,7 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
             min={minZoom}
             max={maxZoom}
             step={1}
-            value={[zoom]}
+            value={[Math.round(zoom)]}
             onValueChange={handleSliderValueChange}
             className="flex-grow"
           />
@@ -145,7 +179,7 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
               value={tempZoomInput}
               onChange={handleZoomInputChange}
               onBlur={handleZoomInputBlur}
-              onKeyDown={(e) => { if (e.key === 'Enter') zoomInputRef.current?.blur(); }}
+              onKeyDown={handleZoomInputKeyDown}
               className="w-7 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0"
               maxLength={3}
             />

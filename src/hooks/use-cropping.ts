@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "react";
 import type Konva from "konva";
+import { useTool } from "@/context/tool-context";
 
 export interface CroppingProps {
   cropRect: Rect | null;
@@ -53,6 +54,8 @@ const useCropping = ({
 }: CroppingProps) => {
   const cropRectRef = useRef<Konva.Rect | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
+  const { addHistoryEntry, renderableObjects } = useTool();
+  const isApplyingCropRef = useRef<boolean>(false);
 
   const constrainCropRectToCanvas = (pos: { x: number; y: number }, rectWidth: number, rectHeight: number, canvasWidth: number, canvasHeight: number) => {
     let newX = pos.x;
@@ -167,67 +170,94 @@ const useCropping = ({
   };
 
   const applyCrop = () => {
-    if (!cropRect || !currentStageSize) return;
+    if (!cropRect || !currentStageSize || isApplyingCropRef.current) return;
+    
+    isApplyingCropRef.current = true;
 
-    const offsetX = cropRect.x;
-    const offsetY = cropRect.y;
-    const newWidth = cropRect.width;
-    const newHeight = cropRect.height;
+    try {
+      const offsetX = cropRect.x;
+      const offsetY = cropRect.y;
+      const newWidth = cropRect.width;
+      const newHeight = cropRect.height;
 
-    const newLines = lines.reduce((acc, line) => {
-      const transformedPoints = [];
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      console.log('Applying crop:', { offsetX, offsetY, newWidth, newHeight });
 
-      for (let i = 0; i < line.points.length; i += 2) {
-        const newPointX = line.points[i] - offsetX;
-        const newPointY = line.points[i + 1] - offsetY;
-        transformedPoints.push(newPointX, newPointY);
-        minX = Math.min(minX, newPointX);
-        minY = Math.min(minY, newPointY);
-        maxX = Math.max(maxX, newPointX);
-        maxY = Math.max(maxY, newPointY);
+      const newLines = lines.reduce((acc, line) => {
+        const transformedPoints = [];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        for (let i = 0; i < line.points.length; i += 2) {
+          const newPointX = line.points[i] - offsetX;
+          const newPointY = line.points[i + 1] - offsetY;
+          transformedPoints.push(newPointX, newPointY);
+          minX = Math.min(minX, newPointX);
+          minY = Math.min(minY, newPointY);
+          maxX = Math.max(maxX, newPointX);
+          maxY = Math.max(maxY, newPointY);
+        }
+
+        if (maxX >= 0 && minX <= newWidth && maxY >= 0 && minY <= newHeight) {
+          acc.push({ ...line, points: transformedPoints });
+        }
+        return acc;
+      }, [] as typeof lines);
+
+      const newElements = elements.reduce((acc, el) => {
+        const newElX = el.x - offsetX;
+        const newElY = el.y - offsetY;
+
+        const elementWidth = el.width || 0;
+        const elementHeight = el.height || 0;
+        
+        if (newElX + elementWidth > 0 && newElX < newWidth &&
+          newElY + elementHeight > 0 && newElY < newHeight) {
+          acc.push({ ...el, x: newElX, y: newElY });
+        }
+        return acc;
+      }, [] as typeof elements);
+
+      setLines(newLines);
+      setElements(newElements);
+    
+      
+      setStageSize({ width: newWidth, height: newHeight });
+      setIsCanvasManuallyResized(true);
+      
+      setCropRect({ x: 0, y: 0, width: newWidth, height: newHeight });
+      setSelectedAspectRatio('custom');
+
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const containerHeight = containerRef.current.clientHeight;
+        const scaleValue = zoom / 100;
+
+        const newStageX = (containerWidth - newWidth * scaleValue) / 2;
+        const newStageY = (containerHeight - newHeight * scaleValue) / 2;
+
+        setStagePosition({
+          x: Math.max(0, newStageX),
+          y: Math.max(0, newStageY)
+        });
       }
 
-      if (maxX >= 0 && minX <= newWidth && maxY >= 0 && minY <= newHeight) {
-        acc.push({ ...line, points: transformedPoints });
-      }
-      return acc;
-    }, [] as typeof lines);
-    setLines(newLines);
+      setTimeout(() => {
+        try {
+          addHistoryEntry({
+            type: 'unknown',
+            description: `Canvas cropped to ${Math.round(newWidth)}×${Math.round(newHeight)}`,
+            linesSnapshot: renderableObjects
+          });
+        } catch (error) {
+          console.warn('Error adding history entry after crop:', error);
+        } finally {
+          isApplyingCropRef.current = false;
+        }
+      }, 100);
 
-    const newElements = elements.reduce((acc, el) => {
-      const newElX = el.x - offsetX;
-      const newElY = el.y - offsetY;
-
-      if (newElX + el.width > 0 && newElX < newWidth &&
-        newElY + el.height > 0 && newElY < newHeight) {
-        acc.push({ ...el, x: newElX, y: newElY });
-      }
-      return acc;
-    }, [] as typeof elements);
-    setElements(newElements);
-
-    setStageSize({ width: newWidth, height: newHeight });
-    setIsCanvasManuallyResized(true);
-
-    setCropRect({ x: 0, y: 0, width: newWidth, height: newHeight });
-    setSelectedAspectRatio('custom');
-
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      const scaleValue = zoom / 100;
-
-      const newStageX = (containerWidth - newWidth * scaleValue) / 2;
-      const newStageY = (containerHeight - newHeight * scaleValue) / 2;
-
-      setStagePosition({
-        x: Math.max(0, newStageX),
-        y: Math.max(0, newStageY)
-      });
+    } catch (error) {
+      console.error('Error applying crop:', error);
+      isApplyingCropRef.current = false;
     }
-
-    setIsCropping(true);
   };
 
   useEffect(() => {
