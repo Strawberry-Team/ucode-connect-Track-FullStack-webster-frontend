@@ -15,7 +15,7 @@ export const fetchUserProfile = async (): Promise<User> => {
 
 export const updateUserProfile = async (userId: number, userData: UpdateUserData): Promise<UpdateUserResponse> => {
   try {
-    const response = await apiClient.put<User>(`/users/${userId}`, userData);
+    const response = await apiClient.patch<User>(`/users/${userId}`, userData);
     return {
       success: true,
       data: response.data
