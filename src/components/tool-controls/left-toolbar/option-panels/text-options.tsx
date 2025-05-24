@@ -36,7 +36,7 @@ import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
-import { colorToRGBA } from "@/components/tool-controls/option-panels/common";
+import { colorToRGBA } from "./common";
 
 // Add this at the top of the file with other imports
 declare global {
@@ -122,22 +122,6 @@ const FontSelector: React.FC<{
     </div>
   );
 };
-
-// Define a type to track current text settings
-interface TextSettings {
-  color: string;
-  backgroundColor: string;
-  backgroundOpacity: number;
-  fontSize: number;
-  fontFamily: string;
-  fontStyles: FontStyles;
-  textCase: TextCase;
-  textAlignment: TextAlignment;
-  lineHeight: number;
-  borderColor: string;
-  borderWidth: number;
-  borderStyle: BorderStyle;
-}
 
 const TextOptions: React.FC = () => {
   const {

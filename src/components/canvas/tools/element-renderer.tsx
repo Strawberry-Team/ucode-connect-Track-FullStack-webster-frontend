@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
-import { Rect, Circle, RegularPolygon, Star, Line, Text, Group, Transformer, Shape, Image as KonvaImage } from "react-konva";
+import { Rect, Circle, RegularPolygon, Star, Line, Text, Group, Transformer, Image as KonvaImage } from "react-konva";
 import type { ElementData, TextCase, BorderStyle, ShapeType } from "@/types/canvas";
 import Konva from "konva";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -71,43 +71,6 @@ const getBorderStyleProperties = (borderStyle: BorderStyle = "solid", borderWidt
             return { dashEnabled: false };
     }
 };
-
-// Create a single interface
-interface ColorPickerProps {
-    color: string;
-    setColor: (color: string) => void;
-    opacity?: number;
-    setOpacity?: (opacity: number) => void;
-    presetColors?: string[];
-    allowTransparent?: boolean;
-    onClose?: () => void;
-}
-
-// Add support for custom colors
-interface ColorPickerState {
-    customColors: string[];
-    recentColors: string[];
-    format: 'hex' | 'rgb' | 'hsl';
-}
-
-const validateColor = (color: string): boolean => {
-    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-    const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
-    return hexRegex.test(color) || rgbRegex.test(color);
-};
-
-const ColorFormatSelector = ({ format, setFormat }: { format: string, setFormat: (format: string) => void }) => (
-    <DropdownMenu>
-        <DropdownMenuTrigger>
-            {format.toUpperCase()}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setFormat('hex')}>HEX</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFormat('rgb')}>RGB</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFormat('hsl')}>HSL</DropdownMenuItem>
-        </DropdownMenuContent>
-    </DropdownMenu>
-);
 
 // Helper function to convert hex/rgb/named color and opacity (0-100) to RGBA string
 const convertColorToRGBA = (color: string | undefined, opacityPercent: number | undefined): string => {
@@ -249,7 +212,6 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 if (currentKeepRatio) {
                     const aspectRatio = oldBox.width / oldBox.height;
                     if (Math.abs(newBox.width / newBox.height - aspectRatio) > 1e-2) { // Check if aspect ratio changed significantly
-                        //哪个改变的更多，就以哪个为准
                         const widthChangedMore = Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height);
                         if (widthChangedMore) {
                             newBox.height = newBox.width / aspectRatio;
@@ -404,20 +366,20 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             const designWidth = node.width();
             const designHeight = node.height();
             
-            // Получаем top-left координаты для snapping
+            // Get top-left coordinates for snapping
             let topLeftX = node.x();
             let topLeftY = node.y();
             
-            // Преобразуем координаты в зависимости от типа элемента
+            // Convert coordinates depending on element type
             if (node.offsetX() > 0 || node.offsetY() > 0) {
-                // Элемент центрирован (текст, изображения)
+                // Element is centered (text, images)
                 const elementWidth = element.width || 0;
                 const elementHeight = element.height || 0;
                 topLeftX = node.x() - elementWidth / 2;
                 topLeftY = node.y() - elementHeight / 2;
             } else if (element.type === 'circle' || element.type === 'triangle' || 
                       element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                // Элементы, которые позиционируются по центру без offsetX/Y
+                // Elements positioned centrally without offsetX/Y
                 const elementWidth = element.width || 0;
                 const elementHeight = element.height || 0;
                 topLeftX = node.x() - elementWidth / 2;
@@ -453,19 +415,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
             setActiveSnapLines(snapLines);
 
-            // Преобразуем snapped координаты обратно в формат, который ожидает Konva node
             let targetX = snappedPosition.x;
             let targetY = snappedPosition.y;
             
             if (node.offsetX() > 0 || node.offsetY() > 0) {
-                // Для центрированных элементов преобразуем обратно в центр
+                // For centered elements, convert back to center
                 const elementWidth = element.width || 0;
                 const elementHeight = element.height || 0;
                 targetX = snappedPosition.x + elementWidth / 2;
                 targetY = snappedPosition.y + elementHeight / 2;
             } else if (element.type === 'circle' || element.type === 'triangle' || 
                       element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                // Для элементов позиционированных по центру
+                // For elements positioned centrally
                 const elementWidth = element.width || 0;
                 const elementHeight = element.height || 0;
                 targetX = snappedPosition.x + elementWidth / 2;
@@ -483,24 +444,24 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 let newX = node.x();
                 let newY = node.y();
                 
-                // Преобразуем координаты в зависимости от типа элемента
-                // Для элементов с offsetX/Y (текст, изображения) node.x() возвращает центр
-                // Нужно преобразовать в top-left координаты
+                // Convert coordinates depending on element type
+                // For elements with offsetX/Y (text, images) node.x() returns center
+                // Need to convert to top-left coordinates
                 if (node.offsetX() > 0 || node.offsetY() > 0) {
-                    // Элемент центрирован (текст, изображения)
+                    // Element is centered (text, images)
                     const elementWidth = element.width || 0;
                     const elementHeight = element.height || 0;
                     newX = node.x() - elementWidth / 2;
                     newY = node.y() - elementHeight / 2;
                 } else if (element.type === 'circle' || element.type === 'triangle' || 
                           element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                    // Элементы, которые позиционируются по центру без offsetX/Y
+                    // Elements positioned centrally without offsetX/Y
                     const elementWidth = element.width || 0;
                     const elementHeight = element.height || 0;
                     newX = node.x() - elementWidth / 2;
                     newY = node.y() - elementHeight / 2;
                 }
-                // Для прямоугольников, линий и других элементов node.x() уже возвращает top-left
+                // For rectangles, lines and other elements node.x() already returns top-left
                 
                 onDragEnd(element.id, newX, newY);
             }

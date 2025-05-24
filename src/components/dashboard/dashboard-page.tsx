@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 import { getCurrentAuthenticatedUser } from '@/services/user-service';
 import type { User as AuthUser } from '@/types/auth';
-import { getRecentProjects, deleteProject, getProjectData, getUserProjects } from '@/utils/project-storage';
+import { deleteProject, getProjectData, getUserProjects } from '@/utils/project-storage';
 import type { RecentProject } from '@/types/dashboard';
 
 const DashboardPage: React.FC = () => {
@@ -42,6 +42,7 @@ const DashboardPage: React.FC = () => {
     setEraserMirrorMode,
     setCursorPositionOnCanvas,
     addHistoryEntry,
+    clearHistory,
     setIsAddModeActive,
     setCurrentAddToolType,
     setStagePosition,
@@ -76,14 +77,11 @@ const DashboardPage: React.FC = () => {
   } = useTool();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Загрузка проектов при монтировании компонента или изменении пользователя
   useEffect(() => {
     if (loggedInUser) {
-      // Если пользователь авторизован, загружаем только его проекты
       const userProjects = getUserProjects(loggedInUser.id);
       setRecentProjects(userProjects);
     } else {
-      // Если пользователь не авторизован, очищаем список проектов
       setRecentProjects([]);
     }
   }, [loggedInUser]);
@@ -144,9 +142,11 @@ const DashboardPage: React.FC = () => {
 
     const emptyObjects: never[] = [];
     setRenderableObjects(emptyObjects);
+    
+    clearHistory();
     addHistoryEntry({
       type: 'unknown',
-      description: 'Новый проект',
+      description: 'New project',
       linesSnapshot: emptyObjects
     });
 
@@ -212,7 +212,6 @@ const DashboardPage: React.FC = () => {
     setInitialImage(null);
     setStageSize({ width, height });
     setIsCanvasManuallyResized(true);
-    // Передаем название проекта через URL параметры
     navigate(`/canvas?name=${encodeURIComponent(name)}`);
   };
 
@@ -228,8 +227,7 @@ const DashboardPage: React.FC = () => {
           setStageSize({ width: img.naturalWidth, height: img.naturalHeight });
           setIsCanvasManuallyResized(true);
           
-          // Используем имя файла как название проекта
-          const fileName = file.name.replace(/\.[^/.]+$/, ""); // Удаляем расширение
+          const fileName = file.name.replace(/\.[^/.]+$/, "");
           navigate(`/canvas?name=${encodeURIComponent(fileName)}`);
         };
         img.onerror = () => {
@@ -252,7 +250,6 @@ const DashboardPage: React.FC = () => {
     loginUserContext(user);
     setIsAuthVisible(false);
     
-    // Загружаем проекты пользователя после успешной авторизации
     const userProjects = getUserProjects(user.id);
     setRecentProjects(userProjects);
   };
@@ -260,12 +257,10 @@ const DashboardPage: React.FC = () => {
   const handleLogout = () => {
     logoutUserContext();
     setIsAuthVisible(false);
-    // Очищаем список проектов при выходе из аккаунта
     setRecentProjects([]);
     toast.success("Logged Out", { description: "You have been successfully logged out.", duration: 3000 });
   };
 
-  // Функция для открытия существующего проекта
   const handleOpenProject = (projectId: string) => {
     const projectData = getProjectData(projectId);
     
@@ -278,33 +273,27 @@ const DashboardPage: React.FC = () => {
     
     const { project, renderableObjects } = projectData;
     
-    console.log('Opening project with dimensions:', project.width, 'x', project.height);
     
-    // Устанавливаем размеры холста из сохраненного проекта (могут быть обрезанными)
     setStageSize({ width: project.width, height: project.height });
     setIsCanvasManuallyResized(true);
     
-    // Загружаем объекты на холст
     setRenderableObjects(renderableObjects);
     
-    // Добавляем запись в историю
+    clearHistory();
     addHistoryEntry({
       type: 'unknown',
       description: `Opened project "${project.name}"`,
       linesSnapshot: renderableObjects
     });
     
-    // Переходим на страницу холста с передачей ID проекта и названия
     navigate(`/canvas?projectId=${encodeURIComponent(project.id)}&name=${encodeURIComponent(project.name)}`);
   };
 
-  // Функция для удаления проекта
   const handleDeleteProject = (projectId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Предотвращаем открытие проекта
+    e.stopPropagation();
     
     deleteProject(projectId);
     
-    // Обновляем список проектов
     if (loggedInUser) {
       const userProjects = getUserProjects(loggedInUser.id);
       setRecentProjects(userProjects);
@@ -453,7 +442,6 @@ const DashboardPage: React.FC = () => {
             </div>
           </Card>
 
-          {/* Секция с последними проектами */}
           <RecentProjects
             projects={recentProjects}
             onOpenProject={handleOpenProject}

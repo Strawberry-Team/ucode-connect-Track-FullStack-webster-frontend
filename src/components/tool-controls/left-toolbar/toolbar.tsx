@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import ColorPicker from "../color-picker/color-picker"
+import ColorPicker from "@/components/color-picker/color-picker"
 import { useState } from "react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
@@ -62,14 +62,6 @@ const Toolbar: React.FC = () => {
     const [isSecondaryPickerOpen, setIsSecondaryPickerOpen] = useState(false)
 
     const tools = [
-        {
-            id: "cursor",
-            name: "Cursor",
-            type: "cursor",
-            icon: MousePointer2,
-            description: "Select and move elements on the canvas.",
-            imageUrl: "https://pixlr.com/img/tool/arrange-info.jpg"
-        },
         {
             id: "brush",
             name: "Brush",

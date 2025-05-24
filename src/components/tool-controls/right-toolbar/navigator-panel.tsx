@@ -20,11 +20,9 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
   const lastZoomRef = useRef<number>(zoom);
   const isUpdatingZoomRef = useRef<boolean>(false);
 
-  // Обновляем tempZoomInput только когда zoom действительно изменился извне
   useEffect(() => {
     const roundedZoom = Math.round(zoom);
     
-    // Не обновляем если мы сами изменяем zoom или если инпут в фокусе
     if (!isUpdatingZoomRef.current && 
         document.activeElement !== zoomInputRef.current && 
         lastZoomRef.current !== roundedZoom) {
@@ -42,7 +40,6 @@ const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight
       setTempZoomInput(String(newZoom));
       lastZoomRef.current = newZoom;
       
-      // Сбрасываем флаг через небольшой таймаут
       setTimeout(() => {
         isUpdatingZoomRef.current = false;
       }, 100);

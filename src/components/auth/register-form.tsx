@@ -25,8 +25,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onLoginClick })
   };
 
   const handleGoogleLogin = () => {
-    // TODO: Получить API_BASE_URL из контекста или констант, если это возможно
-    // Пока что захардкодим, предполагая, что API на localhost:8080
     window.location.href = 'http://localhost:8080/api/auth/google/login';
   };
 

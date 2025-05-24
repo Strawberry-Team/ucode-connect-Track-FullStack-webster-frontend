@@ -7,6 +7,7 @@ const MiniMap: React.FC = () => {
     visibleCanvasRectOnMiniMap,
     stageSize,
     setStagePositionFromMiniMap,
+    isApplyingCrop,
   } = useTool();
   const containerRef = useRef<HTMLDivElement>(null);
   const miniMapImageRef = useRef<HTMLDivElement>(null);
@@ -16,14 +17,12 @@ const MiniMap: React.FC = () => {
   const [isDraggingViewport, setIsDraggingViewport] = useState(false);
   const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
 
-  // Стабилизированная функция для обновления размеров мини-карты
   const updateMiniMapSize = useCallback(() => {
     if (containerRef.current) {
       const newWidth = containerRef.current.offsetWidth;
       const newHeight = containerRef.current.offsetHeight;
       
       setMiniMapSize(prevSize => {
-        // Обновляем только если размеры действительно изменились
         if (prevSize.width !== newWidth || prevSize.height !== newHeight) {
           return { width: newWidth, height: newHeight };
         }
@@ -32,7 +31,6 @@ const MiniMap: React.FC = () => {
     }
   }, []);
 
-  // Используем ResizeObserver для отслеживания изменений размеров контейнера
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -50,7 +48,6 @@ const MiniMap: React.FC = () => {
 
     resizeObserver.observe(containerRef.current);
     
-    // Инициализация размеров
     updateMiniMapSize();
 
     return () => {
@@ -58,7 +55,6 @@ const MiniMap: React.FC = () => {
     };
   }, [updateMiniMapSize]);
 
-  // Отслеживаем изменения stageSize только если они действительно изменились
   useEffect(() => {
     if (stageSize && lastStageSizeRef.current) {
       const sizeChanged = 
@@ -66,7 +62,6 @@ const MiniMap: React.FC = () => {
         lastStageSizeRef.current.height !== stageSize.height;
       
       if (sizeChanged) {
-        // Небольшая задержка для избежания циклических обновлений
         const timeoutId = setTimeout(() => {
           updateMiniMapSize();
         }, 50);
@@ -98,7 +93,7 @@ const MiniMap: React.FC = () => {
   const { displayWidth, displayHeight } = calculateDisplayDimensions();
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!miniMapImageRef.current || !visibleCanvasRectOnMiniMap || !stageSize || !displayWidth || !displayHeight) return;
+    if (!miniMapImageRef.current || !visibleCanvasRectOnMiniMap || !stageSize || !displayWidth || !displayHeight || isApplyingCrop) return;
 
     const rect = miniMapImageRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
@@ -121,19 +116,17 @@ const MiniMap: React.FC = () => {
         y: clickY - viewportPxY,
       });
     } else {
-      // Мгновенное перемещение при клике вне viewport'а
       const relativeX = clickX / displayWidth;
       const relativeY = clickY / displayHeight;
       requestAnimationFrame(() => {
         setStagePositionFromMiniMap({ x: relativeX, y: relativeY }, 'center');
       });
     }
-  }, [miniMapImageRef, visibleCanvasRectOnMiniMap, stageSize, displayWidth, displayHeight, setStagePositionFromMiniMap]);
+  }, [miniMapImageRef, visibleCanvasRectOnMiniMap, stageSize, displayWidth, displayHeight, setStagePositionFromMiniMap, isApplyingCrop]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDraggingViewport || !miniMapImageRef.current || !visibleCanvasRectOnMiniMap || !stageSize || !displayWidth || !displayHeight) return;
+    if (!isDraggingViewport || !miniMapImageRef.current || !visibleCanvasRectOnMiniMap || !stageSize || !displayWidth || !displayHeight || isApplyingCrop) return;
 
-    // Используем requestAnimationFrame для плавной анимации
     requestAnimationFrame(() => {
       const rect = miniMapImageRef.current!.getBoundingClientRect();
       let mouseX = e.clientX - rect.left;
@@ -154,7 +147,7 @@ const MiniMap: React.FC = () => {
       setStagePositionFromMiniMap({ x: relativeX, y: relativeY }, 'drag');
     });
     
-  }, [isDraggingViewport, dragStartOffset, visibleCanvasRectOnMiniMap, stageSize, displayWidth, displayHeight, setStagePositionFromMiniMap]);
+  }, [isDraggingViewport, dragStartOffset, visibleCanvasRectOnMiniMap, stageSize, displayWidth, displayHeight, setStagePositionFromMiniMap, isApplyingCrop]);
 
   const handleMouseUp = useCallback(() => {
     setIsDraggingViewport(false);

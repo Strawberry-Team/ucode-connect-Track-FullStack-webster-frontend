@@ -16,8 +16,8 @@ import LiquifyCursor from "@/components/canvas/tools/liquify-cursor";
 import BlurCursor from "@/components/canvas/tools/blur-cursor";
 
 import {formatDimensionDisplay} from "@/utils/format-utils";
-import type {RenderableObject, LineData, ElementData, ShapeType, Tool, FontStyles} from "@/types/canvas";
-import {getSnappingGuides, type BoxProps, type SnapLine as SnapLineType} from "@/hooks/use-snapping.ts";
+import type {LineData, ElementData, ShapeType} from "@/types/canvas";
+import {type SnapLine as SnapLineType} from "@/hooks/use-snapping.ts";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { useUser } from "@/context/user-context";
 import { useProjectManager } from "@/hooks/use-project-manager";
@@ -53,8 +53,6 @@ const Canvas: React.FC = () => {
         brushSize,
         eraserSize,
         opacity,
-        eraserOpacity,
-        eraserHardness,
         zoom,
         setZoom,
         brushMirrorMode,
@@ -67,7 +65,6 @@ const Canvas: React.FC = () => {
         selectedAspectRatio,
         setSelectedAspectRatio,
         triggerApplyCrop,
-        isCanvasManuallyResized,
         setIsCanvasManuallyResized,
         initialImage,
         setInitialImage,
@@ -81,7 +78,6 @@ const Canvas: React.FC = () => {
         setContainerSize,
         stagePosition,
         setStagePosition,
-        lastDrawingEndTime,
         liquifyBrushSize,
         liquifyStrength,
         liquifyMode,
@@ -91,7 +87,8 @@ const Canvas: React.FC = () => {
         isBrushTransformModeActive,
         selectedLineId,
         setSelectedLineId,
-        isProgrammaticZoomRef
+        isProgrammaticZoomRef,
+        isApplyingCrop
     } = toolContext;
 
     const drawingManager = useDrawing({
@@ -150,6 +147,7 @@ const Canvas: React.FC = () => {
     });
 
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+    const [originalBackgroundImage, setOriginalBackgroundImage] = useState<HTMLImageElement | null>(null);
     const backgroundImageNodeRef = useRef<Konva.Image | null>(null);
 
     const liquifyManager = useLiquify({
@@ -176,7 +174,6 @@ const Canvas: React.FC = () => {
     const contentWidth = contextStageSize ? contextStageSize.width * (zoom / 100) : 0;
     const contentHeight = contextStageSize ? contextStageSize.height * (zoom / 100) : 0;
 
-    // Используем хук для управления проектами
     useProjectManager({
         loggedInUser,
         renderableObjects,
@@ -196,6 +193,10 @@ const Canvas: React.FC = () => {
         const originalLiquifyReset = liquifyManager.resetLiquify;
         const wrappedLiquifyReset = () => {
             originalLiquifyReset();
+            if (backgroundImageNodeRef.current && originalBackgroundImage) {
+                backgroundImageNodeRef.current.image(originalBackgroundImage);
+                backgroundImageNodeRef.current.getLayer()?.batchDraw();
+            }
             checkAndUpdateImageStatus();
         };
         setResetLiquifyFunction(wrappedLiquifyReset);
@@ -203,6 +204,10 @@ const Canvas: React.FC = () => {
         const originalBlurReset = blurManager.resetBlur;
         const wrappedBlurReset = () => {
             originalBlurReset();
+            if (backgroundImageNodeRef.current && originalBackgroundImage) {
+                backgroundImageNodeRef.current.image(originalBackgroundImage);
+                backgroundImageNodeRef.current.getLayer()?.batchDraw();
+            }
             checkAndUpdateImageStatus();
         };
         setResetBlurFunction(wrappedBlurReset);
@@ -213,7 +218,7 @@ const Canvas: React.FC = () => {
             setResetBlurFunction(() => {
             });
         };
-    }, [liquifyManager.resetLiquify, blurManager.resetBlur, setIsImageReadyForLiquify, backgroundImage]);
+    }, [liquifyManager.resetLiquify, blurManager.resetBlur, setIsImageReadyForLiquify, originalBackgroundImage]);
 
     useEffect(() => {
         if (initialImage && initialImage.src) {
@@ -221,6 +226,7 @@ const Canvas: React.FC = () => {
             img.src = initialImage.src;
             img.onload = () => {
                 setBackgroundImage(img);
+                setOriginalBackgroundImage(img);
                 setTimeout(() => {
                     setInitialImage(null);
                 }, 0);
@@ -228,6 +234,7 @@ const Canvas: React.FC = () => {
             img.onerror = () => {
                 console.error("The initial image for the canvas could not be loaded.");
                 setBackgroundImage(null);
+                setOriginalBackgroundImage(null);
                 setInitialImage(null);
                 setIsImageReadyForLiquify(false);
             };
@@ -288,8 +295,11 @@ const Canvas: React.FC = () => {
     }, [setContainerSize]);
 
     useEffect(() => {
-        // Пропускаем автопозиционирование при программном изменении масштаба
         if (isProgrammaticZoomRef.current) {
+            return;
+        }
+        
+        if (isApplyingCrop) {
             return;
         }
         
@@ -321,7 +331,7 @@ const Canvas: React.FC = () => {
                 setStagePosition({x: newX, y: newY});
             }
         }
-    }, [contextStageSize, containerSize, zoom, stagePosition, setStagePosition, isProgrammaticZoomRef]);
+    }, [contextStageSize, containerSize, zoom, stagePosition, setStagePosition, isProgrammaticZoomRef, isApplyingCrop]);
 
     const handleScroll = (direction: "horizontal" | "vertical", newPosition: number) => {
         const currentX = stagePosition.x;
@@ -497,10 +507,6 @@ const Canvas: React.FC = () => {
                 isManuallyDragging.current = true;
                 const dx = e.clientX - lastMousePosition.current.x;
                 const dy = e.clientY - lastMousePosition.current.y;
-                const currentContentWidth = contextStageSize ? contextStageSize.width * currentScale : 0;
-                const currentContentHeight = contextStageSize ? contextStageSize.height * currentScale : 0;
-                const containerWidth = containerSize?.width ?? 0;
-                const containerHeight = containerSize?.height ?? 0;
                 
                 const newX = stagePosition.x + dx;
                 const newY = stagePosition.y + dy;
@@ -526,7 +532,6 @@ const Canvas: React.FC = () => {
         setShowBlurCursor(false);
         setCursorPositionOnCanvas(null);
         
-        // Сбрасываем флаги и применяем ограничения при покидании области
         if (isDragging.current || isManuallyDragging.current) {
             applyPositionConstraints();
         }
@@ -570,7 +575,7 @@ const Canvas: React.FC = () => {
                         settingsForElement.height = imageElement.height;
                     }
                 }
-                elementsManager.addElement(creationType, pointerPosition, evt.button === 2, undefined, settingsForElement);
+                elementsManager.addElement(creationType, pointerPosition, undefined, settingsForElement);
                 setIsAddModeActive(false);
                 setCurrentAddToolType(null);
                 return;
@@ -665,17 +670,15 @@ const Canvas: React.FC = () => {
                 containerRef.current.style.cursor = "grab";
             }
             
-            // Применяем ограничения после завершения перетаскивания
             if (isManuallyDragging.current) {
                 setTimeout(() => {
                     applyPositionConstraints();
                     isManuallyDragging.current = false;
-                }, 50); // Небольшая задержка для плавности
+                }, 50);
             }
         }
     };
 
-    // Функция для применения ограничений позиции
     const applyPositionConstraints = () => {
         if (!contextStageSize || !containerSize) return;
         
@@ -688,7 +691,6 @@ const Canvas: React.FC = () => {
         let newX = stagePosition.x;
         let newY = stagePosition.y;
 
-        // Применяем ограничения только если контент больше контейнера
         if (scaledContentWidth > containerWidth) {
             newX = Math.max(containerWidth - scaledContentWidth, Math.min(0, stagePosition.x));
         } else {
@@ -762,7 +764,6 @@ const Canvas: React.FC = () => {
         }
     }, [registerRenderableObjectsRestorer, setRenderableObjects]);
 
-    // Отдельный effect для мгновенного обновления позиции viewport'а без задержки
     useEffect(() => {
         if (stageRef.current && contextStageSize && containerRef.current) {
             try {
@@ -797,36 +798,29 @@ const Canvas: React.FC = () => {
         currentDisplayScale
     ]);
 
-    // Отдельный effect для обновления изображения мини-карты с задержкой
     useEffect(() => {
-        // Добавляем небольшую задержку только для обновления изображения
         const timeoutId = setTimeout(() => {
             if (stageRef.current && contextStageSize && containerRef.current) {
                 try {
-                    // Динамически определяем pixelRatio для оптимального качества
                     const canvasArea = contextStageSize.width * contextStageSize.height;
-                    let pixelRatio = 0.3; // По умолчанию
+                    let pixelRatio = 0.3;
                     
-                    // Для больших холстов уменьшаем pixelRatio для производительности
-                    if (canvasArea > 2000000) { // > 2 мегапикселей
+                    if (canvasArea > 2000000) {
                         pixelRatio = 0.2;
-                    } else if (canvasArea > 5000000) { // > 5 мегапикселей  
+                    } else if (canvasArea > 5000000) {
                         pixelRatio = 0.15;
-                    } else if (canvasArea < 500000) { // < 0.5 мегапикселей
-                        pixelRatio = 0.4; // Для маленьких холстов можем позволить себе больше
+                    } else if (canvasArea < 500000) {
+                        pixelRatio = 0.4;
                     }
                     
-                    // Увеличиваем pixelRatio для лучшего качества мини-карты
                     const dataURL = stageRef.current.toDataURL({ 
                         pixelRatio: pixelRatio,
-                        quality: 0.85, // Увеличено качество JPEG
-                        mimeType: 'image/png' // PNG для лучшего качества мини-карты
+                        quality: 0.85,
+                        mimeType: 'image/png'
                     });
                     setMiniMapDataURL(dataURL);
                     setMiniMapDataURLState(dataURL);
                 } catch (error) {
-                    console.warn('Error updating minimap image:', error);
-                    // Безопасно очищаем мини-карту при ошибке
                     setMiniMapDataURL(null);
                     setMiniMapDataURLState(null);
                 }
@@ -834,7 +828,7 @@ const Canvas: React.FC = () => {
                 setMiniMapDataURL(null);
                 setMiniMapDataURLState(null);
             }
-        }, 100); // Увеличена задержка только для изображения до 100мс
+        }, 100);
 
         return () => clearTimeout(timeoutId);
     }, [
@@ -844,7 +838,6 @@ const Canvas: React.FC = () => {
         setMiniMapDataURL
     ]);
 
-    // Local transformer state
     const trRef = useRef<Konva.Transformer>(null);
     const [selectedKonvaNode, setSelectedKonvaNode] = useState<Konva.Node | null>(null);
 
@@ -1013,9 +1006,11 @@ const Canvas: React.FC = () => {
                             />
                         )}
                     </Layer>
+
                     <Layer perfectDrawEnabled={false}>
-                        {renderableObjects.map((obj, index) => {
-                            if ('tool' in obj) {
+                        {renderableObjects
+                            .filter(obj => 'tool' in obj)
+                            .map((obj) => {
                                 const line = obj as LineData;
                                 return (
                                     <KonvaLine
@@ -1070,7 +1065,37 @@ const Canvas: React.FC = () => {
                                         }}
                                     />
                                 );
-                            } else {
+                            })}
+
+                        {selectedKonvaNode && isBrushTransformModeActive && activeTool?.type === 'brush' && (
+                            <Transformer
+                                ref={trRef}
+                                onTransformEnd={() => {
+                                    if (selectedKonvaNode && selectedLineId) {
+                                        drawingManager.updateLineTransform(selectedLineId, {
+                                            x: selectedKonvaNode.x(),
+                                            y: selectedKonvaNode.y(),
+                                            rotation: selectedKonvaNode.rotation(),
+                                            scaleX: selectedKonvaNode.scaleX(),
+                                            scaleY: selectedKonvaNode.scaleY(),
+                                        });
+                                    }
+                                }}
+                                anchorStroke="#0096FF"
+                                anchorFill="#FFFFFF"
+                                anchorSize={8}
+                                borderStroke="#0096FF"
+                                borderDash={[3, 3]}
+                                rotateAnchorOffset={30}
+                                padding={2}
+                            />
+                        )}
+                    </Layer>
+
+                    <Layer>
+                        {renderableObjects
+                            .filter(obj => !('tool' in obj))
+                            .map((obj) => {
                                 const element = obj as ElementData;
                                 return (
                                     <ElementRenderer
@@ -1086,8 +1111,8 @@ const Canvas: React.FC = () => {
                                         setActiveSnapLines={setActiveSnapLines}
                                     />
                                 );
-                            }
-                        })}
+                            })}
+
                         <CropTool
                             stageSize={contextStageSize}
                             scale={currentDisplayScale}
@@ -1096,42 +1121,15 @@ const Canvas: React.FC = () => {
                             handleCropRectDragEnd={croppingManager.handleCropRectDragEnd}
                             handleCropRectTransformEnd={croppingManager.handleCropRectTransformEnd}
                         />
-                        {/* Transformer for selected brush lines */}
-                        {selectedKonvaNode && isBrushTransformModeActive && activeTool?.type === 'brush' && (
-                            <Transformer
-                                ref={trRef}
-                                onTransformEnd={() => {
-                                    if (selectedKonvaNode && selectedLineId) {
-                                        drawingManager.updateLineTransform(selectedLineId, {
-                                            x: selectedKonvaNode.x(),
-                                            y: selectedKonvaNode.y(),
-                                            rotation: selectedKonvaNode.rotation(),
-                                            scaleX: selectedKonvaNode.scaleX(),
-                                            scaleY: selectedKonvaNode.scaleY(),
-                                        });
-                                    }
-                                }}
-                                // Add other visual configurations copied from ElementRenderer's Transformer if needed
-                                // For cursors, Konva typically handles them based on anchor roles.
-                                // Visual properties for anchors:
-                                anchorStroke="#0096FF"
-                                anchorFill="#FFFFFF"
-                                anchorSize={8}
-                                borderStroke="#0096FF"
-                                borderDash={[3, 3]}
-                                rotateAnchorOffset={30}
-                                padding={2}
-                            />
-                        )}
-                        {/* Render snap lines */}
+
                         {activeSnapLines.map((line, i) => (
                             <KonvaLine
                                 key={`snapline-${i}`}
                                 points={line.points}
-                                stroke="#6A5ACD" // A violet-blue color, for example
+                                stroke="#6A5ACD"
                                 strokeWidth={2}
                                 dash={[7, 4]}
-                                listening={false} // Snap lines should not be interactive
+                                listening={false}
                             />
                         ))}
                     </Layer>

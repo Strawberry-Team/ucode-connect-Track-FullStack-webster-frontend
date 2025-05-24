@@ -43,7 +43,7 @@ const ConfirmEmailPage: React.FC = () => {
   }, [confirm_token]);
 
   const handleGoToLogin = () => {
-    navigate('/'); // Предполагается, что страница логина находится в корне или на /dashboard
+    navigate('/');
   };
 
   if (isLoading) {

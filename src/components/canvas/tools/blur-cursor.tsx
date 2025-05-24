@@ -10,7 +10,7 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
   isVisible,
   position,
 }) => {
-  const { blurBrushSize, blurStrength } = useTool(); // Используем настройки размытия
+  const { blurBrushSize, blurStrength } = useTool();
 
   if (!isVisible || !position) {
     return null;
@@ -32,8 +32,6 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
     height: `${finalSvgDiameter}px`,
   };
 
-  // Вычисляем радиус внутреннего круга, показывающего жесткость
-  // Чем выше сила размытия, тем меньше внутренний круг
   const hardness = 100 - blurStrength;
   const innerRadius = svgCenter * (hardness / 100);
   
@@ -46,7 +44,6 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Внешний круг, показывающий размер кисти */}
         <circle
           cx={svgCenter}
           cy={svgCenter}
@@ -56,7 +53,6 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           fill="none"
         />
         
-        {/* Внутренний круг, показывающий жесткость размытия */}
         {hardness > 0 && (
           <circle
             cx={svgCenter}
@@ -69,7 +65,6 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           />
         )}
         
-        {/* Полупрозрачный градиент в области размытия */}
         <circle
           cx={svgCenter}
           cy={svgCenter}
@@ -77,7 +72,6 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           fill={`rgba(255, 255, 255, ${blurStrength / 300})`}
         />
         
-        {/* Центральное перекрестие для точности */}
         <line
           x1={svgCenter - Math.min(finalSvgDiameter * 0.15, 4)}
           y1={svgCenter}

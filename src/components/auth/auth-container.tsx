@@ -50,7 +50,6 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
         if (onAuthSuccess) onAuthSuccess(loginResponse.user);
       }, 300);
     } catch (err: any) {
-      console.error('Failed to login:', err);
       const errorMessage = err.message || 'An unexpected error occurred during login.';
       setError(errorMessage); 
       toast.error('Login Failed', { 
@@ -72,9 +71,8 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
         description: 'Please check your email to confirm your account.',
         duration: 5000, 
       });
-      setCurrentForm('login'); // Переключаемся на форму логина
+      setCurrentForm('login');
     } catch (err: any) {
-      console.error('Failed to register:', err);
       const errorMessage = err.message || 'An unexpected error occurred during registration.';
       setError(errorMessage); 
       toast.error('Registration Failed', { 
@@ -89,7 +87,6 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
   const handleResetPassword = (email: string) => {
     setIsLoading(true);
     setError(null);
-    console.log('Сброс пароля для:', email);
 
     // try {
     //   await resetPasswordService(email);

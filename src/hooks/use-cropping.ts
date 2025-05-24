@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect} from "react";
 import type Konva from "konva";
 import { useTool } from "@/context/tool-context";
 
@@ -42,7 +42,6 @@ const useCropping = ({
   setStageSize,
   selectedAspectRatio,
   setSelectedAspectRatio,
-  setIsCropping,
   setIsCanvasManuallyResized,
   lines,
   setLines,
@@ -52,10 +51,10 @@ const useCropping = ({
   zoom,
   setStagePosition
 }: CroppingProps) => {
-  const cropRectRef = useRef<Konva.Rect | null>(null);
-  const transformerRef = useRef<Konva.Transformer | null>(null);
-  const { addHistoryEntry, renderableObjects } = useTool();
-  const isApplyingCropRef = useRef<boolean>(false);
+  const { isApplyingCrop, setIsApplyingCrop } = useTool();
+  
+  const cropRectRef = useRef<Konva.Rect>(null);
+  const transformerRef = useRef<Konva.Transformer>(null);
 
   const constrainCropRectToCanvas = (pos: { x: number; y: number }, rectWidth: number, rectHeight: number, canvasWidth: number, canvasHeight: number) => {
     let newX = pos.x;
@@ -170,94 +169,78 @@ const useCropping = ({
   };
 
   const applyCrop = () => {
-    if (!cropRect || !currentStageSize || isApplyingCropRef.current) return;
+    if (!cropRect || !currentStageSize || isApplyingCrop) return;
     
-    isApplyingCropRef.current = true;
+    setIsApplyingCrop(true);
 
-    try {
-      const offsetX = cropRect.x;
-      const offsetY = cropRect.y;
-      const newWidth = cropRect.width;
-      const newHeight = cropRect.height;
+    const newStageSize = {
+      width: Math.round(cropRect.width),
+      height: Math.round(cropRect.height)
+    };
 
-      console.log('Applying crop:', { offsetX, offsetY, newWidth, newHeight });
+    const offsetX = cropRect.x;
+    const offsetY = cropRect.y;
 
-      const newLines = lines.reduce((acc, line) => {
-        const transformedPoints = [];
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const adjustedLines = lines.map(line => {
+      if (!line.points || line.points.length === 0) return line;
 
-        for (let i = 0; i < line.points.length; i += 2) {
-          const newPointX = line.points[i] - offsetX;
-          const newPointY = line.points[i + 1] - offsetY;
-          transformedPoints.push(newPointX, newPointY);
-          minX = Math.min(minX, newPointX);
-          minY = Math.min(minY, newPointY);
-          maxX = Math.max(maxX, newPointX);
-          maxY = Math.max(maxY, newPointY);
+      const adjustedPoints = line.points.map((point: number, index: number) => {
+        if (index % 2 === 0) {
+          return point - offsetX;
+        } else {
+          return point - offsetY;
         }
+      });
 
-        if (maxX >= 0 && minX <= newWidth && maxY >= 0 && minY <= newHeight) {
-          acc.push({ ...line, points: transformedPoints });
-        }
-        return acc;
-      }, [] as typeof lines);
+      return {
+        ...line,
+        points: adjustedPoints
+      };
+    });
 
-      const newElements = elements.reduce((acc, el) => {
-        const newElX = el.x - offsetX;
-        const newElY = el.y - offsetY;
+    const adjustedElements = elements.map(element => ({
+      ...element,
+      x: (element.x ?? 0) - offsetX,
+      y: (element.y ?? 0) - offsetY
+    }));
 
-        const elementWidth = el.width || 0;
-        const elementHeight = el.height || 0;
-        
-        if (newElX + elementWidth > 0 && newElX < newWidth &&
-          newElY + elementHeight > 0 && newElY < newHeight) {
-          acc.push({ ...el, x: newElX, y: newElY });
-        }
-        return acc;
-      }, [] as typeof elements);
+    setLines(adjustedLines);
+    setElements(adjustedElements);
+    setStageSize(newStageSize);
+    setIsCanvasManuallyResized(true);
+    setCropRect({ x: 0, y: 0, width: newStageSize.width, height: newStageSize.height });
+    setSelectedAspectRatio('custom');
 
-      setLines(newLines);
-      setElements(newElements);
-    
-      
-      setStageSize({ width: newWidth, height: newHeight });
-      setIsCanvasManuallyResized(true);
-      
-      setCropRect({ x: 0, y: 0, width: newWidth, height: newHeight });
-      setSelectedAspectRatio('custom');
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      const scaleValue = zoom / 100;
 
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const containerHeight = containerRef.current.clientHeight;
-        const scaleValue = zoom / 100;
+      const scaledContentWidth = newStageSize.width * scaleValue;
+      const scaledContentHeight = newStageSize.height * scaleValue;
 
-        const newStageX = (containerWidth - newWidth * scaleValue) / 2;
-        const newStageY = (containerHeight - newHeight * scaleValue) / 2;
+      let newStageX, newStageY;
 
-        setStagePosition({
-          x: Math.max(0, newStageX),
-          y: Math.max(0, newStageY)
-        });
+      if (scaledContentWidth <= containerWidth) {
+        newStageX = (containerWidth - scaledContentWidth) / 2;
+      } else {
+        newStageX = 0;
       }
 
-      setTimeout(() => {
-        try {
-          addHistoryEntry({
-            type: 'unknown',
-            description: `Canvas cropped to ${Math.round(newWidth)}×${Math.round(newHeight)}`,
-            linesSnapshot: renderableObjects
-          });
-        } catch (error) {
-          console.warn('Error adding history entry after crop:', error);
-        } finally {
-          isApplyingCropRef.current = false;
-        }
-      }, 100);
+      if (scaledContentHeight <= containerHeight) {
+        newStageY = (containerHeight - scaledContentHeight) / 2;
+      } else {
+        newStageY = 0;
+      }
 
-    } catch (error) {
-      console.error('Error applying crop:', error);
-      isApplyingCropRef.current = false;
+      setStagePosition({ x: newStageX, y: newStageY });
     }
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        setIsApplyingCrop(false);
+      }, 16);
+    });
   };
 
   useEffect(() => {

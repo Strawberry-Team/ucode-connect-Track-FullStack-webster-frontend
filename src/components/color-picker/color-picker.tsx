@@ -146,11 +146,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ color: initialColor, setColor
     }
   };
 
-  const handleMouseUp = () => {
-    setIsDraggingHue(false);
-    setIsDraggingSV(false);
-  };
-
   const updateColorFromHsv = (currentHsv: { h: number, s: number, v: number }) => {
     const rgb = hsvToRgb(currentHsv.h, currentHsv.s, currentHsv.v);
     const hex = rgbToHex(rgb.r, rgb.g, rgb.b);

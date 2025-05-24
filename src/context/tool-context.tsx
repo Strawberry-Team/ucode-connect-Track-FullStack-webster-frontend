@@ -8,8 +8,6 @@ import type {
     TextCase,
     BorderStyle,
     ShapeType,
-    LineData,
-    ElementData,
     RenderableObject
 } from "@/types/canvas"
 
@@ -21,10 +19,16 @@ export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 export interface HistoryEntry {
     id: string;
     timestamp: Date;
-    type: 'brushStroke' | 'eraserStroke' | 'unknown' | 'elementAdded' | 'elementModified' | 'elementRemoved'; // Expanded history types
+    type: 'brushStroke' | 'eraserStroke' | 'elementAdded' | 'elementModified' | 'elementRemoved' | 'elementDuplicated' | 'blurApplied' | 'liquifyApplied' | 'unknown';
     description: React.ReactNode;
     linesSnapshot: RenderableObject[]; // Snapshot of all renderable objects
     isActive: boolean;
+    metadata?: {
+        elementId?: string;
+        elementType?: string;
+        previousStageSize?: { width: number; height: number };
+        newStageSize?: { width: number; height: number };
+    };
 }
 
 interface Rect {
@@ -163,6 +167,7 @@ interface ToolContextValue {
     addHistoryEntry: (entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => void;
     revertToHistoryState: (historyId: string) => void;
     registerRenderableObjectsRestorer: (restorer: (objects: RenderableObject[]) => void) => void;
+    clearHistory: () => void; // Новая функция для очистки истории
 
     // New state for all renderable objects
     renderableObjects: RenderableObject[];
@@ -211,8 +216,11 @@ interface ToolContextValue {
     selectedLineId: string | null;
     setSelectedLineId: (id: string | null) => void;
 
-    // Флаг для отслеживания программного изменения масштаба
+
     isProgrammaticZoomRef: React.MutableRefObject<boolean>;
+
+    isApplyingCrop: boolean;
+    setIsApplyingCrop: (isApplying: boolean) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -310,8 +318,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [isBrushTransformModeActive, setBrushTransformModeActive] = useState<boolean>(false);
     const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
 
-    // Флаг для отслеживания программного изменения масштаба
+
     const isProgrammaticZoomRef = useRef<boolean>(false);
+
+    const [isApplyingCrop, setIsApplyingCrop] = useState<boolean>(false);
 
     const setActiveTool = useCallback((tool: Tool | null) => {
         setActiveToolInternal(tool);
@@ -408,7 +418,6 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
     // Function that MiniMap will call
     const setStagePositionFromMiniMap = useCallback((coords: { x: number; y: number }, type: 'center' | 'drag') => {
-        // Используем requestAnimationFrame для плавного обновления
         requestAnimationFrame(() => {
             actualStagePositionUpdater(coords, type);
         });
@@ -476,20 +485,23 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         }
     }
 
-    // Обернутая функция setZoom для отслеживания программных изменений
     const setZoomWithFlag = useCallback((newZoom: number, isProgrammatic: boolean = false) => {
         if (isProgrammatic) {
             isProgrammaticZoomRef.current = true;
         }
         setZoom(newZoom);
         
-        // Сбрасываем флаг через небольшую задержку
         if (isProgrammatic) {
             setTimeout(() => {
                 isProgrammaticZoomRef.current = false;
             }, 100);
         }
     }, []);
+
+    const clearHistory = () => {
+        setHistory([]);
+        setCurrentHistoryIndex(-1);
+    };
 
     return (
         <ToolContext.Provider
@@ -602,6 +614,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 addHistoryEntry,
                 revertToHistoryState,
                 registerRenderableObjectsRestorer,
+                clearHistory,
                 // New context values
                 renderableObjects,
                 addRenderableObject,
@@ -644,8 +657,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 selectedLineId,
                 setSelectedLineId,
 
-                // Флаг для отслеживания программного изменения масштаба
                 isProgrammaticZoomRef,
+
+                isApplyingCrop,
+                setIsApplyingCrop,
             }}
         >
             {children}

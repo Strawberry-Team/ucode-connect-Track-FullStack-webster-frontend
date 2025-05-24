@@ -32,6 +32,8 @@ const LiquifyCursor: React.FC<LiquifyCursorProps> = ({
     height: `${finalSvgDiameter}px`,
   };
 
+  const effectRadius = svgCenter * (liquifyStrength / 100);
+  
   return (
     <div style={containerStyle}>
       <svg
@@ -45,26 +47,45 @@ const LiquifyCursor: React.FC<LiquifyCursorProps> = ({
           cx={svgCenter}
           cy={svgCenter}
           r={svgCenter - LARGE_CURSOR_CIRCLE_STROKE_WIDTH / 2}
-          stroke={"white"}
+          stroke="rgba(255, 255, 255, 0.7)"
           strokeWidth={LARGE_CURSOR_CIRCLE_STROKE_WIDTH}
           fill="none"
-          style={{ strokeOpacity: liquifyStrength / 100 }}
         />
+        
+        {liquifyStrength > 0 && (
+          <circle
+            cx={svgCenter}
+            cy={svgCenter}
+            r={effectRadius}
+            stroke="rgba(255, 255, 255, 0.5)"
+            strokeWidth={1}
+            strokeDasharray="3,3"
+            fill="none"
+          />
+        )}
+        
+        <circle
+          cx={svgCenter}
+          cy={svgCenter}
+          r={svgCenter - 1}
+          fill={`rgba(255, 255, 255, ${liquifyStrength / 400})`}
+        />
+        
         <line
-          x1={svgCenter - Math.min(finalSvgDiameter * 0.5, 6)}
+          x1={svgCenter - Math.min(finalSvgDiameter * 0.15, 4)}
           y1={svgCenter}
-          x2={svgCenter + Math.min(finalSvgDiameter * 0.5, 6)}
+          x2={svgCenter + Math.min(finalSvgDiameter * 0.15, 4)}
           y2={svgCenter}
-          stroke={"white"}
-          strokeWidth="1.5"
+          stroke="rgba(255, 255, 255, 0.9)"
+          strokeWidth="1"
         />
         <line
           x1={svgCenter}
-          y1={svgCenter - Math.min(finalSvgDiameter * 0.5, 6)}
+          y1={svgCenter - Math.min(finalSvgDiameter * 0.15, 4)}
           x2={svgCenter}
-          y2={svgCenter + Math.min(finalSvgDiameter * 0.5, 6)}
-          stroke={"white"}
-          strokeWidth="1.5"
+          y2={svgCenter + Math.min(finalSvgDiameter * 0.15, 4)}
+          stroke="rgba(255, 255, 255, 0.9)"
+          strokeWidth="1"
         />
       </svg>
     </div>

@@ -81,6 +81,7 @@ const useElementsManagement = ({
     shapeType: currentToolShapeType,
     shapeTransform: toolShapeTransform,
     activeTool,
+    addHistoryEntry,
   } = useTool();
 
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -102,7 +103,6 @@ const useElementsManagement = ({
   const addElement = useCallback((
     type: ShapeType | "text" | "custom-image",
     pos: { x: number; y: number },
-    isRightClick: boolean = false,
     text?: string,
     settings?: Partial<ElementData>
   ) => {
@@ -176,6 +176,16 @@ const useElementsManagement = ({
     
     addRenderableObjectToContext(newElementToAdd);
     setSelectedElementId(newElementToAdd.id);
+
+    addHistoryEntry({
+        type: 'elementAdded',
+        description: `Add element: ${type}`,
+        linesSnapshot: [...renderableObjects, newElementToAdd],
+        metadata: {
+            elementId: newElementToAdd.id,
+            elementType: type
+        }
+    });
   },
   [
     addRenderableObjectToContext, 
@@ -188,46 +198,42 @@ const useElementsManagement = ({
     defaultPropColor, defaultFontSize, defaultFontFamily, defaultFontStyles, defaultTextCase, defaultTextAlignment,
     defaultLineHeight, defaultBackgroundColor, defaultBackgroundOpacity,
     defaultFillColor, defaultFillColorOpacity, defaultBorderColor, defaultBorderWidth, defaultBorderStyle, defaultCornerRadius,
-    defaultTextColorOpacity, defaultBorderColorOpacity
+    defaultTextColorOpacity, defaultBorderColorOpacity,
+    addHistoryEntry
   ]
 );
 
   const updateElement = useCallback((id: string, newData: Partial<ElementData>) => {
-    setRenderableObjects(
-      renderableObjects.map(obj => {
-        if (!('tool' in obj) && obj.id === id) {
-          const element = obj as ElementData;
-          
-          // For text elements, we need to preserve text styling when updating geometry
-          if (element.type === "text" && 
-              (newData.width !== undefined || newData.height !== undefined || 
-               newData.x !== undefined || newData.y !== undefined || 
-               newData.rotation !== undefined || newData.scaleX !== undefined || 
-               newData.scaleY !== undefined)) {
-            
-            // Extract geometry-related properties from newData
-            const { width, height, x, y, rotation, scaleX, scaleY } = newData;
-            const geometryUpdate: Partial<ElementData> = {};
-            
-            if (width !== undefined) geometryUpdate.width = width;
-            if (height !== undefined) geometryUpdate.height = height;
-            if (x !== undefined) geometryUpdate.x = x;
-            if (y !== undefined) geometryUpdate.y = y;
-            if (rotation !== undefined) geometryUpdate.rotation = rotation;
-            if (scaleX !== undefined) geometryUpdate.scaleX = scaleX;
-            if (scaleY !== undefined) geometryUpdate.scaleY = scaleY;
-            
-            // Only apply geometry updates, preserving all text styling
-            return { ...element, ...geometryUpdate } as ElementData;
-          }
-          
-          // For non-text elements or text styling updates, apply all changes
-          return { ...element, ...newData } as ElementData;
-        }
-        return obj;
-      })
+    const updatedObjects = renderableObjects.map(obj => {
+      if (!('tool' in obj) && obj.id === id) {
+        return { ...obj, ...newData };
+      }
+      return obj;
+    });
+    
+    setRenderableObjects(updatedObjects);
+
+    const changedKeys = Object.keys(newData);
+    const isSignificantChange = changedKeys.some(key => 
+      !['x', 'y'].includes(key) || // All changes except position
+      (changedKeys.includes('x') && changedKeys.includes('y') && changedKeys.length === 2) // Or only position if this is the final move
     );
-  }, [renderableObjects, setRenderableObjects]);
+
+    if (isSignificantChange) {
+      const element = renderableObjects.find(obj => !('tool' in obj) && obj.id === id) as ElementData;
+      const elementTypeName = element ? getElementTypeName(element.type) : 'element';
+      
+      addHistoryEntry({
+        type: 'elementModified',
+        description: `Modified ${elementTypeName}`,
+        linesSnapshot: updatedObjects,
+        metadata: {
+          elementId: id,
+          elementType: element?.type
+        }
+      });
+    }
+  }, [renderableObjects, setRenderableObjects, addHistoryEntry]);
 
   const handleDragEnd = useCallback((id: string, newX: number, newY: number) => {
     updateElement(id, { x: newX, y: newY });
@@ -253,22 +259,33 @@ const useElementsManagement = ({
     if (canBeSelectedBasedOnToolAndElementType) {
         setSelectedElementId(id);
     } else {
-        // If the current tool is not for selecting this element type,
-        // clicking the element should not change the selection state.
-        // Deselection is typically handled by clicking the stage background.
-        // So, if an element is already selected, and we click it with an incompatible tool,
-        // it should remain selected (e.g. if text is selected and user clicks it with brush tool).
-        // If nothing is selected, or something else is selected, and we click with incompatible tool,
-        // selection state also shouldn't change here.
+
     }
   }, [activeTool, getElementById, setSelectedElementId]);
 
   const updateTextElement = useCallback((id: string, newText: string) => {
-    const result = getElementById(id);
-    if (result && result.element.type === "text") {
-      updateElement(id, { text: newText });
+    const updatedObjects = renderableObjects.map(obj => {
+      if (!('tool' in obj) && obj.id === id) {
+        return { ...obj, text: newText };
+      }
+      return obj;
+    });
+    
+    setRenderableObjects(updatedObjects);
+
+    const element = renderableObjects.find(obj => !('tool' in obj) && obj.id === id) as ElementData;
+    if (element && element.text !== newText && newText.trim() !== "") {
+      addHistoryEntry({
+        type: 'elementModified',
+        description: 'Text modified',
+        linesSnapshot: updatedObjects,
+        metadata: {
+          elementId: id,
+          elementType: 'text'
+        }
+      });
     }
-  }, [getElementById, updateElement]);
+  }, [renderableObjects, setRenderableObjects, addHistoryEntry]);
 
   const updateSelectedElementStyle = useCallback((styleUpdate: Partial<ElementData>) => {
     if (selectedElementId) {
@@ -287,11 +304,30 @@ const useElementsManagement = ({
   }, [selectedElementId, getElementById, updateElement]);
 
   const removeSelectedElement = useCallback(() => {
-    if (selectedElementId) {
-      setRenderableObjects(renderableObjects.filter(obj => !('id' in obj) || obj.id !== selectedElementId));
-      setSelectedElementId(null);
+    if (!selectedElementId) return;
+    
+    const elementToRemove = renderableObjects.find(obj => !('tool' in obj) && obj.id === selectedElementId) as ElementData;
+    const updatedObjects = renderableObjects.filter(obj => {
+        if ('tool' in obj) return true;
+        return obj.id !== selectedElementId;
+    });
+    
+    setRenderableObjects(updatedObjects);
+    setSelectedElementId(null);
+
+    if (elementToRemove) {
+        const elementTypeName = getElementTypeName(elementToRemove.type);
+        addHistoryEntry({
+            type: 'elementRemoved',
+            description: `Removed ${elementTypeName}`,
+            linesSnapshot: updatedObjects,
+            metadata: {
+                elementId: selectedElementId,
+                elementType: elementToRemove.type
+            }
+        });
     }
-  }, [selectedElementId, renderableObjects, setRenderableObjects]);
+  }, [selectedElementId, renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
   const transformSelectedElement = useCallback((transformFn: (element: ElementData) => Partial<ElementData>) => {
     if (selectedElementId) {
@@ -316,27 +352,50 @@ const useElementsManagement = ({
   }, [transformSelectedElement]);
 
   const duplicateSelectedElement = useCallback(() => {
-    if (selectedElementId) {
-      const result = getElementById(selectedElementId);
-      if (result) {
-        const originalElement = result.element;
-        const newId = `${originalElement.type}-${Date.now()}`;
-        const duplicatedElement: ElementData = {
-          ...originalElement,
-          id: newId,
-          x: (originalElement.x ?? 0) + 20,
-          y: (originalElement.y ?? 0) + 20,
-        };
-        addRenderableObjectToContext(duplicatedElement);
-        setSelectedElementId(newId);
-      }
-    }
-  }, [selectedElementId, getElementById, addRenderableObjectToContext]);
+    if (!selectedElementId) return;
+    
+    const elementToDuplicate = renderableObjects.find(obj => !('tool' in obj) && obj.id === selectedElementId) as ElementData | undefined;
+    if (!elementToDuplicate) return;
+    
+    const newElement: ElementData = {
+        ...elementToDuplicate,
+        id: crypto.randomUUID(),
+        x: (elementToDuplicate.x ?? 0) + 20,
+        y: (elementToDuplicate.y ?? 0) + 20,
+    };
+    
+    const updatedObjects = [...renderableObjects, newElement];
+    setRenderableObjects(updatedObjects);
+    setSelectedElementId(newElement.id);
+
+    const elementTypeName = getElementTypeName(elementToDuplicate.type);
+    addHistoryEntry({
+        type: 'elementDuplicated',
+        description: `Duplicated ${elementTypeName}`,
+        linesSnapshot: updatedObjects,
+        metadata: {
+            elementId: newElement.id,
+            elementType: elementToDuplicate.type
+        }
+    });
+  }, [selectedElementId, renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
   const clearElements = useCallback(() => {
-    setRenderableObjects(renderableObjects.filter(obj => 'tool' in obj));
-    setSelectedElementId(null);
-  }, [renderableObjects, setRenderableObjects]);
+    const elementsToRemove = renderableObjects.filter(obj => !('tool' in obj));
+    
+    if (elementsToRemove.length > 0) {
+        const onlyLines = renderableObjects.filter(obj => 'tool' in obj);
+        setRenderableObjects(onlyLines);
+        setSelectedElementId(null);
+
+        addHistoryEntry({
+            type: 'elementRemoved',
+            description: `All elements removed (${elementsToRemove.length})`,
+            linesSnapshot: onlyLines,
+            metadata: {}
+        });
+    }
+  }, [renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
   return {
     addElement,
@@ -357,6 +416,26 @@ const useElementsManagement = ({
     getElementById,
     getElementDataFromRenderables,
   };
+};
+
+const getElementTypeName = (type: string): string => {
+  const typeNames: Record<string, string> = {
+    'text': 'text',
+    'rectangle': 'rectangle',
+    'square': 'square', 
+    'rounded-rectangle': 'rounded-rectangle',
+    'squircle': 'squircle',
+    'circle': 'circle',
+    'triangle': 'triangle',
+    'pentagon': 'pentagon',
+    'hexagon': 'hexagon',
+    'star': 'star',
+    'heart': 'heart',
+    'arrow': 'arrow',
+    'line': 'line',
+    'custom-image': 'custom-image'
+  };
+  return typeNames[type] || 'element';
 };
 
 export default useElementsManagement; 

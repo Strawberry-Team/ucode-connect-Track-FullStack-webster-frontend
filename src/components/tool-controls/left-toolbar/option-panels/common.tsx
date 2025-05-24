@@ -1,7 +1,7 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Copy, ChevronDown, Check, UnfoldHorizontal, UnfoldVertical, Move, FlipVertical, FlipHorizontal, Square } from "lucide-react";
+import { ChevronDown, FlipVertical, FlipHorizontal, Square } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -139,12 +139,7 @@ export const colorToRGBA = (color: string, opacityPercent: number): string => {
       // Opacity from rgba() string is ignored, opacityPercent argument takes precedence
     }
   } else {
-    // For named colors, this basic converter won't work without a canvas trick or a library.
-    // However, for the preview, we can try to render it and let the browser handle it.
-    // For a consistent RGBA preview, it's better to ensure input is hex/rgb or use a robust parser.
-    console.warn("Basic colorToRGBA cannot derive RGB from named color for preview: ", color);
-    // Fallback for preview: return the color itself if not transparent, opacity might not apply visually in all contexts with named colors.
-    return opacity === 1 ? color : `rgba(0,0,0,${opacity})`; // Fallback to black with opacity if color is unknown and not fully opaque
+    return opacity === 1 ? color : `rgba(0,0,0,${opacity})`;
   }
   return `rgba(${r},${g},${b},${opacity})`;
 };

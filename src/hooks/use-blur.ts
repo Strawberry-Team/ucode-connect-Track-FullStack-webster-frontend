@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { useTool } from '@/context/tool-context';
 
 export interface BlurHookProps {
   stageRef: React.RefObject<Konva.Stage | null>;
@@ -21,35 +22,37 @@ const useBlur = ({
   zoom,
   stagePosition,
 }: BlurHookProps) => {
-  const lastMousePositionRef = useRef<{ x: number; y: number } | null>(null);
+  const { addHistoryEntry, renderableObjects } = useTool();
+  
   const isBlurringRef = useRef(false);
+  const lastMousePositionRef = useRef<{ x: number; y: number } | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCtxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const originalImageRef = useRef<HTMLImageElement | null>(null); // Store original image data
   const animationFrameIdRef = useRef<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize offscreen canvas and context with the original image
   const initializeOffscreenCanvas = useCallback(() => {
-    if (!imageNodeRef.current || !imageNodeRef.current.image()) return false;
+    if (!imageNodeRef.current) return false;
     
-    const image = imageNodeRef.current;
-    const imageElement = image.image() as HTMLImageElement;
-    if (!imageElement) return false;
-
-    originalImageRef.current = imageElement;
+    const konvaImage = imageNodeRef.current;
+    const currentImage = konvaImage.image() as HTMLImageElement | HTMLCanvasElement;
+    if (!currentImage) return false;
 
     if (!offscreenCanvasRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = imageElement.naturalWidth; // Use naturalWidth for original dimensions
-      canvas.height = imageElement.naturalHeight;
+      canvas.width = konvaImage.width();
+      canvas.height = konvaImage.height();
       offscreenCanvasRef.current = canvas;
       const ctx = canvas.getContext('2d');
       if (!ctx) return false;
       offscreenCtxRef.current = ctx;
     }
-    // Always draw the fresh original image to the offscreen canvas at the start of an operation or on init
-    offscreenCtxRef.current!.drawImage(imageElement, 0, 0, imageElement.naturalWidth, imageElement.naturalHeight);
+    
+    if (offscreenCtxRef.current) {
+      offscreenCtxRef.current.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      offscreenCtxRef.current.drawImage(currentImage, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+    }
     setIsInitialized(true);
     return true;
   }, [imageNodeRef]);
@@ -65,7 +68,7 @@ const useBlur = ({
 
   // Applies blur to a region of the offscreen canvas and updates Konva image
   const applyBlurToRegion = useCallback((centerX: number, centerY: number) => {
-    if (!offscreenCtxRef.current || !offscreenCanvasRef.current || !imageNodeRef.current || !originalImageRef.current) return;
+    if (!offscreenCtxRef.current || !offscreenCanvasRef.current || !imageNodeRef.current) return;
 
     const ctx = offscreenCtxRef.current;
     const canvas = offscreenCanvasRef.current;
@@ -73,7 +76,7 @@ const useBlur = ({
     
     const radius = brushSize / 2;
     const blurAmount = Math.max(1, Math.floor(strength / 10)); // Scale strength to blur radius/iterations
-    const hardness = 100 - strength; // Инвертируем силу размытия для получения жесткости (0-100)
+    const hardness = 100 - strength; // Invert strength to get hardness (0-100)
 
     // Define the area to apply blur (bounding box of the brush)
     const dirtyRectX = Math.max(0, Math.floor(centerX - radius - blurAmount));
@@ -98,22 +101,15 @@ const useBlur = ({
     tempCtx.drawImage(tempCanvas, 0, 0);
     tempCtx.filter = 'none'; // Reset filter
 
-    // Вместо простой очистки и копирования, используем маску с градиентом жесткости
-    const relCenterX = centerX - dirtyRectX;
-    const relCenterY = centerY - dirtyRectY;
-    
-    // Используем глобальную прозрачность для смешивания размытого изображения с оригиналом
-    // Чем ниже hardness, тем сильнее эффект
+  
     ctx.save();
     ctx.globalAlpha = (100 - hardness) / 100;
     
-    // Создаем путь для ограничения области применения размытия
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
     ctx.closePath();
     ctx.clip();
     
-    // Рисуем размытое изображение на основном холсте
     ctx.drawImage(tempCanvas, 0, 0, dirtyRectWidth, dirtyRectHeight, 
                   dirtyRectX, dirtyRectY, dirtyRectWidth, dirtyRectHeight);
     
@@ -122,14 +118,7 @@ const useBlur = ({
     // Update the Konva Image node
     konvaImageNode.image(canvas); // Update with the modified offscreen canvas
     konvaImageNode.getLayer()?.batchDraw();
-  }, [brushSize, strength, imageNodeRef, originalImageRef]);
-  
-  const renderBlurredImage = useCallback(() => {
-    if(!offscreenCanvasRef.current || !imageNodeRef.current) return;
-    imageNodeRef.current.image(offscreenCanvasRef.current);
-    imageNodeRef.current.getLayer()?.batchDraw();
-    animationFrameIdRef.current = null;
-  }, [imageNodeRef]);
+  }, [brushSize, strength, imageNodeRef]);
 
   const startBlurring = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
     if (!imageNodeRef.current || !konvaEvent.evt || !imageNodeRef.current.image()) return;
@@ -141,9 +130,7 @@ const useBlur = ({
         return;
       }
     }
-    // При первой инициализации сохраняем оригинал, но НЕ перезаписываем canvas при каждом новом мазке!
-    // Это позволит продолжать размытие там, где закончили в предыдущий раз
-    
+
     const mousePos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
     if (!mousePos) return;
 
@@ -184,11 +171,16 @@ const useBlur = ({
   const endBlurring = useCallback(() => {
     if (!isBlurringRef.current) return;
     isBlurringRef.current = false;
-    lastMousePositionRef.current = null;
-    // Final render might not be necessary if applyBlurToRegion updates Konva directly
-    // However, if there's any batched or deferred update, call it here.
-    // renderBlurredImage(); // If direct update is not happening in applyBlurToRegion
-  }, [/* renderBlurredImage */]);
+    
+    if (imageNodeRef.current?.image()) {
+      addHistoryEntry({
+        type: 'blurApplied',
+        description: `blur`, 
+        linesSnapshot: renderableObjects,
+        metadata: {}
+      });
+    }
+  }, [strength, addHistoryEntry, renderableObjects]);
 
   const getIsBlurring = () => isBlurringRef.current;
 
@@ -199,22 +191,7 @@ const useBlur = ({
     }
     setIsInitialized(false); // Force reinitialization if used again
     
-    if (imageNodeRef.current && originalImageRef.current) {
-      // Restore the original image to the Konva node
-      imageNodeRef.current.image(originalImageRef.current);
-      // Also reset the offscreen canvas to the original image if it exists
-      if (offscreenCtxRef.current && offscreenCanvasRef.current) {
-        offscreenCtxRef.current.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
-        offscreenCtxRef.current.drawImage(originalImageRef.current, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
-      }
-      imageNodeRef.current.getLayer()?.batchDraw();
-    } else if (imageNodeRef.current && !originalImageRef.current) {
-      const layer = imageNodeRef.current.getLayer();
-      imageNodeRef.current.image(null); // Clear the image source
-      layer?.batchDraw();
-    }
-    console.log("Blur reset");
-  }, [imageNodeRef]);
+  }, []);
 
   useEffect(() => {
     return () => {

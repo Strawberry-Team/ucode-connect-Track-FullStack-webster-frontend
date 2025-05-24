@@ -1,6 +1,6 @@
 import apiClient from '@/lib/axios-instance';
 import type { LoginCredentials, LoginResponse, RegisterCredentials, RegisterResponse } from '@/types/auth';
-import axios from 'axios'; // Остается нужным для проверки axios.isAxiosError
+import axios from 'axios';
 
 export const loginUser = async (credentials: LoginCredentials): Promise<LoginResponse> => {
   try {

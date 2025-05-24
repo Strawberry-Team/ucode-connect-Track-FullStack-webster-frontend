@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { useTool } from '@/context/tool-context';
 
 export interface LiquifyHookProps {
   stageRef: React.RefObject<Konva.Stage | null>;
@@ -29,57 +30,47 @@ const useLiquify = ({
   zoom,
   stagePosition 
 }: LiquifyHookProps) => {
-  const lastMousePositionRef = useRef<{ x: number; y: number } | null>(null);
-  const isLiquifyingRef = useRef(false);
+  const { addHistoryEntry, renderableObjects } = useTool();
   
-  // Canvas for off-screen manipulation
+  const isLiquifyingRef = useRef(false);
+  const lastMousePositionRef = useRef<{ x: number; y: number } | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCtxRef = useRef<CanvasRenderingContext2D | null>(null);
-  
-  // Original image data for reconstruction
-  const originalImageRef = useRef<HTMLImageElement | null>(null);
-  
-  // Map to store pixel displacements (for accumulating distortions)
+  const baseImageDataRef = useRef<ImageData | null>(null);
   const displacementMapRef = useRef<Map<string, PixelDisplacement>>(new Map());
-  
-  // For tracking if we need to initialize the displacement map
   const [isInitialized, setIsInitialized] = useState(false);
-  const animationFrameIdRef = useRef<number | null>(null); // For requestAnimationFrame
+  const animationFrameIdRef = useRef<number | null>(null);
 
-  // Helper function to get key for displacement map
   const getDisplacementKey = (x: number, y: number): string => {
     return `${Math.floor(x)},${Math.floor(y)}`;
   };
 
-  // Initialize offscreen canvas and context
   const initializeOffscreenCanvas = useCallback(() => {
     if (!imageNodeRef.current) return false;
     
-    const image = imageNodeRef.current;
-    const imageElement = image.image() as HTMLImageElement;
+    const konvaImage = imageNodeRef.current;
+    const currentImage = konvaImage.image() as HTMLImageElement | HTMLCanvasElement;
+    if (!currentImage) return false;
     
-    if (!imageElement) return false;
-    
-    // Store original image for reconstruction
-    originalImageRef.current = imageElement;
-    
-    // Create offscreen canvas if not exists
     if (!offscreenCanvasRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = imageElement.width;
-      canvas.height = imageElement.height;
+      canvas.width = konvaImage.width();
+      canvas.height = konvaImage.height();
       offscreenCanvasRef.current = canvas;
       
       const ctx = canvas.getContext('2d');
       if (!ctx) return false;
       offscreenCtxRef.current = ctx;
-      
-      // Draw original image to offscreen canvas
-      ctx.drawImage(imageElement, 0, 0);
     }
     
-    // Initialize displacement map if needed
-    displacementMapRef.current.clear(); // Clear map on new image or re-init
+    if (offscreenCtxRef.current) {
+      offscreenCtxRef.current.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      offscreenCtxRef.current.drawImage(currentImage, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      
+      baseImageDataRef.current = offscreenCtxRef.current.getImageData(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+    }
+    
+    displacementMapRef.current.clear();
     setIsInitialized(true);
     return true;
   }, [imageNodeRef]);
@@ -93,26 +84,19 @@ const useLiquify = ({
     return { x, y };
   }, [containerRef, stageRef, zoom, stagePosition]);
 
-  // Calculate brush effect strength based on distance from center
   const getBrushStrength = useCallback((distanceFromCenter: number): number => {
-    // Linear falloff from center (1.0) to edge (0.0)
     const radius = brushSize / 2;
     return Math.max(0, 1 - distanceFromCenter / radius) * (strength / 100);
   }, [brushSize, strength]);
 
-  // Renamed from applyDisplacements
   const renderLiquifiedImageToKonva = useCallback(() => {
-    if (!offscreenCanvasRef.current || !offscreenCtxRef.current || !originalImageRef.current) return;
+    if (!offscreenCanvasRef.current || !offscreenCtxRef.current || !baseImageDataRef.current) return;
     
     const canvas = offscreenCanvasRef.current;
     const ctx = offscreenCtxRef.current;
-    const originalImage = originalImageRef.current;
     
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(originalImage, 0, 0);
-    
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
+    const baseImageData = baseImageDataRef.current;
+    const pixels = baseImageData.data;
     const width = canvas.width;
     
     const resultData = ctx.createImageData(canvas.width, canvas.height);
@@ -159,12 +143,12 @@ const useLiquify = ({
       imageNodeRef.current.getLayer()?.batchDraw(); 
     }
     animationFrameIdRef.current = null; // Allow new frame requests
-  }, [imageNodeRef, originalImageRef]);
+  }, [imageNodeRef]);
 
   const startLiquify = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
-    if (!imageNodeRef.current || !konvaEvent.evt) return;
+    if (!imageNodeRef.current || !konvaEvent.evt || !imageNodeRef.current.image()) return;
     
-    if (!isInitialized || !originalImageRef.current || !offscreenCanvasRef.current) {
+    if (!isInitialized || !offscreenCanvasRef.current) {
       const success = initializeOffscreenCanvas();
       if (!success) {
         console.error("Failed to initialize liquify effect");
@@ -279,8 +263,17 @@ const useLiquify = ({
     // Ensure the final state is rendered
     renderLiquifiedImageToKonva();
     
+    if (imageNodeRef.current?.image()) {
+      addHistoryEntry({
+        type: 'liquifyApplied',
+        description: `liquify`,
+        linesSnapshot: renderableObjects,
+        metadata: {}
+      });
+    }
+    
     // console.log("Liquify End");
-  }, [renderLiquifiedImageToKonva]);
+  }, [mode, strength, addHistoryEntry, renderableObjects]);
 
   const getIsLiquifying = () => isLiquifyingRef.current;
 
@@ -291,30 +284,11 @@ const useLiquify = ({
       animationFrameIdRef.current = null;
     }
     displacementMapRef.current.clear();
+    baseImageDataRef.current = null;
     setIsInitialized(false); // Force reinitialization if used again
     
-    if (imageNodeRef.current && originalImageRef.current) {
-        // Re-initialize the offscreen canvas with the original image directly
-        if (offscreenCtxRef.current && offscreenCanvasRef.current && originalImageRef.current) {
-            offscreenCtxRef.current.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
-            offscreenCtxRef.current.drawImage(originalImageRef.current, 0, 0);
-            imageNodeRef.current.image(offscreenCanvasRef.current); // Point Konva to the reset offscreen canvas
-        } else {
-            // Fallback if offscreen isn't ready, point Konva directly to original HTMLImageElement
-            imageNodeRef.current.image(originalImageRef.current);
-        }
-        imageNodeRef.current.getLayer()?.batchDraw();
-    } else if (imageNodeRef.current && !originalImageRef.current) {
-        // If originalImageRef somehow got lost, but we have a Konva image, try to clear its visual
-        // This case should ideally not happen if initialization is robust.
-        const layer = imageNodeRef.current.getLayer();
-        imageNodeRef.current.image(null); // Clear the image source
-        layer?.batchDraw();
-    }
+  }, []);
 
-  }, [imageNodeRef]);
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (animationFrameIdRef.current) {

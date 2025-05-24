@@ -2,7 +2,7 @@ import React from "react";
 import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, ChevronDown, Droplet } from "lucide-react"; // Используем Waves как иконку по умолчанию, можно заменить
+import { RotateCcw, ChevronDown, Droplet } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { resetBlurFunction } from "@/components/canvas/canvas";
@@ -14,7 +14,7 @@ const BlurOptions: React.FC = () => {
     setBlurBrushSize,
     blurStrength,
     setBlurStrength,
-    isImageReadyForLiquify, // Используем ту же проверку, что и для Liquify
+    isImageReadyForLiquify,
   } = useTool();
 
   const handleResetClick = () => {
@@ -37,7 +37,6 @@ const BlurOptions: React.FC = () => {
 
   return (
     <div className="flex items-center space-x-2">
-      {/* Icon for Blur - можно заменить на более подходящую */}
       <Droplet strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] mr-2 flex-shrink-0" />
 
       {/* Brush Size Slider Popover */}

@@ -5,9 +5,7 @@ import { Hand } from "lucide-react";
 
 const HandOptions: React.FC = () => {
     const {
-        zoom,
         setZoom,
-        stagePosition,
         setStagePosition,
         stageSize: contextStageSize,
         containerSize,
@@ -30,7 +28,7 @@ const HandOptions: React.FC = () => {
         const newPosition = centerCanvas(newZoom);
         
         if (newPosition) {
-            setZoom(newZoom, true); // Используем флаг isProgrammatic
+            setZoom(newZoom, true);
             setStagePosition(newPosition);
         } else {
             setZoom(newZoom, true);
@@ -48,7 +46,7 @@ const HandOptions: React.FC = () => {
         const newPosition = centerCanvas(clampedZoom);
         
         if (newPosition) {
-            setZoom(clampedZoom, true); // Используем флаг isProgrammatic
+            setZoom(clampedZoom, true);
             setStagePosition(newPosition);
         } else {
             setZoom(clampedZoom, true);
@@ -67,7 +65,7 @@ const HandOptions: React.FC = () => {
         const newPosition = centerCanvas(clampedZoom);
         
         if (newPosition) {
-            setZoom(clampedZoom, true); // Используем флаг isProgrammatic
+            setZoom(clampedZoom, true);
             setStagePosition(newPosition);
         } else {
             setZoom(clampedZoom, true);

@@ -34,10 +34,8 @@ const ProfilePage: React.FC = () => {
   const [avatarLoading, setAvatarLoading] = useState(false);
 
   useEffect(() => {
-    // Проверяем авторизацию пользователя
     const checkAuth = async () => {
       try {
-        // Если пользователь уже загружен в контексте
         if (loggedInUser) {
           setFormData({
             firstName: loggedInUser.firstName || '',
@@ -49,11 +47,9 @@ const ProfilePage: React.FC = () => {
           return;
         }
         
-        // Пытаемся получить пользователя напрямую из сервиса
         const user = await getCurrentAuthenticatedUser();
         
         if (user) {
-          // Если пользователь найден, обновляем контекст и состояние
           loginUserContext(user);
           setFormData({
             firstName: user.firstName || '',
@@ -63,7 +59,6 @@ const ProfilePage: React.FC = () => {
           setIsLoading(false);
           setAuthChecked(true);
         } else {
-          // Если пользователь не найден даже через сервис
           setAuthChecked(true);
           setIsLoading(false);
           navigate('/', { replace: true });
@@ -184,14 +179,11 @@ const ProfilePage: React.FC = () => {
       
       updatedUser.profilePictureName = avatarResult.data.server_filename;
       
-      // Предварительно загрузим изображение перед обновлением UI
       const img = new Image();
       img.onload = () => {
-        // Обновляем пользователя в контексте только после загрузки изображения
         loginUserContext(updatedUser);
         setAvatarLoading(false);
         
-        // Очищаем превью
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
           setPreviewUrl(null);
@@ -202,7 +194,6 @@ const ProfilePage: React.FC = () => {
       };
       
       img.onerror = () => {
-        // В случае ошибки загрузки изображения все равно обновляем пользователя
         loginUserContext(updatedUser);
         setAvatarLoading(false);
         
@@ -217,7 +208,6 @@ const ProfilePage: React.FC = () => {
       
       img.src = `${BASE_AVATAR_URL}${avatarResult.data.server_filename}`;
     } else {
-      // Если аватар не менялся, просто обновляем пользователя
       loginUserContext(updatedUser);
       
       if (previewUrl) {
@@ -231,10 +221,9 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate(-1); // Возврат на предыдущую страницу
+    navigate(-1);
   };
 
-  // Показываем загрузку, пока не проверили авторизацию
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#292C31FF] text-gray-200 p-8 flex flex-col items-center">
@@ -268,7 +257,6 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  // Если авторизация проверена и пользователь не найден
   if (authChecked && !loggedInUser) return null;
 
   // Get avatar URL (either from preview or user data)

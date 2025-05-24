@@ -35,7 +35,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
         Recent projects
       </h2>
       
-      {/* Горизонтальный скролл контейнер */}
       <div className="cursor-pointer overflow-x-auto custom-scroll pb-2">
         <div className="flex gap-4 min-w-max">
           {projects.map((project) => (
@@ -44,7 +43,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
               onClick={() => onOpenProject(project.id)}
               className="flex-shrink-0 w-60 bg-[#25282CFF] border-2 border-[#44474AFF] hover:border-blue-500 transition-colors duration-200 cursor-pointer overflow-hidden"
             >
-              {/* Превью изображения */}
               <div className="h-35 bg-[#1A1C1FFF] relative overflow-hidden">
                 {project.thumbnailUrl ? (
                   <img
@@ -61,7 +59,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
                     <ImageUp size={32} />
                   </div>
                 )}
-                {/* Кнопка удаления */}
                 <Button
                   variant="ghost"
                   onClick={(e) => onDeleteProject(project.id, e)}
@@ -72,7 +69,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
             
               </div>
               
-              {/* Информация о проекте */}
               <CardContent className="px-4">
                 <h3 className="font-medium text-gray-100 truncate mb-2">
                   {project.name}
@@ -91,7 +87,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
         </div>
       </div>
       
-      {/* Индикатор скролла */}
       <div className="text-xs text-gray-500 text-center mt-2">
         {projects.length > 4 && "← Scroll to view all projects →"}
       </div>

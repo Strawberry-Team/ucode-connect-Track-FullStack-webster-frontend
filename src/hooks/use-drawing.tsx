@@ -3,9 +3,7 @@ import type { LineData, RenderableObject } from "@/types/canvas";
 import { calculateEffectiveEraserSize, calculateEraserPressure } from "@/utils/canvas-utils";
 import type { MirrorMode } from "@/context/tool-context";
 import { useTool } from "@/context/tool-context";
-import { Brush, Eraser } from "lucide-react";
 import { toast } from "sonner";
-import { MoveIcon } from "lucide-react";
 import type { Dispatch, SetStateAction } from 'react';
 
 export interface DrawingProps {
@@ -39,7 +37,7 @@ const useDrawing = ({
 
   const centerX = canvasWidth / 2;
   const centerY = canvasHeight / 2;
-  const { addHistoryEntry, history, currentHistoryIndex, setLastDrawingEndTime } = useTool();
+  const { addHistoryEntry, history, currentHistoryIndex } = useTool();
 
     const getCurrentMirrorMode = useCallback((): MirrorMode => {
         if (activeTool?.type === 'brush') {
@@ -165,10 +163,10 @@ const useDrawing = ({
             let historyEntryType: 'brushStroke' | 'eraserStroke' | 'unknown' = 'unknown';
 
             if (currentToolType === 'brush') {
-                description = <><Brush className="inline-block w-4 h-4 mr-1" /> brush</>;
+                description = <>brush</>;
                 historyEntryType = 'brushStroke';
             } else if (currentToolType === 'eraser') {
-                description = <><Eraser className="inline-block w-4 h-4 mr-1" /> eraser</>;
+                description = <>eraser</>;
                 historyEntryType = 'eraserStroke';
             }
 
@@ -266,7 +264,7 @@ const useDrawing = ({
         const snapshot = renderableObjects.map(obj => ({...obj}));
         addHistoryEntry({
             type: 'elementModified',
-            description: <> <MoveIcon className="inline-block w-4 h-4 mr-1" /> Line transformed</>,
+            description: <> Line transformed</>,
             linesSnapshot: snapshot,
         });
 
@@ -292,18 +290,6 @@ const useDrawing = ({
             })
         );
 
-        // Add history entry for the drag operation
-        // Creating a snapshot for history. Ensure this logic is robust.
-        // It might be better to get the updated state of renderableObjects for the snapshot.
-        // For now, let's assume renderableObjects is updated by the time this runs or use a callback approach if needed.
-        // To ensure the snapshot is current, we might need to rethink how snapshots are taken or pass the updated list.
-        // For simplicity, using the current `renderableObjects` state. This might capture the state *before* this specific update fully propagates.
-        // Consider using the result of the setRenderableObjects callback if a more accurate snapshot is needed immediately.
-        
-        // A more robust way to get the snapshot would be to do it after the state update:
-        // 1. Update state.
-        // 2. In a useEffect that listens to renderableObjects, or via a callback from setRenderableObjects, create the history entry.
-        // However, to keep it within this callback for now:
         const currentSnapshot = renderableObjects.map(obj => {
             if ('points' in obj) {
                 return { ...obj, points: [...obj.points] };
@@ -313,7 +299,7 @@ const useDrawing = ({
 
         addHistoryEntry({
             type: 'elementModified', // Or a more specific 'lineMoved' type if desired
-            description: <> <MoveIcon className="inline-block w-4 h-4 mr-1" /> Line moved</>,
+            description: <> Line moved</>,
             linesSnapshot: currentSnapshot,
         });
 

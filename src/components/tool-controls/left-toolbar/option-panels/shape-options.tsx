@@ -37,7 +37,7 @@ import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
-import { colorToRGBA } from "@/components/tool-controls/option-panels/common";
+import { colorToRGBA } from "./common";
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
@@ -54,38 +54,6 @@ const scrollbarStyles = `
     border-radius: 4px;
   }
 `;
-
-// interface ColorPickerProps {
-//   color: string;
-//   setColor: (color: string) => void;
-// }
-
-// const ColorPicker: React.FC<ColorPickerProps> = ({ color, setColor }) => {
-//   const presetColors = [
-//     "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff",
-//     "#ffff00", "#00ffff", "#ff00ff", "#c0c0c0", "#808080",
-//     "#800000", "#808000", "#008000", "#800080", "#008080", "#000080",
-//   ];
-
-//   return (
-//     <div className="space-y-2">
-//       <div className="flex items-center space-x-2">
-//         <div className="w-8 h-8 rounded border border-gray-600" style={{ backgroundColor: color }} />
-//         <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 p-0 border-0" />
-//       </div>
-//       <div className="grid grid-cols-8 gap-1">
-//         {presetColors.map((presetColor) => (
-//           <button
-//             key={presetColor}
-//             className="w-5 h-5 rounded border border-gray-600"
-//             style={{ backgroundColor: presetColor }}
-//             onClick={() => setColor(presetColor)}
-//           />
-//         ))}
-//       </div>
-//     </div>
-//   );
-// };
 
 // Component for displaying a line style example
 const BorderStylePreview: React.FC<{ style: BorderStyle }> = ({ style }) => {
@@ -268,33 +236,10 @@ declare global {
   }
 }
 
-// Define a type to track current shape settings
-interface ShapeSettings {
-  fillColor: string;
-  fillColorOpacity: number;
-  borderColor: string;
-  borderWidth: number;
-  borderStyle: BorderStyle;
-  cornerRadius: number;
-  opacity: number;
-  transform: {
-    rotate: number;
-    scaleX: number;
-    scaleY: number;
-  };
-}
-
-type ShapeTransformType = {
-  rotate: number;
-  scaleX: number;
-  scaleY: number;
-};
-
 const ShapeOptions: React.FC = () => {
   const {
     setActiveElement: setContextActiveElement,
     activeTool,
-    activeElement,
     fillColor,
     setFillColor,
     fillColorOpacity,
@@ -331,9 +276,6 @@ const ShapeOptions: React.FC = () => {
     rotateSelectedElement
   } = useElementsManager();
 
-  const [colorMenuOpen, setColorMenuOpen] = useState(false);
-  const [borderColorMenuOpen, setBorderColorMenuOpen] = useState(false);
-  const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
   const [showFillColorPicker, setShowFillColorPicker] = useState(false);
   const fillColorOpacityInputRef = useRef<HTMLInputElement>(null);
   const [tempFillColorOpacityInput, setTempFillColorOpacityInput] = useState<string>(() => String(Math.round(fillColorOpacity)));
@@ -345,10 +287,6 @@ const ShapeOptions: React.FC = () => {
   const fillControlsRef = useRef<HTMLDivElement>(null!);
   const borderControlsRef = useRef<HTMLDivElement>(null!);
 
-  const defaultShapes: ShapeType[] = [
-    "rectangle", "square", "rounded-rectangle", "squircle", "circle",
-    "line", "triangle", "pentagon", "hexagon", "star", "heart", "arrow"
-  ];
 
   const selectedElementData = selectedElementId ? getElementDataFromRenderables().find(el => el.id === selectedElementId) : null;
 
@@ -511,42 +449,6 @@ const ShapeOptions: React.FC = () => {
       case "arrow": return ArrowRight;
       case "custom-image": return FileImage;
       default: return Square;
-    }
-  };
-
-  const handleFlipHorizontal = () => {
-    if (!isShapeElementSelected) return; // Use updated condition
-    const newTransform = {
-      ...shapeTransform,
-      scaleX: shapeTransform.scaleX * -1,
-    };
-    setShapeTransform(newTransform);
-    if (selectedElementId) {
-      flipSelectedElementHorizontal();
-    }
-  };
-
-  const handleFlipVertical = () => {
-    if (!isShapeElementSelected) return; // Use updated condition
-    const newTransform = {
-      ...shapeTransform,
-      scaleY: shapeTransform.scaleY * -1,
-    };
-    setShapeTransform(newTransform);
-    if (selectedElementId) {
-      flipSelectedElementVertical();
-    }
-  };
-
-  const handleRotate = (degrees: number) => {
-    if (!isShapeElementSelected) return; // Use updated condition
-    const newTransform = {
-      ...shapeTransform,
-      rotate: (shapeTransform.rotate + degrees + 360) % 360,
-    };
-    setShapeTransform(newTransform);
-    if (selectedElementId) {
-      rotateSelectedElement(degrees);
     }
   };
 
@@ -890,78 +792,9 @@ const ShapeOptions: React.FC = () => {
         value={shapeType}
         onChange={(type) => {
           handleShapeSelect(type);
-          // if (type === "custom-image") {
-          // Directly trigger the hidden file input if one exists and is managed by this component
-          // For simplicity, we can rely on the DropdownMenuItem's label behavior for now
-          // Or, if \`handleImageUpload\` needs to be called from here, ensure it's accessible
-          // }
         }}
         onMenuWillOpen={closeOtherPickers}
       />
-
-      {/* Shape transform
-      <TooltipProvider>
-        <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) closeOtherPickers(); }}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className={`flex items-center min-w-7 min-h-7 px-2 gap-2 text-xs text-white rounded hover:bg-[#3F434AFF] border-2 border-[#44474AFF] bg-[#1e1f22] ${!isShapeElementSelected ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!isShapeElementSelected}>
-              <Label className="text-xs text-[#D4D4D5FF]">Transform</Label>
-              <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 min-w-[100px] grid grid-cols-3">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuItem
-                    className={`flex items-center justify-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${!isShapeElementSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={handleFlipHorizontal}
-                    disabled={!isShapeElementSelected}
-                  >
-                    <FlipHorizontal size={14} color="white" />
-                  </DropdownMenuItem>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Flip horizontally</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuItem
-                    className={`flex items-center justify-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${!isShapeElementSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={handleFlipVertical}
-                    disabled={!isShapeElementSelected}
-                  >
-                    <FlipVertical size={14} color="white" />
-                  </DropdownMenuItem>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Flip vertically</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuItem
-                    className={`flex items-center justify-center px-3 py-2 focus:bg-[#3F434AFF] cursor-pointer rounded-none ${!isShapeElementSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => handleRotate(90)} // Standard rotation increment, can be adjusted
-                    disabled={!isShapeElementSelected}
-                  >
-                    <RotateCcw size={14} color="white" />
-                  </DropdownMenuItem>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Rotate</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TooltipProvider> */}
 
       {renderColorPickers()}
 
