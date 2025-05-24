@@ -88,7 +88,22 @@ const Canvas: React.FC = () => {
         selectedLineId,
         setSelectedLineId,
         isProgrammaticZoomRef,
-        isApplyingCrop
+        isApplyingCrop,
+        textColor,
+        textColorOpacity,
+        textBgColor,
+        textBgOpacity,
+        fontStyles,
+        textCase,
+        textAlignment,
+        lineHeight,
+        fillColor,
+        fillColorOpacity,
+        borderColor,
+        borderColorOpacity,
+        borderWidth,
+        borderStyle,
+        cornerRadius
     } = toolContext;
 
     const drawingManager = useDrawing({
@@ -97,7 +112,7 @@ const Canvas: React.FC = () => {
     });
 
     const elementsManager = useElementsManagement({
-        color: color,
+        color: textColor,
         secondaryColor: secondaryColor,
         opacity: opacity,
         fontSize: defaultFontSize,
@@ -110,7 +125,7 @@ const Canvas: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [showBrushCursor, setShowBrushCursor] = useState(false);
     const [showEraserCursor, setShowEraserCursor] = useState(false);
-    const [isHoveringUiElement, setIsHoveringUiElement] = useState(false);
+    const [isHoveringInteractiveElement, setIsHoveringInteractiveElement] = useState(false);
     const zoomControlsRef = useRef<HTMLDivElement>(null);
     const horizontalScrollbarRef = useRef<HTMLDivElement>(null);
     const verticalScrollbarRef = useRef<HTMLDivElement>(null);
@@ -121,6 +136,11 @@ const Canvas: React.FC = () => {
     const isManuallyDragging = useRef(false);
 
     const [activeSnapLines, setActiveSnapLines] = useState<SnapLineType[]>([]);
+
+    // Add states for drag-to-create functionality
+    const [isCreatingElement, setIsCreatingElement] = useState(false);
+    const [creationStartPoint, setCreationStartPoint] = useState<{x: number, y: number} | null>(null);
+    const [previewElement, setPreviewElement] = useState<ElementData | null>(null);
 
     const croppingManager = useCropping({
         cropRect: cropRect,
@@ -440,11 +460,13 @@ const Canvas: React.FC = () => {
     // Handlers for the outer div (container)
     const handleMouseMoveOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!containerRef.current) return;
+        
+        // Check if mouse is over UI elements
         const isOverZoomCtrl = zoomControlsRef.current && zoomControlsRef.current.contains(e.target as Node);
         const isOverHorizontalScroll = horizontalScrollbarRef.current && horizontalScrollbarRef.current.contains(e.target as Node);
         const isOverVerticalScroll = verticalScrollbarRef.current && verticalScrollbarRef.current.contains(e.target as Node);
         if (isOverZoomCtrl || isOverHorizontalScroll || isOverVerticalScroll) {
-            if (!isHoveringUiElement) setIsHoveringUiElement(true);
+            if (!isHoveringInteractiveElement) setIsHoveringInteractiveElement(true);
             if (containerRef.current) containerRef.current.style.cursor = 'default';
             setShowBrushCursor(false);
             setShowEraserCursor(false);
@@ -452,55 +474,103 @@ const Canvas: React.FC = () => {
             setShowBlurCursor(false);
             return;
         }
-        if (isHoveringUiElement) setIsHoveringUiElement(false);
+        if (isHoveringInteractiveElement) setIsHoveringInteractiveElement(false);
+        
         const containerRect = containerRef.current.getBoundingClientRect();
         const currentScale = zoom / 100;
         const mouseX = (e.clientX - containerRect.left - stagePosition.x) / currentScale;
         const mouseY = (e.clientY - containerRect.top - stagePosition.y) / currentScale;
         setCursorPositionOnCanvas({x: mouseX, y: mouseY});
 
-        if (activeTool?.type === 'brush') {
+        // PRIORITY 1: Element creation mode (добавление элементов)
+        if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
+            // Crosshair cursor for element creation mode
+            if (containerRef.current) containerRef.current.style.cursor = "crosshair";
+            setShowBrushCursor(false);
+            setShowEraserCursor(false);
+            setShowLiquifyCursor(false);
+            setShowBlurCursor(false);
+        }
+        // PRIORITY 2: Specific tool cursors (but not when hovering over interactive elements)
+        else if (activeTool?.type === 'brush') {
             if (isBrushTransformModeActive) {
                 if (containerRef.current) containerRef.current.style.cursor = "default";
                 setShowBrushCursor(false);
-            } else {
+            } else if (!isHoveringInteractiveElement) {
+                // Show brush cursor only when not hovering over interactive elements
                 if (containerRef.current) containerRef.current.style.cursor = "none";
                 setShowBrushCursor(true);
+            } else {
+                // When hovering over interactive elements, hide brush cursor but keep 'none' cursor
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowBrushCursor(false);
             }
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
         } else if (activeTool?.type === 'eraser') {
-            if (containerRef.current) containerRef.current.style.cursor = "none";
+            if (!isHoveringInteractiveElement) {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowEraserCursor(true);
+            } else {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowEraserCursor(false);
+            }
             setShowBrushCursor(false);
-            setShowEraserCursor(true);
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
         } else if (activeTool?.type === 'liquify') {
-            if (containerRef.current) containerRef.current.style.cursor = "none";
+            if (!isHoveringInteractiveElement) {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowLiquifyCursor(true);
+            } else {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowLiquifyCursor(false);
+            }
             setShowBrushCursor(false);
             setShowEraserCursor(false);
-            setShowLiquifyCursor(true);
             setShowBlurCursor(false);
         } else if (activeTool?.type === 'blur') {
-            if (containerRef.current) containerRef.current.style.cursor = "none";
+            if (!isHoveringInteractiveElement) {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowBlurCursor(true);
+            } else {
+                if (containerRef.current) containerRef.current.style.cursor = "none";
+                setShowBlurCursor(false);
+            }
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
-            setShowBlurCursor(true);
         } else if (activeTool?.type === 'hand') {
             if (containerRef.current) containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
-        } else {
+        } else if (activeTool?.type === 'text') {
+            // Text tool cursor when not in add mode - override any previously set cursor
+            if (containerRef.current) containerRef.current.style.cursor = "default";
+            setShowBrushCursor(false);
+            setShowEraserCursor(false);
+            setShowLiquifyCursor(false);
+            setShowBlurCursor(false);
+        } else if (activeTool?.type === 'cursor') {
+            // Cursor tool - override any previously set cursor
             if (containerRef.current) containerRef.current.style.cursor = "default";
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
         }
+        // PRIORITY 3: Default cursor - override any previously set cursor
+        else {
+            if (containerRef.current) containerRef.current.style.cursor = "default";
+            setShowBrushCursor(false);
+            setShowEraserCursor(false);
+            setShowLiquifyCursor(false);
+            setShowBlurCursor(false);
+        }
+        
         if (isDragging.current) {
             if ((e.buttons === 4 && activeTool?.type !== 'brush' && activeTool?.type !== 'eraser') || 
                 (e.buttons === 1 && activeTool?.type === 'hand')) {
@@ -522,10 +592,20 @@ const Canvas: React.FC = () => {
     };
 
     const handleMouseLeave = () => {
+        // Force reset cursor to default when leaving canvas area
         if (containerRef.current) containerRef.current.style.cursor = 'default';
+        
         if (drawingManager.getIsDrawing()) drawingManager.endDrawing();
         if (liquifyManager.getIsLiquifying()) liquifyManager.endLiquify();
         if (blurManager.getIsBlurring()) blurManager.endBlurring();
+        
+        // Reset element creation state
+        if (isCreatingElement) {
+            setIsCreatingElement(false);
+            setCreationStartPoint(null);
+            setPreviewElement(null);
+        }
+        
         setShowBrushCursor(false);
         setShowEraserCursor(false);
         setShowLiquifyCursor(false);
@@ -537,7 +617,7 @@ const Canvas: React.FC = () => {
         }
         isDragging.current = false;
         isManuallyDragging.current = false;
-        setIsHoveringUiElement(false);
+        setIsHoveringInteractiveElement(false);
     };
 
     const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -560,24 +640,101 @@ const Canvas: React.FC = () => {
             }
 
             if (creationType) {
-                let settingsForElement: Partial<ElementData> = {};
-                if (activeElement) {
-                    if (creationType === "text" && activeElement.type === "text") {
-                        settingsForElement.text = "Type here";
-                    } else if (creationType === "custom-image" && activeElement.type === "custom-image") {
-                        const imageElement = activeElement as ElementData & {
-                            src?: string,
-                            width?: number,
-                            height?: number
-                        };
-                        settingsForElement.src = imageElement.src;
-                        settingsForElement.width = imageElement.width;
-                        settingsForElement.height = imageElement.height;
-                    }
+                // Start creating element by dragging instead of immediate creation
+                setIsCreatingElement(true);
+                setCreationStartPoint(pointerPosition);
+                isDragging.current = true;
+                
+                // Create preview element
+                const previewId = `preview-${Date.now()}`;
+                let minSize = 20;
+                
+                let previewElementData: ElementData;
+                if (creationType === "text") {
+                    previewElementData = {
+                        id: previewId,
+                        type: "text",
+                        x: pointerPosition.x,
+                        y: pointerPosition.y,
+                        width: minSize,
+                        height: minSize,
+                        text: "Type text here...",
+                        color: textColor || color,
+                        textColorOpacity: textColorOpacity || 100,
+                        fontSize: defaultFontSize,
+                        fontFamily: defaultFontFamily,
+                        fontStyles: fontStyles || { bold: false, italic: false, underline: false, strikethrough: false },
+                        textCase: textCase || "none",
+                        textAlignment: textAlignment || "left",
+                        lineHeight: lineHeight || 1,
+                        backgroundColor: textBgColor || "transparent",
+                        backgroundOpacity: textBgOpacity || 0,
+                        borderColor: "#000000",
+                        borderWidth: 0,
+                        borderStyle: "hidden",
+                        opacity: 100,
+                        rotation: 0,
+                        scaleX: 1,
+                        scaleY: 1,
+                        draggable: true,
+                        preserveAspectRatio: true,
+                    };
+                } else if (creationType === "custom-image") {
+                    const imageElement = activeElement as ElementData & {
+                        src?: string,
+                        width?: number,
+                        height?: number
+                    };
+                    previewElementData = {
+                        id: previewId,
+                        type: "custom-image",
+                        x: pointerPosition.x,
+                        y: pointerPosition.y,
+                        width: minSize,
+                        height: minSize,
+                        src: imageElement?.src,
+                        borderColor: borderColor || "#000000",
+                        borderColorOpacity: borderColorOpacity || 100,
+                        borderWidth: 0,
+                        borderStyle: "hidden",
+                        color: color,
+                        opacity: 100,
+                        rotation: 0,
+                        scaleX: 1,
+                        scaleY: 1,
+                        draggable: true,
+                        preserveAspectRatio: true,
+                    };
+                } else {
+                    // Shape elements
+                    const shapeFillColor = fillColor === 'transparent' ? undefined : (fillColor || "#ffffff");
+                    const shapeFillOpacity = fillColorOpacity || 100;
+                    
+                    previewElementData = {
+                        id: previewId,
+                        type: creationType as ShapeType,
+                        x: pointerPosition.x,
+                        y: pointerPosition.y,
+                        width: minSize,
+                        height: minSize,
+                        color: borderColor || "#000000",
+                        fillColor: shapeFillColor,
+                        fillColorOpacity: shapeFillOpacity,
+                        borderColor: borderColor || "#000000",
+                        borderWidth: borderWidth || 2,
+                        borderStyle: borderStyle || "solid",
+                        borderColorOpacity: borderColorOpacity || 100,
+                        cornerRadius: creationType === "rounded-rectangle" ? (cornerRadius || 0) : undefined,
+                        opacity: 100,
+                        rotation: 0,
+                        scaleX: 1,
+                        scaleY: 1,
+                        draggable: true,
+                        preserveAspectRatio: true,
+                    };
                 }
-                elementsManager.addElement(creationType, pointerPosition, undefined, settingsForElement);
-                setIsAddModeActive(false);
-                setCurrentAddToolType(null);
+                
+                setPreviewElement(previewElementData);
                 return;
             }
         }
@@ -622,6 +779,22 @@ const Canvas: React.FC = () => {
         if (clickedOnStageBackground) {
             if (elementsManager.selectedElementId) {
                 elementsManager.setSelectedElementId(null);
+                // Reset cursor when deselecting element based on current context
+                if (containerRef.current) {
+                    // Check current context to set appropriate cursor
+                    if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
+                        containerRef.current.style.cursor = 'crosshair';
+                    } else if (activeTool?.type === 'hand') {
+                        containerRef.current.style.cursor = 'grab';
+                    } else if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                              activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
+                        containerRef.current.style.cursor = 'none';
+                    } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor') {
+                        containerRef.current.style.cursor = 'default';
+                    } else {
+                        containerRef.current.style.cursor = 'default';
+                    }
+                }
             }
             if (evt.button === 1) {
                 isDragging.current = true;
@@ -642,6 +815,28 @@ const Canvas: React.FC = () => {
             const position = stage?.getPointerPosition();
             if (!position) return;
 
+            // Handle element creation dragging
+            if (isCreatingElement && creationStartPoint && previewElement) {
+                const startX = Math.min(creationStartPoint.x, position.x);
+                const startY = Math.min(creationStartPoint.y, position.y);
+                const endX = Math.max(creationStartPoint.x, position.x);
+                const endY = Math.max(creationStartPoint.y, position.y);
+                
+                const newWidth = Math.max(20, endX - startX); // Minimum 20px
+                const newHeight = Math.max(20, endY - startY); // Minimum 20px
+                
+                const updatedPreview: ElementData = {
+                    ...previewElement,
+                    x: startX,
+                    y: startY,
+                    width: newWidth,
+                    height: newHeight
+                };
+                
+                setPreviewElement(updatedPreview);
+                return;
+            }
+
             if (position && isDragging.current && drawingManager.getIsDrawing()) {
                 drawingManager.continueDrawing(position);
             }
@@ -658,6 +853,73 @@ const Canvas: React.FC = () => {
     };
 
     const handleMouseUp = () => {
+        // Handle element creation completion
+        if (isCreatingElement && previewElement && creationStartPoint) {
+            // Only create element if it has meaningful size (more than just a click)
+            if (previewElement.width > 20 && previewElement.height > 20) {
+                const creationType = previewElement.type as ShapeType | "text" | "custom-image";
+                
+                // Prepare settings from preview element, keeping only necessary properties
+                const settings: Partial<ElementData> = {
+                    width: previewElement.width,
+                    height: previewElement.height,
+                    color: previewElement.color,
+                    opacity: 100, // Full opacity for final element (0-100 scale)
+                    rotation: previewElement.rotation,
+                    scaleX: previewElement.scaleX,
+                    scaleY: previewElement.scaleY,
+                    preserveAspectRatio: previewElement.preserveAspectRatio
+                };
+                
+                // Add type-specific properties
+                if (creationType === "text") {
+                    settings.text = previewElement.text;
+                    settings.textColorOpacity = previewElement.textColorOpacity;
+                    settings.fontSize = previewElement.fontSize;
+                    settings.fontFamily = previewElement.fontFamily;
+                    settings.fontStyles = previewElement.fontStyles;
+                    settings.textCase = previewElement.textCase;
+                    settings.textAlignment = previewElement.textAlignment;
+                    settings.lineHeight = previewElement.lineHeight;
+                    settings.backgroundColor = previewElement.backgroundColor;
+                    settings.backgroundOpacity = previewElement.backgroundOpacity;
+                } else if (creationType === "custom-image") {
+                    settings.src = previewElement.src;
+                    settings.borderColor = previewElement.borderColor;
+                    settings.borderColorOpacity = previewElement.borderColorOpacity;
+                    settings.borderWidth = previewElement.borderWidth;
+                    settings.borderStyle = previewElement.borderStyle;
+                } else {
+                    // Shape elements
+                    settings.fillColor = previewElement.fillColor;
+                    settings.fillColorOpacity = previewElement.fillColorOpacity;
+                    settings.borderColor = previewElement.borderColor;
+                    settings.borderWidth = previewElement.borderWidth;
+                    settings.borderStyle = previewElement.borderStyle;
+                    settings.borderColorOpacity = previewElement.borderColorOpacity;
+                    if (creationType === "rounded-rectangle") {
+                        settings.cornerRadius = previewElement.cornerRadius;
+                    }
+                }
+                
+                elementsManager.addElement(
+                    creationType, 
+                    { x: previewElement.x, y: previewElement.y },
+                    creationType === "text" ? previewElement.text : undefined,
+                    settings
+                );
+            }
+            
+            // Reset creation state
+            setIsCreatingElement(false);
+            setCreationStartPoint(null);
+            setPreviewElement(null);
+            setIsAddModeActive(false);
+            setCurrentAddToolType(null);
+            isDragging.current = false;
+            return;
+        }
+
         if (drawingManager.getIsDrawing()) {
             drawingManager.endDrawing();
         }
@@ -674,6 +936,23 @@ const Canvas: React.FC = () => {
                 setTimeout(() => {
                     applyPositionConstraints();
                     isManuallyDragging.current = false;
+                    // After dragging, re-evaluate cursor based on current tool and mouse position
+                    if (containerRef.current && !isHoveringInteractiveElement) {
+                        // Set appropriate cursor for current tool
+                        if (activeTool?.type === 'brush' && !isBrushTransformModeActive) {
+                            containerRef.current.style.cursor = 'none';
+                        } else if (activeTool?.type === 'eraser') {
+                            containerRef.current.style.cursor = 'none';
+                        } else if (activeTool?.type === 'liquify') {
+                            containerRef.current.style.cursor = 'none';
+                        } else if (activeTool?.type === 'blur') {
+                            containerRef.current.style.cursor = 'none';
+                        } else if (activeTool?.type === 'hand') {
+                            containerRef.current.style.cursor = 'grab';
+                        } else {
+                            containerRef.current.style.cursor = 'default';
+                        }
+                    }
                 }, 50);
             }
         }
@@ -1109,9 +1388,22 @@ const Canvas: React.FC = () => {
                                         allElements={elementsManagerHook.getElementDataFromRenderables()}
                                         stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
                                         setActiveSnapLines={setActiveSnapLines}
+                                        onHoverInteractiveElement={setIsHoveringInteractiveElement}
                                     />
                                 );
                             })}
+
+                        {/* Render preview element during creation */}
+                        {previewElement && (
+                            <ElementRenderer
+                                key={previewElement.id}
+                                element={{...previewElement, opacity: 0.6}} // Make preview semi-transparent
+                                isSelected={false}
+                                allElements={[]}
+                                stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
+                                setActiveSnapLines={() => {}} // No snapping for preview
+                            />
+                        )}
 
                         <CropTool
                             stageSize={contextStageSize}

@@ -240,7 +240,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [brushSize, setBrushSize] = useState(20)
 
     // Add text-specific states
-    const [textColor, setTextColor] = useState("#000000")
+    const [textColor, setTextColor] = useState("#ffffff")
     const [textBgColor, setTextBgColor] = useState("transparent")
     const [textBgOpacity, setTextBgOpacity] = useState(100)
     const [textColorOpacity, setTextColorOpacity] = useState(100)

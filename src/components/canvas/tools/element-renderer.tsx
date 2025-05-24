@@ -16,6 +16,7 @@ interface ElementRendererProps {
     allElements: ElementData[];
     stageSize?: { width: number; height: number };
     setActiveSnapLines: React.Dispatch<React.SetStateAction<SnapLineType[]>>;
+    onHoverInteractiveElement?: (isHovering: boolean) => void;
 }
 
 // Function for applying case to text
@@ -123,7 +124,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                                                              isSelected,
                                                              allElements,
                                                              stageSize,
-                                                             setActiveSnapLines
+                                                             setActiveSnapLines,
+                                                             onHoverInteractiveElement
                                                          }) => {
     const { activeTool } = useTool();
     const [isEditing, setIsEditing] = useState(false);
@@ -149,6 +151,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         }
         return false;
     }, [activeTool, element.type]);
+
+    // Handle cursor change when element becomes selected
+    // Removed useEffect that sets cursor to 'move' to avoid conflicts with canvas.tsx cursor logic
 
     useEffect(() => {
         if (isSelected && transformerRef.current && nodeRef.current && canInteractWithElement()) {
@@ -351,9 +356,34 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 handleTextEdit(e);
             }
         },
+        onMouseEnter: () => {
+            if (canInteractWithElement()) {
+                onHoverInteractiveElement?.(true);
+                if (isSelected) {
+                    // Change cursor to move when hovering over selected element
+                    const stage = nodeRef.current?.getStage();
+                    const container = stage?.container();
+                    if (container) {
+                        container.style.cursor = 'move';
+                    }
+                }
+            }
+        },
+        onMouseLeave: () => {
+            if (canInteractWithElement()) {
+                onHoverInteractiveElement?.(false);
+                // Don't manually manipulate cursor here, let canvas.tsx handle it
+            }
+        },
         onDragStart: () => {
             if (canInteractWithElement()) {
                 setActiveSnapLines([]);
+                // Set grabbing cursor during drag
+                const stage = nodeRef.current?.getStage();
+                const container = stage?.container();
+                if (container) {
+                    container.style.cursor = 'grabbing';
+                }
             }
         },
         onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -439,6 +469,14 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         },
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
+            
+            // Reset cursor after drag to default, let canvas.tsx handle cursor logic
+            const stage = nodeRef.current?.getStage();
+            const container = stage?.container();
+            if (container) {
+                container.style.cursor = 'default'; // Reset to default first
+            }
+            
             if (onDragEnd && canInteractWithElement()) {
                 const node = e.target;
                 let newX = node.x();
@@ -577,7 +615,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
         textarea.style.fontFamily = element.fontFamily || 'Arial';
         textarea.style.lineHeight = `${element.lineHeight || 1}`;
-        textarea.style.color = convertColorToRGBA(element.color, element.textColorOpacity) || '#000000';
+        textarea.style.color = convertColorToRGBA(element.color, element.textColorOpacity) || "#ffffff";
 
         textarea.style.padding = '0px';
         textarea.style.margin = '0';

@@ -156,7 +156,7 @@ const DashboardPage: React.FC = () => {
     setStagePosition({ x: 0, y: 0 });
     setLastDrawingEndTime(null);
 
-    setTextColor("#000000");
+    setTextColor("#ffffff");
     setTextBgColor("transparent");
     setTextBgOpacity(100);
     setFontSize(16);
