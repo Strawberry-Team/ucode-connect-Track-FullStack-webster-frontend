@@ -178,6 +178,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 || element.type === 'arrow') {
                 // Allow rectangle, text, and rounded-rectangle to be freely resized without keeping aspect ratio
                 tr.keepRatio(false);
+            } else if (element.type === 'square') {
+                // Square should always maintain 1:1 aspect ratio
+                tr.keepRatio(true);
             } else {
                 // Keep aspect ratio for other shapes
                 tr.keepRatio(true);
@@ -214,19 +217,21 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 newBox.width = Math.max(20, newBox.width);
                 newBox.height = Math.max(20, newBox.height);
 
-                if (currentKeepRatio) {
+                if (element.type === 'square') {
+                    const size = Math.max(newBox.width, newBox.height);
+                    newBox.width = size;
+                    newBox.height = size;
+                  } else if (tr.keepRatio()) {
                     const aspectRatio = oldBox.width / oldBox.height;
-                    if (Math.abs(newBox.width / newBox.height - aspectRatio) > 1e-2) { // Check if aspect ratio changed significantly
-                        const widthChangedMore = Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height);
-                        if (widthChangedMore) {
-                            newBox.height = newBox.width / aspectRatio;
-                        } else {
-                            newBox.width = newBox.height * aspectRatio;
-                        }
+                    const widthChangedMore = Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height);
+                    if (widthChangedMore) {
+                      newBox.height = newBox.width / aspectRatio;
+                    } else {
+                      newBox.width = newBox.height * aspectRatio;
                     }
-                }
-                return newBox;
-            });
+                  }
+                  return newBox;
+                });
 
             // Force redraw
             tr.getLayer()?.batchDraw();
@@ -284,6 +289,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             let newVisualHeight = node.height() * node.scaleY();
             const newRotation = node.rotation();
 
+            
             const newDesignWidth = Math.max(20, Math.abs(newVisualWidth / baseScaleX));
             const newDesignHeight = Math.max(20, Math.abs(newVisualHeight / baseScaleY));
 
@@ -303,9 +309,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 newElementX = node.x() - visualWForOffset / 2;
                 newElementY = node.y() - visualHForOffset / 2;
             }
-                // Case 2: Node's x,y props were set to its visual center, but no offsetX/Y were used
+            // Case 2: Node's x,y props were set to its visual center, but no offsetX/Y were used
             // (Circle, Triangle, Pentagon, Hexagon, Star as per new rendering)
-            else if (type === 'circle' || type === 'triangle' || type === 'pentagon' || type === 'hexagon' || type === 'star') {
+            else if (element.type === 'circle' || element.type === 'triangle' || 
+                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
                 // node.x() is the center. Calculate top-left for ElementData.
                 const visualW = newDesignWidth * Math.abs(baseScaleX);
                 const visualH = newDesignHeight * Math.abs(baseScaleY);
@@ -359,8 +366,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onMouseEnter: () => {
             if (canInteractWithElement()) {
                 onHoverInteractiveElement?.(true);
-                if (isSelected) {
-                    // Change cursor to move when hovering over selected element
+                // Only change cursor to move for cursor and text tools when element is selected
+                if (isSelected && (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text'))) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
                     if (container) {
@@ -378,11 +385,13 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragStart: () => {
             if (canInteractWithElement()) {
                 setActiveSnapLines([]);
-                // Set grabbing cursor during drag
-                const stage = nodeRef.current?.getStage();
-                const container = stage?.container();
-                if (container) {
-                    container.style.cursor = 'grabbing';
+                // Set grabbing cursor during drag only for cursor and text tools
+                if (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text')) {
+                    const stage = nodeRef.current?.getStage();
+                    const container = stage?.container();
+                    if (container) {
+                        container.style.cursor = 'grabbing';
+                    }
                 }
             }
         },
@@ -470,12 +479,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
             
-            // Reset cursor after drag to default, let canvas.tsx handle cursor logic
-            const stage = nodeRef.current?.getStage();
-            const container = stage?.container();
-            if (container) {
-                container.style.cursor = 'default'; // Reset to default first
-            }
+            // Don't manually set cursor here - let canvas.tsx handle cursor logic based on current tool
             
             if (onDragEnd && canInteractWithElement()) {
                 const node = e.target;
@@ -708,7 +712,20 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     </Group>
                 );
             case "rectangle":
+                return (
+                    <Rect
+                        ref={nodeRef as React.Ref<Konva.Rect>}
+                        x={element.x}
+                        y={element.y}
+                        width={element.width}
+                        height={element.height}
+                        fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
+                        {...commonProps}
+                        {...strokeStyleProps}
+                    />
+                );
             case "square":
+                // Square should maintain aspect ratio but use normal top-left positioning
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
@@ -863,32 +880,41 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             case "arrow":
                 const arrowW = element.width ?? 0;
                 const arrowH = element.height ?? 0;
-                // Points from user snippet
-                const arrowPoints = [
-                    0, arrowH / 2,
-                    arrowW * 0.8, arrowH / 2,
+                // Arrow body (line)
+                const arrowBodyPoints = [0, arrowH / 2, arrowW * 0.8, arrowH / 2];
+                // Arrow head (filled triangle)
+                const arrowHeadPoints = [
                     arrowW * 0.8, arrowH * 0.2,
                     arrowW, arrowH / 2,
-                    arrowW * 0.8, arrowH * 0.8,
-                    arrowW * 0.8, arrowH / 2
+                    arrowW * 0.8, arrowH * 0.8
                 ];
-                // My previous arrow used fill for the arrow body/head and stroke for its own border.
-                // The user's Line-based arrow will primarily use stroke for visibility.
-                // If a fill is desired, it needs fillEnabled=true and a fill color.
-                // The user's snippet applied commonProps and getStrokeStyles.
-                // commonProps contains opacity, which is fine.
-                // getStrokeStyles contains stroke color. This will be the arrow's color.
                 return (
-                    <Line // Konva.Line
-                        ref={nodeRef as React.Ref<Konva.Line>}
+                    <Group
+                        ref={nodeRef as React.RefObject<Konva.Group>}
                         x={element.x}
                         y={element.y}
-                        points={arrowPoints}
-                        closed={false} // Typically arrows are not closed if drawn as a simple path like this
-                        {...commonProps} // Includes opacity, draggable, rotation, scale
-                        {...strokeStyleProps} // Main color of arrow from stroke
-                        fillEnabled={false} // An arrow path like this usually isn't filled
-                    />
+                        width={arrowW}
+                        height={arrowH}
+                        {...commonProps}
+                    >
+                        {/* Arrow body (line) */}
+                        <Line
+                            points={arrowBodyPoints}
+                            closed={false}
+                            {...strokeStyleProps}
+                            fillEnabled={false}
+                        />
+                        {/* Arrow head (filled) */}
+                        <Line
+                            points={arrowHeadPoints}
+                            closed={true}
+                            fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
+                            stroke={convertColorToRGBA(element.borderColor, element.borderColorOpacity)}
+                            strokeWidth={element.borderStyle === 'hidden' ? 0 : element.borderWidth ?? 0}
+                            {...getBorderStyleProperties(element.borderStyle, element.borderWidth)}
+                            fillEnabled={true}
+                        />
+                    </Group>
                 );
             case "custom-image":
                 // Custom Image is centered using offsetX/Y, its x/y in ElementData is top-left

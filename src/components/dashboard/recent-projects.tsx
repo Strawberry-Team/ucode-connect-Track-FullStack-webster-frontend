@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, ImageUp, Trash2 } from 'lucide-react';
+import { Clock, ImageUp, Trash2, Copy } from 'lucide-react';
 import type { RecentProject } from '@/types/dashboard';
 import { formatDimensionDisplay } from '@/utils/format-utils';
 
@@ -10,6 +10,7 @@ interface RecentProjectsProps {
   projects: RecentProject[];
   onOpenProject: (projectId: string) => void;
   onDeleteProject: (projectId: string, e: React.MouseEvent) => void;
+  onDuplicateProject: (projectId: string, e: React.MouseEvent) => void;
   formatDate: (dateString: string) => string;
 }
 
@@ -17,6 +18,7 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
   projects,
   onOpenProject,
   onDeleteProject,
+  onDuplicateProject,
   formatDate
 }) => {
   if (projects.length === 0) {
@@ -61,8 +63,17 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
                 )}
                 <Button
                   variant="ghost"
+                  onClick={(e) => onDuplicateProject(project.id, e)}
+                  className="absolute top-1 right-10 h-8 w-8 rounded-full bg-black/50 hover:bg-blue-500/80 text-gray-300 hover:text-white p-0"
+                  title="Duplicate project"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={(e) => onDeleteProject(project.id, e)}
                   className="absolute top-1 right-1 h-8 w-8 rounded-full bg-black/50 hover:bg-red-500/80 text-gray-300 hover:text-white p-0"
+                  title="Delete project"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

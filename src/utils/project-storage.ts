@@ -179,4 +179,55 @@ export const getUserProjects = (userId?: number): RecentProject[] => {
   } catch (error) {
     return [];
   }
+};
+
+export const duplicateProject = (projectId: string, userId?: number): string | null => {
+  try {
+    const allProjects = getAllProjects();
+    
+    if (!allProjects[projectId]) {
+      return null;
+    }
+    
+    const originalProject = allProjects[projectId];
+    
+    // Generate new project ID
+    const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create new name for duplicate
+    let newName = `${originalProject.name} (Copy)`;
+    
+    // Check if name already exists and add number if needed
+    const existingNames = Object.values(allProjects).map(p => p.name);
+    let counter = 1;
+    let finalName = newName;
+    
+    while (existingNames.includes(finalName)) {
+      counter++;
+      finalName = counter === 1 
+        ? newName 
+        : `${originalProject.name} (Copy ${counter})`;
+    }
+    
+    // Create duplicate project
+    const duplicatedProject: ProjectWithData = {
+      ...originalProject,
+      id: newProjectId,
+      name: finalName,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+      userId: userId || originalProject.userId,
+      // Deep copy renderable objects to avoid reference issues
+      renderableObjects: JSON.parse(JSON.stringify(originalProject.renderableObjects))
+    };
+    
+    allProjects[newProjectId] = duplicatedProject;
+    
+    saveAllProjects(allProjects);
+    
+    return newProjectId;
+  } catch (error) {
+    console.error('Error duplicating project:', error);
+    return null;
+  }
 }; 

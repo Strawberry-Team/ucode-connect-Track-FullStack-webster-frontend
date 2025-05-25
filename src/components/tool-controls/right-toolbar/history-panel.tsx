@@ -19,7 +19,7 @@ interface HistoryPanelProps {
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) => {
-  const heightClass = isSharedHeight ? 'h-[520px]' : 'h-full';
+  const heightClass = isSharedHeight ? 'h-2/3' : 'h-full';
   const { history, revertToHistoryState, currentHistoryIndex } = useTool();
 
   const handleHistoryItemClick = (id: string, index: number) => {

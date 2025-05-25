@@ -194,6 +194,39 @@ const Canvas: React.FC = () => {
     const contentWidth = contextStageSize ? contextStageSize.width * (zoom / 100) : 0;
     const contentHeight = contextStageSize ? contextStageSize.height * (zoom / 100) : 0;
 
+    // Centralized function to set cursor based on current tool and context
+    const setCursorBasedOnTool = useCallback(() => {
+        if (!containerRef.current) return;
+        
+        // Don't change cursor if hovering over UI elements
+        if (isHoveringInteractiveElement) {
+            containerRef.current.style.cursor = 'default';
+            return;
+        }
+        
+        if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
+            containerRef.current.style.cursor = "crosshair";
+        } else if (activeTool?.type === 'brush') {
+            if (isBrushTransformModeActive) {
+                containerRef.current.style.cursor = "default";
+            } else {
+                containerRef.current.style.cursor = "none";
+            }
+        } else if (activeTool?.type === 'eraser') {
+            containerRef.current.style.cursor = "none";
+        } else if (activeTool?.type === 'liquify') {
+            containerRef.current.style.cursor = "none";
+        } else if (activeTool?.type === 'blur') {
+            containerRef.current.style.cursor = "none";
+        } else if (activeTool?.type === 'hand') {
+            containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+        } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor') {
+            containerRef.current.style.cursor = "default";
+        } else {
+            containerRef.current.style.cursor = "default";
+        }
+    }, [activeTool, isAddModeActive, isBrushTransformModeActive, isHoveringInteractiveElement, isDragging]);
+
     useProjectManager({
         loggedInUser,
         renderableObjects,
@@ -541,30 +574,9 @@ const Canvas: React.FC = () => {
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
-        } else if (activeTool?.type === 'hand') {
-            if (containerRef.current) containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
-            setShowBrushCursor(false);
-            setShowEraserCursor(false);
-            setShowLiquifyCursor(false);
-            setShowBlurCursor(false);
-        } else if (activeTool?.type === 'text') {
-            // Text tool cursor when not in add mode - override any previously set cursor
-            if (containerRef.current) containerRef.current.style.cursor = "default";
-            setShowBrushCursor(false);
-            setShowEraserCursor(false);
-            setShowLiquifyCursor(false);
-            setShowBlurCursor(false);
-        } else if (activeTool?.type === 'cursor') {
-            // Cursor tool - override any previously set cursor
-            if (containerRef.current) containerRef.current.style.cursor = "default";
-            setShowBrushCursor(false);
-            setShowEraserCursor(false);
-            setShowLiquifyCursor(false);
-            setShowBlurCursor(false);
-        }
-        // PRIORITY 3: Default cursor - override any previously set cursor
-        else {
-            if (containerRef.current) containerRef.current.style.cursor = "default";
+        } else {
+            // For cursor and text tools, and default case - use centralized function
+            setCursorBasedOnTool();
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
@@ -779,22 +791,8 @@ const Canvas: React.FC = () => {
         if (clickedOnStageBackground) {
             if (elementsManager.selectedElementId) {
                 elementsManager.setSelectedElementId(null);
-                // Reset cursor when deselecting element based on current context
-                if (containerRef.current) {
-                    // Check current context to set appropriate cursor
-                    if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
-                        containerRef.current.style.cursor = 'crosshair';
-                    } else if (activeTool?.type === 'hand') {
-                        containerRef.current.style.cursor = 'grab';
-                    } else if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
-                              activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
-                        containerRef.current.style.cursor = 'none';
-                    } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor') {
-                        containerRef.current.style.cursor = 'default';
-                    } else {
-                        containerRef.current.style.cursor = 'default';
-                    }
-                }
+                // Use centralized cursor function when deselecting element
+                setCursorBasedOnTool();
             }
             if (evt.button === 1) {
                 isDragging.current = true;
@@ -822,9 +820,15 @@ const Canvas: React.FC = () => {
                 const endX = Math.max(creationStartPoint.x, position.x);
                 const endY = Math.max(creationStartPoint.y, position.y);
                 
-                const newWidth = Math.max(20, endX - startX); // Minimum 20px
-                const newHeight = Math.max(20, endY - startY); // Minimum 20px
+                let newWidth = Math.max(20, endX - startX); // Minimum 20px
+                let newHeight = Math.max(20, endY - startY); // Minimum 20px
                 
+                if (previewElement.type === 'square') {
+                    const size = Math.max(newWidth, newHeight);
+                    newWidth = size;
+                    newHeight = size;
+                }
+
                 const updatedPreview: ElementData = {
                     ...previewElement,
                     x: startX,
@@ -936,24 +940,14 @@ const Canvas: React.FC = () => {
                 setTimeout(() => {
                     applyPositionConstraints();
                     isManuallyDragging.current = false;
-                    // After dragging, re-evaluate cursor based on current tool and mouse position
-                    if (containerRef.current && !isHoveringInteractiveElement) {
-                        // Set appropriate cursor for current tool
-                        if (activeTool?.type === 'brush' && !isBrushTransformModeActive) {
-                            containerRef.current.style.cursor = 'none';
-                        } else if (activeTool?.type === 'eraser') {
-                            containerRef.current.style.cursor = 'none';
-                        } else if (activeTool?.type === 'liquify') {
-                            containerRef.current.style.cursor = 'none';
-                        } else if (activeTool?.type === 'blur') {
-                            containerRef.current.style.cursor = 'none';
-                        } else if (activeTool?.type === 'hand') {
-                            containerRef.current.style.cursor = 'grab';
-                        } else {
-                            containerRef.current.style.cursor = 'default';
-                        }
-                    }
+                    // Use centralized cursor function to set appropriate cursor
+                    setCursorBasedOnTool();
                 }, 50);
+            } else {
+                // For element dragging, immediately set appropriate cursor
+                setTimeout(() => {
+                    setCursorBasedOnTool();
+                }, 10);
             }
         }
     };

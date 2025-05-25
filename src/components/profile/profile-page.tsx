@@ -220,9 +220,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    navigate(-1);
-  };
 
   if (isLoading) {
     return (
@@ -231,10 +228,10 @@ const ProfilePage: React.FC = () => {
           <Button 
             variant="ghost" 
             className="mb-6 text-gray-400 hover:text-white hover:bg-[#353840FF]"
-            onClick={handleBack}
+            onClick={() => navigate('/')}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            Home page
           </Button>
           
           <Card className="w-full h-[550px] max-w-3xl bg-[#25282CFF] border-2 border-[#44474AFF] shadow-xl flex flex-col">
@@ -276,10 +273,10 @@ const ProfilePage: React.FC = () => {
         <Button 
           variant="ghost" 
           className="p-2 px-4 mb-6 text-gray-400 hover:text-white hover:bg-[#353840FF]"
-          onClick={handleBack}
+          onClick={() => navigate('/')}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          Home page
         </Button>
         
         <Card className="w-full h-[550px] max-w-3xl bg-[#25282CFF] border-2 border-[#44474AFF] shadow-xl flex flex-col">
@@ -354,9 +351,7 @@ const ProfilePage: React.FC = () => {
                   </h1>
                   <p className="text-gray-400 text-lg">{loggedInUser?.email}</p>
                   <div className="flex items-center justify-center space-x-2 text-[#A7A8AAFF]">
-                    <span className="px-3 py-1 text-sm bg-[#3A3D44FF] rounded-full">
-                      {loggedInUser?.role}
-                    </span>
+                  
                     <span className="px-3 py-1 text-sm bg-[#3A3D44FF] rounded-full">
                       Joined {format(new Date(loggedInUser?.createdAt || ''), 'MMMM d, yyyy')}
                     </span>

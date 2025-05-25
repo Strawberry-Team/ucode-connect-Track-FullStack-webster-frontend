@@ -13,7 +13,7 @@ interface NavigatorPanelProps {
 const NavigatorPanel: React.FC<NavigatorPanelProps> = ({ onClose, isSharedHeight }) => {
   const { stageSize, zoom, setZoom, cursorPositionOnCanvas } = useTool();
 
-  const heightClass = isSharedHeight ? 'h-[260px]' : 'h-full';
+  const heightClass = isSharedHeight ? 'h-1/3' : 'h-full';
 
   const [tempZoomInput, setTempZoomInput] = useState<string>(() => String(Math.round(zoom)));
   const zoomInputRef = useRef<HTMLInputElement>(null);

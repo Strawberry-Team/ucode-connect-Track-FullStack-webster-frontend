@@ -3,17 +3,16 @@ import { useState } from "react"
 import { Save, FileUp, FileDown, Undo, Redo, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useUser } from "@/context/user-context"
 
 const Header: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const { loggedInUser, logoutUserContext } = useUser()
 
   const menus = [
     { id: "file", label: "File" },
     { id: "edit", label: "Edit" },
     { id: "image", label: "Image" },
-    { id: "layer", label: "Layer" },
-    { id: "select", label: "Select" },
-    { id: "filter", label: "Filter" },
     { id: "view", label: "View" },
     { id: "window", label: "Window" },
     { id: "help", label: "Help" },
@@ -21,7 +20,7 @@ const Header: React.FC = () => {
 
   return (
     <header className="bg-[#202225FF] border-b-2 border-[#44474AFF] flex flex-col">
-      <div className="flex items-center px-2 h-9">
+      <div className="flex items-center justify-between px-2 h-10">
         <div className="flex items-center space-x-1">
           {menus.map((menu) => (
             <DropdownMenu key={menu.id}>
@@ -71,6 +70,28 @@ const Header: React.FC = () => {
             </DropdownMenu>
           ))}
         </div>
+        
+        {loggedInUser && (
+          <div className="flex items-center space-x-2 -mr-2 py-1 h-8 border-1 border-[#44474AFF] rounded-full">
+            <div className="h-8 w-8 rounded-full overflow-hidden  flex-shrink-0">
+              <img 
+                src={loggedInUser.profilePictureName 
+                  ? `http://localhost:8080/uploads/user-avatars/${loggedInUser.profilePictureName}` 
+                  : undefined} 
+                alt="User avatar" 
+                className="h-full w-full object-cover"
+              />
+              {!loggedInUser.profilePictureName && (
+                <div className="h-full w-full bg-[#32353CFF] text-gray-200 flex items-center justify-center text-xs">
+                  {loggedInUser.firstName ? loggedInUser.firstName.charAt(0).toUpperCase() : 'U'}
+                </div>
+              )}
+            </div>
+            <span className="mr-3 text-sm font-medium text-gray-200 truncate max-w-[100px]">
+              {loggedInUser.firstName} {loggedInUser.lastName}
+            </span>
+          </div>
+        )}
       </div>
     </header>
   )

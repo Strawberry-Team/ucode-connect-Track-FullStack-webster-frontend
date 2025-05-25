@@ -42,7 +42,7 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onLogo
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 bg-[#2C2F34FF] border-[#4A4D54FF] text-gray-200 rounded-lg shadow-xl" align="start" side="left" sideOffset={8}>
+      <DropdownMenuContent className="w-auto bg-[#2C2F34FF] border-[#4A4D54FF] text-gray-200 rounded-lg shadow-xl" align="start" side="left" sideOffset={8}>
       <DropdownMenuLabel className="font-normal px-3 py-2">
           <div className="flex items-center space-x-3 ">
             <Avatar className="h-9 w-9 rounded-full border border-gray-600">

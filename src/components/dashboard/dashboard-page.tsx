@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 import { getCurrentAuthenticatedUser } from '@/services/user-service';
 import type { User as AuthUser } from '@/types/auth';
-import { deleteProject, getProjectData, getUserProjects } from '@/utils/project-storage';
+import { deleteProject, getProjectData, getUserProjects, duplicateProject } from '@/utils/project-storage';
 import type { RecentProject } from '@/types/dashboard';
 
 const DashboardPage: React.FC = () => {
@@ -304,6 +304,41 @@ const DashboardPage: React.FC = () => {
     toast.success("Project deleted", { duration: 3000 });
   };
 
+  const handleDuplicateProject = (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!loggedInUser) {
+      toast.error("Authentication required", { 
+        description: "Please log in to duplicate projects", 
+        duration: 3000 
+      });
+      return;
+    }
+    
+    const newProjectId = duplicateProject(projectId, loggedInUser.id);
+    
+    if (newProjectId) {
+      // Refresh the projects list
+      const userProjects = getUserProjects(loggedInUser.id);
+      setRecentProjects(userProjects);
+      
+      toast.success("Project duplicated", { 
+        description: "Project has been successfully duplicated", 
+        duration: 3000 
+      });
+      
+      // Optionally open the duplicated project immediately
+      setTimeout(() => {
+        handleOpenProject(newProjectId);
+      }, 500);
+    } else {
+      toast.error("Duplication failed", { 
+        description: "Could not duplicate the project", 
+        duration: 3000 
+      });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     try {
       const now = new Date();
@@ -446,6 +481,7 @@ const DashboardPage: React.FC = () => {
             projects={recentProjects}
             onOpenProject={handleOpenProject}
             onDeleteProject={handleDeleteProject}
+            onDuplicateProject={handleDuplicateProject}
             formatDate={formatDate}
           />
         </motion.div>
