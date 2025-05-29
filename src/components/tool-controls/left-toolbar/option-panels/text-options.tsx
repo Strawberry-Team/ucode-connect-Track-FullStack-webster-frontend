@@ -92,7 +92,6 @@ const FontSelector: React.FC<{
                   onClick={() => onChange(font)}
                   style={{ fontFamily: font }}
                 >
-                  {/* {value === font && <Check size={14} className="text-blue-400" />} */}
                   <span>{font}</span>
                 </DropdownMenuItem>
               ))}

@@ -26,7 +26,7 @@ const EraserOptions: React.FC = () => {
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="flex items-center space-x-1 h-8 pl-1 pr-1">
-            <span className="text-xs text-[#D4D4D5FF]">Eraser</span>
+            <span className="text-xs text-[#D4D4D5FF]">Eraser:</span>
             <div className="relative flex flex-col items-center mt-1">
               <span className="text-xs text-white">{eraserSize}</span>
               <ChevronDown size={12} className="text-[#A8AAACFF] -mt-1" />

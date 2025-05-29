@@ -8,7 +8,8 @@ export interface LiquifyHookProps {
   imageNodeRef: React.RefObject<Konva.Image | null>; // Ref to the image we are liquifying
   brushSize: number;
   strength: number;
-  mode: 'push' | 'reconstruct';
+  mode: 'push' | 'twirl' | 'pinch' | 'expand' | 'crystals' | 'edge' | 'reconstruct';
+  twirlDirection?: 'left' | 'right';
   containerRef: React.RefObject<HTMLDivElement | null>; // For cursor offset calculations
   zoom: number;
   stagePosition: { x: number; y: number };
@@ -26,6 +27,7 @@ const useLiquify = ({
   brushSize,
   strength,
   mode,
+  twirlDirection = 'left',
   containerRef,
   zoom,
   stagePosition 
@@ -210,6 +212,118 @@ const useLiquify = ({
         if (mode === 'push') {
           const displaceX = dx * effectStrength;
           const displaceY = dy * effectStrength;
+          const existingDisplacement = displacementMapRef.current.get(key) || { x: 0, y: 0 };
+          const newDisplacement = {
+            x: existingDisplacement.x + displaceX,
+            y: existingDisplacement.y + displaceY
+          };
+          displacementMapRef.current.set(key, newDisplacement);
+          displacementChanged = true;
+        } else if (mode === 'twirl') {
+          const centerX = currentMousePos.x;
+          const centerY = currentMousePos.y;
+          const angle = (twirlDirection === 'left' ? -1 : 1) * effectStrength * 0.2; // Twirl angle
+          const distToCenter = Math.sqrt(distX * distX + distY * distY);
+          
+          if (distToCenter > 0.1) { // Avoid division by zero
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            
+            // Rotate point around center
+            const rotatedX = distX * cos - distY * sin;
+            const rotatedY = distX * sin + distY * cos;
+            
+            const displaceX = rotatedX - distX;
+            const displaceY = rotatedY - distY;
+            
+            const existingDisplacement = displacementMapRef.current.get(key) || { x: 0, y: 0 };
+            const newDisplacement = {
+              x: existingDisplacement.x + displaceX,
+              y: existingDisplacement.y + displaceY
+            };
+            displacementMapRef.current.set(key, newDisplacement);
+            displacementChanged = true;
+          }
+        } else if (mode === 'pinch') {
+          const centerX = currentMousePos.x;
+          const centerY = currentMousePos.y;
+          const distToCenter = Math.sqrt(distX * distX + distY * distY);
+          
+          if (distToCenter > 0.1) { // Avoid division by zero
+            const pinchStrength = effectStrength * 0.3;
+            const normalizedX = distX / distToCenter;
+            const normalizedY = distY / distToCenter;
+            
+            // Pull pixels towards center
+            const displaceX = -normalizedX * pinchStrength * distToCenter;
+            const displaceY = -normalizedY * pinchStrength * distToCenter;
+            
+            const existingDisplacement = displacementMapRef.current.get(key) || { x: 0, y: 0 };
+            const newDisplacement = {
+              x: existingDisplacement.x + displaceX,
+              y: existingDisplacement.y + displaceY
+            };
+            displacementMapRef.current.set(key, newDisplacement);
+            displacementChanged = true;
+          }
+        } else if (mode === 'expand') {
+          const centerX = currentMousePos.x;
+          const centerY = currentMousePos.y;
+          const distToCenter = Math.sqrt(distX * distX + distY * distY);
+          
+          if (distToCenter > 0.1) { // Avoid division by zero
+            const expandStrength = effectStrength * 0.3;
+            const normalizedX = distX / distToCenter;
+            const normalizedY = distY / distToCenter;
+            
+            // Push pixels away from center
+            const displaceX = normalizedX * expandStrength * distToCenter;
+            const displaceY = normalizedY * expandStrength * distToCenter;
+            
+            const existingDisplacement = displacementMapRef.current.get(key) || { x: 0, y: 0 };
+            const newDisplacement = {
+              x: existingDisplacement.x + displaceX,
+              y: existingDisplacement.y + displaceY
+            };
+            displacementMapRef.current.set(key, newDisplacement);
+            displacementChanged = true;
+          }
+        } else if (mode === 'crystals') {
+          const centerX = currentMousePos.x;
+          const centerY = currentMousePos.y;
+          const distToCenter = Math.sqrt(distX * distX + distY * distY);
+          
+          if (distToCenter > 0.1) { // Avoid division by zero
+            const crystalStrength = effectStrength * 0.4;
+            
+            // Create uneven displacement pattern (like crystal shards)
+            const angle = Math.atan2(distY, distX);
+            const randomOffset = (Math.random() - 0.5) * 2; // Random factor for unevenness
+            const shardAngle = angle + randomOffset * 0.5;
+            
+            const displaceX = Math.cos(shardAngle) * crystalStrength * distToCenter;
+            const displaceY = Math.sin(shardAngle) * crystalStrength * distToCenter;
+            
+            const existingDisplacement = displacementMapRef.current.get(key) || { x: 0, y: 0 };
+            const newDisplacement = {
+              x: existingDisplacement.x + displaceX,
+              y: existingDisplacement.y + displaceY
+            };
+            displacementMapRef.current.set(key, newDisplacement);
+            displacementChanged = true;
+          }
+        } else if (mode === 'edge') {
+          const centerX = currentMousePos.x;
+          const centerY = currentMousePos.y;
+          
+          // Create folding effect along a line (vertical fold)
+          const distanceFromEdge = Math.abs(distX); // Distance from vertical edge line
+          const edgeStrength = effectStrength * 0.4;
+          
+          // Pull pixels towards the edge line
+          const displaceX = distX > 0 ? -edgeStrength * distanceFromEdge : edgeStrength * distanceFromEdge;
+          const displaceY = 0; // No vertical displacement for edge effect
+          
           const existingDisplacement = displacementMapRef.current.get(key) || { x: 0, y: 0 };
           const newDisplacement = {
             x: existingDisplacement.x + displaceX,

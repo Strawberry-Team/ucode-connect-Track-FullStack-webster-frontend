@@ -199,8 +199,10 @@ interface ToolContextValue {
     setLiquifyBrushSize: (size: number) => void;
     liquifyStrength: number;
     setLiquifyStrength: (strength: number) => void;
-    liquifyMode: 'push' | 'reconstruct';
-    setLiquifyMode: (mode: 'push' | 'reconstruct') => void;
+    liquifyMode: 'push' | 'twirl' | 'pinch' | 'expand' | 'crystals' | 'edge' | 'reconstruct';
+    setLiquifyMode: (mode: 'push' | 'twirl' | 'pinch' | 'expand' | 'crystals' | 'edge' | 'reconstruct') => void;
+    liquifyTwirlDirection: 'left' | 'right';
+    setLiquifyTwirlDirection: (direction: 'left' | 'right') => void;
     isImageReadyForLiquify: boolean;
     setIsImageReadyForLiquify: (isReady: boolean) => void;
 
@@ -297,7 +299,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     // Liquify tool state
     const [liquifyBrushSize, setLiquifyBrushSize] = useState(20);
     const [liquifyStrength, setLiquifyStrength] = useState(50);
-    const [liquifyMode, setLiquifyMode] = useState<'push' | 'reconstruct'>('push');
+    const [liquifyMode, setLiquifyMode] = useState<'push' | 'twirl' | 'pinch' | 'expand' | 'crystals' | 'edge' | 'reconstruct'>('push');
+    const [liquifyTwirlDirection, setLiquifyTwirlDirection] = useState<'left' | 'right'>('left');
     const [isImageReadyForLiquify, setIsImageReadyForLiquify] = useState(false);
 
     // Blur tool state
@@ -642,6 +645,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setLiquifyStrength,
                 liquifyMode,
                 setLiquifyMode,
+                liquifyTwirlDirection,
+                setLiquifyTwirlDirection,
                 isImageReadyForLiquify,
                 setIsImageReadyForLiquify,
 

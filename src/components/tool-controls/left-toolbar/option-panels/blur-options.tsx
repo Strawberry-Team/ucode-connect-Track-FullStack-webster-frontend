@@ -37,12 +37,11 @@ const BlurOptions: React.FC = () => {
 
   return (
     <div className="flex items-center space-x-2">
-      <Droplet strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] mr-2 flex-shrink-0" />
-
       {/* Brush Size Slider Popover */}
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="flex items-center space-x-1 h-8 pl-1 pr-1 ">
+            <span className="text-xs text-[#D4D4D5FF]">Blur:</span>
             <div className="relative flex flex-col items-center mt-1">
               <span className="text-xs text-white">{blurBrushSize}</span>
               <ChevronDown size={12} className="text-[#A8AAACFF] -mt-1" />
@@ -67,16 +66,17 @@ const BlurOptions: React.FC = () => {
         suffix="%"
       />
 
+      <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
+
       {/* Reset Button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className="h-7 w-7 bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5]"
+          <Button
+            variant="ghost"
+            className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
             onClick={handleResetClick}
-            aria-label="Reset Blur Effect"
           >
-            <RotateCcw className="h-4 w-4" />
+            <span className="text-xs">Reset all</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>

@@ -2,13 +2,43 @@ import React from "react";
 import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, RotateCcw, ChevronDown, Check } from "lucide-react";
+import {
+  Waves,
+  RotateCcw,
+  ChevronDown,
+  Move,
+  Zap,
+  Minimize2,
+  Maximize2,
+  Diamond,
+  Undo2,
+  Scissors,
+  RotateCw,
+  RotateCcw as TwirlLeft
+} from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { resetLiquifyFunction } from "@/components/canvas/canvas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Adding styles for scrollbar (same as text-options)
+const scrollbarStyles = `
+  ::-webkit-scrollbar {
+    width: 8px;
+    background-color: #292C31;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #44474A;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: #292C31;
+    border-radius: 4px;
+  }
+`;
 
 const LiquifyOptions: React.FC = () => {
   const {
@@ -18,6 +48,8 @@ const LiquifyOptions: React.FC = () => {
     setLiquifyStrength,
     liquifyMode,
     setLiquifyMode,
+    liquifyTwirlDirection,
+    setLiquifyTwirlDirection,
     isImageReadyForLiquify,
   } = useTool();
 
@@ -31,7 +63,22 @@ const LiquifyOptions: React.FC = () => {
 
   const liquifyModeLabels = {
     push: "Push",
+    pinch: "Pinch",
+    expand: "Expand",
+    crystals: "Crystals",
+    edge: "Edge",
+    twirl: "Twirl",
     reconstruct: "Reconstruct",
+  };
+
+  const liquifyModeIcons = {
+    push: Move,
+    twirl: Zap,
+    pinch: Minimize2,
+    expand: Maximize2,
+    crystals: Diamond,
+    edge: Scissors,
+    reconstruct: Undo2,
   };
 
   if (!isImageReadyForLiquify) {
@@ -46,11 +93,10 @@ const LiquifyOptions: React.FC = () => {
 
   return (
     <div className="flex items-center space-x-2">
-      <Waves strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] mr-2 flex-shrink-0" />
-
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="flex items-center space-x-1 h-8 pl-1 pr-1 ">
+            <span className="text-xs text-[#D4D4D5FF]">Liquify:</span>
             <div className="relative flex flex-col items-center mt-1">
               <span className="text-xs text-white">{liquifyBrushSize}</span>
               <ChevronDown size={12} className="text-[#A8AAACFF] -mt-1" />
@@ -65,30 +111,80 @@ const LiquifyOptions: React.FC = () => {
         </PopoverContent>
       </Popover>
 
-      {/* Mode Selector - Dropdown */}
+      {/* Mode Selector */}
       <div className="flex items-center space-x-2">
         <Label className="text-xs text-[#D4D4D5FF] pl-3">Method:</Label>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
+              {React.createElement(liquifyModeIcons[liquifyMode], { size: 14 })}
               {liquifyModeLabels[liquifyMode]}
-              <ChevronDown size={12} className="text-white ml-0.5" />
+              <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0">
-            {Object.entries(liquifyModeLabels).map(([mode, label]) => (
-              <DropdownMenuItem
-                key={mode}
-                className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer"
-                onClick={() => setLiquifyMode(mode as 'push' | 'reconstruct')}
-              >
-                {liquifyMode === mode && <Check size={14} className="text-blue-400" />}
-                <span className={liquifyMode !== mode ? "ml-5" : ""}>{label}</span>
-              </DropdownMenuItem>
-            ))}
+          <DropdownMenuContent
+            className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0"
+          >
+            <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
+            <ScrollArea className="h-[200px] w-[180px]">
+              <div className="p-1">
+                {Object.entries(liquifyModeLabels).map(([mode, label]) => {
+                  const IconComponent = liquifyModeIcons[mode as keyof typeof liquifyModeIcons];
+                  return (
+                    <DropdownMenuItem
+                      key={mode}
+                      className={`flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer ${liquifyMode === mode ? "bg-[#3F434AFF] rounded-sm" : ""}`}
+                      onClick={() => setLiquifyMode(mode as typeof liquifyMode)}
+                    >
+                      <IconComponent size={14} />
+                      <span>{label}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </div>
+            </ScrollArea>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Twirl Direction Selector (only visible when Twirl mode is active) */}
+      {liquifyMode === 'twirl' && (
+        <div className="flex items-center space-x-2">
+          <Label className="text-xs text-[#D4D4D5FF] pl-3">Direction:</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
+                {liquifyTwirlDirection === 'left' ? <TwirlLeft size={14} /> : <RotateCw size={14} />}
+                {liquifyTwirlDirection === 'left' ? 'Left' : 'Right'}
+                <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0"
+            >
+              <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
+              <ScrollArea className="h-[80px] w-[120px]">
+                <div className="p-1">
+                  <DropdownMenuItem
+                    className={`flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer ${liquifyTwirlDirection === 'left' ? "bg-[#3F434AFF] rounded-sm" : ""}`}
+                    onClick={() => setLiquifyTwirlDirection('left')}
+                  >
+                    <TwirlLeft size={14} />
+                    <span>Left</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={`flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer ${liquifyTwirlDirection === 'right' ? "bg-[#3F434AFF] rounded-sm" : ""}`}
+                    onClick={() => setLiquifyTwirlDirection('right')}
+                  >
+                    <RotateCw size={14} />
+                    <span>Right</span>
+                  </DropdownMenuItem>
+                </div>
+              </ScrollArea>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
 
       {/* Strength Slider Popover */}
       <NumberInputWithPopover
@@ -100,16 +196,17 @@ const LiquifyOptions: React.FC = () => {
         suffix="%"
       />
 
+      <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
+
       {/* Reset Button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className="h-7 w-7 bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5]"
+          <Button
+            variant="ghost"
+            className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
             onClick={handleResetClick}
-            aria-label="Reset Liquify Effect"
           >
-            <RotateCcw className="h-4 w-4" />
+            <span className="text-xs">Reset all</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>

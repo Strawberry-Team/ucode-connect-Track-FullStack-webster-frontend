@@ -51,6 +51,7 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           stroke="rgba(255, 255, 255, 0.7)"
           strokeWidth={LARGE_CURSOR_CIRCLE_STROKE_WIDTH}
           fill="none"
+          style={{ filter: "drop-shadow(0 0 0.1px rgba(0,0,0,0.8))" }}
         />
         
         {hardness > 0 && (
@@ -62,6 +63,7 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
             strokeWidth={1}
             strokeDasharray="3,3"
             fill="none"
+            style={{ filter: "drop-shadow(0 0 0.1px rgba(0,0,0,0.8))" }}
           />
         )}
         
@@ -70,6 +72,7 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           cy={svgCenter}
           r={svgCenter - 1}
           fill={`rgba(255, 255, 255, ${blurStrength / 300})`}
+          style={{ filter: "drop-shadow(0 0 0.1px rgba(0,0,0,0.8))" }}
         />
         
         <line
@@ -79,6 +82,7 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           y2={svgCenter}
           stroke="rgba(255, 255, 255, 0.9)"
           strokeWidth="1"
+          style={{ filter: "drop-shadow(0 0 0.1px rgba(0,0,0,0.8))" }}
         />
         <line
           x1={svgCenter}
@@ -87,6 +91,7 @@ const BlurCursor: React.FC<BlurCursorProps> = ({
           y2={svgCenter + Math.min(finalSvgDiameter * 0.15, 4)}
           stroke="rgba(255, 255, 255, 0.9)"
           strokeWidth="1"
+          style={{ filter: "drop-shadow(0 0 0.1px rgba(0,0,0,0.8))" }}
         />
       </svg>
     </div>

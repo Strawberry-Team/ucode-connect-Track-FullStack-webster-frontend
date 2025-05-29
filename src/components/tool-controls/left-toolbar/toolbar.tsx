@@ -95,22 +95,6 @@ const Toolbar: React.FC = () => {
             imageUrl: "https://pixlr.com/img/tool/shape-info.jpg"
         },
         {
-            id: "crop",
-            name: "Crop",
-            type: "crop",
-            icon: Crop,
-            description: "Crop the canvas to a selected area.",
-            imageUrl: "https://pixlr.com/img/tool/crop-info.jpg"
-        },
-        {
-            id: "hand",
-            name: "Hand",
-            type: "hand",
-            icon: Hand,
-            description: "Pan the canvas.",
-            imageUrl: "https://pixlr.com/img/tool/hand-info.jpg"
-        },
-        {
             id: "liquify",
             name: "Liquify",
             type: "liquify",
@@ -125,6 +109,22 @@ const Toolbar: React.FC = () => {
             icon: Droplet,
             description: "Blur parts of the image using a brush.",
             imageUrl: "https://pixlr.com/img/tool/detail-info.jpg"
+        },
+        {
+            id: "crop",
+            name: "Crop",
+            type: "crop",
+            icon: Crop,
+            description: "Crop the canvas to a selected area.",
+            imageUrl: "https://pixlr.com/img/tool/crop-info.jpg"
+        },
+        {
+            id: "hand",
+            name: "Hand",
+            type: "hand",
+            icon: Hand,
+            description: "Pan the canvas.",
+            imageUrl: "https://pixlr.com/img/tool/hand-info.jpg"
         },
     ]
 
@@ -232,7 +232,6 @@ const Toolbar: React.FC = () => {
                                 </PopoverContent>
                             </Popover>
                         </div>
-
 
                         <div className="absolute top-0 right-0 transform translate-x-4.5 -translate-y-1/5">
                             <Tooltip>

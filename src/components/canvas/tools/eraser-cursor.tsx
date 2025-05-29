@@ -80,11 +80,12 @@ const EraserCursor: React.FC<EraserCursorProps> = ({
               stroke={"white"}
               strokeWidth={1}
               fill="none"
+              style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }}
             />
-            <line x1={svgCenter} y1={svgCenter - lineStartPosFromCenter} x2={svgCenter} y2={svgCenter - lineEndPosFromCenter} stroke="white" strokeWidth={1.5} />
-            <line x1={svgCenter} y1={svgCenter + lineStartPosFromCenter} x2={svgCenter} y2={svgCenter + lineEndPosFromCenter} stroke="white" strokeWidth={1.5} />
-            <line x1={svgCenter - lineStartPosFromCenter} y1={svgCenter} x2={svgCenter - lineEndPosFromCenter} y2={svgCenter} stroke="white" strokeWidth={1.5} />
-            <line x1={svgCenter + lineStartPosFromCenter} y1={svgCenter} x2={svgCenter + lineEndPosFromCenter} y2={svgCenter} stroke="white" strokeWidth={1.5} />
+            <line x1={svgCenter} y1={svgCenter - lineStartPosFromCenter} x2={svgCenter} y2={svgCenter - lineEndPosFromCenter} stroke="white" strokeWidth={1.5} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }} />
+            <line x1={svgCenter} y1={svgCenter + lineStartPosFromCenter} x2={svgCenter} y2={svgCenter + lineEndPosFromCenter} stroke="white" strokeWidth={1.5} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }} />
+            <line x1={svgCenter - lineStartPosFromCenter} y1={svgCenter} x2={svgCenter - lineEndPosFromCenter} y2={svgCenter} stroke="white" strokeWidth={1.5} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }} />
+            <line x1={svgCenter + lineStartPosFromCenter} y1={svgCenter} x2={svgCenter + lineEndPosFromCenter} y2={svgCenter} stroke="white" strokeWidth={1.5} style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }} />
           </>
         ) : (
           <>
@@ -95,6 +96,7 @@ const EraserCursor: React.FC<EraserCursorProps> = ({
               stroke="white"
               strokeWidth={LARGE_CURSOR_CIRCLE_STROKE_WIDTH}
               fill="none"
+              style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }}
             />
             <line
               x1={svgCenter - Math.min(finalSvgDiameter * 0.1, 5)}
@@ -103,6 +105,7 @@ const EraserCursor: React.FC<EraserCursorProps> = ({
               y2={svgCenter}
               stroke="white"
               strokeWidth="1"
+              style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }}
             />
             <line
               x1={svgCenter}
@@ -111,6 +114,7 @@ const EraserCursor: React.FC<EraserCursorProps> = ({
               y2={svgCenter + Math.min(finalSvgDiameter * 0.1, 5)}
               stroke="white"
               strokeWidth="1"
+              style={{ filter: "drop-shadow(0 0 2px rgba(0,0,0,0.8))" }}
             />
           </>
         )}

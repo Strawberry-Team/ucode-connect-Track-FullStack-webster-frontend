@@ -36,7 +36,7 @@ const BrushOptions: React.FC = () => {
       <Popover open={brushMenuOpen} onOpenChange={setBrushMenuOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="flex items-center space-x-1 h-8 pl-1 pr-1">
-            <span className="text-xs text-[#D4D4D5FF]">Brush</span>
+            <span className="text-xs text-[#D4D4D5FF]">Brush:</span>
             <div
               className="w-5 h-5 rounded-full border-2"
               style={{ backgroundColor: color, borderColor: brushPreviewBorderColor }}

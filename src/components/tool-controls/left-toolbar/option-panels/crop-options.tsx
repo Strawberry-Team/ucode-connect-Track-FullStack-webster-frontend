@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTool } from '@/context/tool-context';
 import { Crop, Check, ChevronDown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CropOptions: React.FC = () => {
   const {
@@ -266,25 +268,23 @@ const CropOptions: React.FC = () => {
   };
 
   const aspectRatios = [
-    { value: 'custom', label: 'Arbitrarily' },
-    { value: '1:1', label: '1:1 (square)' },
-    { value: '16:9', label: '16:9 (widescreen)' },
-    { value: '4:3', label: '4:3 (screen)' },
-    { value: '3:2', label: '3:2 (35mm film)' },
+    { value: 'custom', label: 'Free' },
+    { value: '1:1', label: '1:1 (Square)' },
+    { value: '16:9', label: '16:9 (Widescreen)' },
+    { value: '4:3', label: '4:3 (Screen)' },
+    { value: '3:2', label: '3:2 (35mm Film)' },
   ];
 
   if (!isCropping && activeTool?.type !== 'crop') {
     return null;
   }
 
-  const selectedLabel = aspectRatios.find(r => r.value === selectedAspectRatio)?.label || "Соотношение";
+  const selectedLabel = aspectRatios.find(r => r.value === selectedAspectRatio)?.label || "Proportion";
 
   return (
     <div className="flex items-center space-x-3  bg-[#292C31FF] text-white h-full">
-      <Crop strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] flex-shrink-0" />
-
       <div className="flex items-center space-x-1.5">
-      <Label className="text-xs text-[#D4D4D5FF] pl-3">W:</Label>
+        <Label className="text-xs text-[#D4D4D5FF]">Width:</Label>
         <Input
           id="crop-width"
           type="number"
@@ -297,7 +297,7 @@ const CropOptions: React.FC = () => {
         />
       </div>
       <div className="flex items-center space-x-1.5">
-      <Label className="text-xs text-[#D4D4D5FF]">H:</Label>
+        <Label className="text-xs text-[#D4D4D5FF]">Height:</Label>
         <Input
           id="crop-height"
           type="number"
@@ -310,53 +310,76 @@ const CropOptions: React.FC = () => {
         />
       </div>
       <div className="flex items-center space-x-1.5">
-        <Label className="text-xs text-[#D4D4D5FF] pl-3">Preset:</Label>
+        <Label className="text-xs text-[#D4D4D5FF] pl-3">Aspect Ratio:</Label>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={!isCropping || !stageSize}>
             <Button
               variant="ghost"
               id="crop-aspect-ratio-trigger"
-              aria-label="Соотношение сторон"
-              className="w-auto flex items-center h-7 px-2 gap-2 text-white rounded bg-[#1E1F22] border-2 border-[#44474AFF]"
+              className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]"
             >
-              {selectedLabel}
-              <ChevronDown size={12} className="text-white ml-0.5" />
+              <span className="text-xs text-white">{selectedLabel}</span>
+              <ChevronDown size={12} className="text-white" strokeWidth={1.5} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white !text-xs p-0"
+            className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0"
           >
-            {aspectRatios.map((ratio) => (
-              <DropdownMenuItem
-                key={ratio.value}
-                className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer"
-                onClick={() => handleAspectRatioChange(ratio.value)}
-              >
-                {selectedAspectRatio === ratio.value && <Check size={14} className="text-blue-400" />}
-                <span className={selectedAspectRatio !== ratio.value ? "ml-5" : ""}>
-                  {ratio.label}
-                </span>
-              </DropdownMenuItem>
-            ))}
+            <ScrollArea>
+              <div className="p-1">
+                {aspectRatios.map((ratio) => (
+                  <DropdownMenuItem
+                    key={ratio.value}
+                    className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:rounded-sm hover:bg-[#3F434AFF] focus:bg-[#3F434AFF] ${selectedAspectRatio === ratio.value ? "bg-[#3F434AFF] rounded-sm text-white" : ""}`}
+                    onClick={() => handleAspectRatioChange(ratio.value)}
+                  >
+                    <span className="text-white">{ratio.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </ScrollArea>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex items-center space-x-2 pl-1">
-        <Button
-          onClick={handleResetCrop}
-          variant="ghost"
-          className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!isCropping}
-        >
-          Reset
-        </Button>
-        <Button
-          onClick={handleApplyCrop}
-          className="bg-[#007ACC] hover:bg-[#005A99] text-white text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!isCropping || !cropRect || cropRect.width <= 0 || cropRect.height <= 0}
-        >
-          Save
-        </Button>
+
+      <div className="h-6 ml-3 border-l border-[#44474AFF]"></div>
+
+      <div className="flex items-center space-x-3">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleResetCrop}
+                variant="ghost"
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                disabled={!isCropping}
+              >
+                Reset
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reset Crop</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleApplyCrop}
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                disabled={!isCropping || !cropRect || cropRect.width <= 0 || cropRect.height <= 0}
+              >
+                Save
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reset Crop</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
       </div>
     </div>
   );

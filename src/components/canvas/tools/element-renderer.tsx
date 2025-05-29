@@ -137,6 +137,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
     const textNodeRef = useRef<Konva.Text | null>(null); // Ref for direct Konva.Text node access
 
+    // Clean up textarea when component unmounts
+    useEffect(() => {
+        return () => {
+            if (textAreaRef.current) {
+                if (textAreaRef.current.parentNode) {
+                    textAreaRef.current.parentNode.removeChild(textAreaRef.current);
+                }
+                textAreaRef.current = null;
+            }
+        };
+    }, []);
+
     const canInteractWithElement = useCallback(() => {
         if (!activeTool) return true;
         if (activeTool.type === "cursor") return true;
@@ -205,7 +217,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             tr.borderStroke('#0096FF');
 
             // Adjust padding based on element type
-            const paddingValue = element.type === 'text' ? 5 : (element.type === 'custom-image' ? 0 : 2);
+            const paddingValue = 0;
             tr.padding(paddingValue);
 
             // Make rotation anchor more visible
@@ -569,6 +581,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 onTextEdit(element.id, newText);
             }
         };
+        
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 textarea.style.display = 'none';
@@ -583,16 +596,37 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 }
             }
         };
+        
+        // Function to update textarea position when stage scales or moves
+        const updateTextareaPosition = () => {
+            if (groupNodeForPositioning && textarea && textarea.style.display === 'block') {
+                positionTextarea(groupNodeForPositioning, textarea);
+            }
+        };
+        
         textarea.addEventListener('blur', handleBlur);
         textarea.addEventListener('keydown', handleKeyDown);
+        
+        // Track stage changes to update textarea position
+        const stage = groupNodeForPositioning?.getStage();
+        if (stage) {
+            stage.on('scaleChange', updateTextareaPosition);
+            stage.on('positionChange', updateTextareaPosition);
+        }
+        
         setTimeout(() => {
             if (groupNodeForPositioning && textarea) {
                 positionTextarea(groupNodeForPositioning, textarea); // Pass groupNode
             }
         }, 0);
+        
         return () => {
             textarea.removeEventListener('blur', handleBlur);
             textarea.removeEventListener('keydown', handleKeyDown);
+            if (stage) {
+                stage.off('scaleChange', updateTextareaPosition);
+                stage.off('positionChange', updateTextareaPosition);
+            }
         };
     };
 
@@ -604,17 +638,33 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
         const stageContainer = stage.container();
         const stageRect = stageContainer.getBoundingClientRect(); // Stage position on page
+        
+        // Get stage scale and position from Canvas component
+        const stageScaleX = stage.scaleX();
+        const stageScaleY = stage.scaleY();
+        const stagePosition = stage.position();
+        
+        // Get Canvas container position
+        const canvasContainer = stageContainer.parentElement;
+        const canvasRect = canvasContainer ? canvasContainer.getBoundingClientRect() : stageRect;
 
-        textarea.style.position = 'absolute';
-        textarea.style.top = `${stageRect.top + box.y}px`;
-        textarea.style.left = `${stageRect.left + box.x}px`;
-        textarea.style.width = `${box.width}px`;
-        textarea.style.height = `${box.height}px`;
+        // Calculate textarea position considering stage scale and Canvas position
+        const adjustedX = canvasRect.left + (box.x * stageScaleX) + stagePosition.x;
+        const adjustedY = canvasRect.top + (box.y * stageScaleY) + stagePosition.y;
+        const adjustedWidth = box.width * stageScaleX;
+        const adjustedHeight = box.height * stageScaleY;
+
+        textarea.style.position = 'fixed'; // Використовуємо fixed для кращого контролю
+        textarea.style.top = `${adjustedY}px`;
+        textarea.style.left = `${adjustedX}px`;
+        textarea.style.width = `${adjustedWidth}px`;
+        textarea.style.height = `${adjustedHeight}px`;
 
         textarea.style.transformOrigin = 'left top';
         textarea.style.transform = `rotate(${groupNode.rotation()}deg)`;
 
-        const visualFontSize = (element.fontSize || 16) * Math.abs(groupNode.scaleY()) * stage.scaleY();
+        // Consider stage scale when calculating font size
+        const visualFontSize = (element.fontSize || 16) * Math.abs(groupNode.scaleY()) * stageScaleY;
         textarea.style.fontSize = `${visualFontSize}px`;
 
         textarea.style.fontFamily = element.fontFamily || 'Arial';
@@ -646,6 +696,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             case 'capitalize': textarea.style.textTransform = 'capitalize'; break;
             default: textarea.style.textTransform = 'none';
         }
+        
+        // Add zIndex to display above all elements
+        textarea.style.zIndex = '9999';
 
         textarea.focus();
         if (element.text !== "Type text here...") {
@@ -973,7 +1026,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         'middle-left', 'middle-right',
                         'bottom-left', 'bottom-center', 'bottom-right'
                     ]}
-                    padding={element.type === 'text' ? 5 : (element.type === 'custom-image' ? 0 : 2)}
+                    padding={0}
                 />
             )}
         </>

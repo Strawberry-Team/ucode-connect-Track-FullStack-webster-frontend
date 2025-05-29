@@ -73,28 +73,27 @@ const HandOptions: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center space-x-2">
-            <Hand strokeWidth={1.5} className="!w-5 !h-5 text-[#A8AAACFF] flex-shrink-0" />
-
+        <div className="flex items-center space-x-3">
+            <span className="text-xs text-[#D4D4D5FF]">Mode:</span>
             <Button
                 onClick={handleSet100Percent}
                 variant="ghost"
-                className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                >
                 100%
             </Button>
             <Button
                 onClick={handleFitToScreen}
                 variant="ghost"
-                className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                >
                 Adjust
             </Button>
             <Button
                 onClick={handleFillScreen}
                 variant="ghost"
-                className="bg-[#383A3EFF] hover:bg-[#414448FF] text-[#D4D4D5] text-xs h-7 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                >
                 Fill
             </Button>
 
