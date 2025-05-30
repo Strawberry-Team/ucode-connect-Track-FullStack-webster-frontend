@@ -10,6 +10,7 @@ import type {
     ShapeType,
     RenderableObject
 } from "@/types/canvas"
+import { toast } from 'sonner';
 
 // Import MousePointer2 for default tool
 import { MousePointer2 } from "lucide-react";
@@ -43,6 +44,8 @@ interface InitialImage {
     width: number;
     height: number;
     file: File;
+    x?: number;
+    y?: number;
 }
 
 interface ToolContextValue {
@@ -218,11 +221,18 @@ interface ToolContextValue {
     selectedLineId: string | null;
     setSelectedLineId: (id: string | null) => void;
 
-
     isProgrammaticZoomRef: React.MutableRefObject<boolean>;
 
     isApplyingCrop: boolean;
     setIsApplyingCrop: (isApplying: boolean) => void;
+
+    // File import/export functions
+    importFile: (file: File) => Promise<void>;
+    exportFile: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>;
+    registerCanvasExporter: (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) => void;
+
+    // State for storing the canvas exporter function
+    canvasExporter: ((format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) | null;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -325,6 +335,9 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const isProgrammaticZoomRef = useRef<boolean>(false);
 
     const [isApplyingCrop, setIsApplyingCrop] = useState<boolean>(false);
+
+    // State for storing the canvas exporter function
+    const [canvasExporter, setCanvasExporter] = useState<((format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) | null>(null);
 
     const setActiveTool = useCallback((tool: Tool | null) => {
         setActiveToolInternal(tool);
@@ -506,6 +519,170 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         setCurrentHistoryIndex(-1);
     };
 
+    const importFile = async (file: File) => {
+        const fileType = file.type;
+        const fileName = file.name.toLowerCase();
+
+        try {
+            if (fileType.startsWith('image/') || fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpg')) {
+                // Import image files
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let imageWidth = img.width;
+                        let imageHeight = img.height;
+                        let imageX = 0;
+                        let imageY = 0;
+
+                        // If no stage size exists, create canvas with image dimensions
+                        if (!stageSize) {
+                            setStageSize({ width: img.width, height: img.height });
+                        } else {
+                            // Calculate positioning and scaling for existing canvas
+                            const canvasWidth = stageSize.width;
+                            const canvasHeight = stageSize.height;
+
+                            // Check if image is larger than canvas
+                            if (img.width > canvasWidth || img.height > canvasHeight) {
+                                // Scale down image to fit canvas while preserving aspect ratio
+                                const scaleX = canvasWidth / img.width;
+                                const scaleY = canvasHeight / img.height;
+                                const scale = Math.min(scaleX, scaleY);
+                                
+                                imageWidth = img.width * scale;
+                                imageHeight = img.height * scale;
+                            }
+
+                            // Center the image on canvas
+                            imageX = (canvasWidth - imageWidth) / 2;
+                            imageY = (canvasHeight - imageHeight) / 2;
+                        }
+                        
+                        // Set as initial image with calculated dimensions and position
+                        setInitialImage({
+                            src: e.target?.result as string,
+                            width: imageWidth,
+                            height: imageHeight,
+                            file: file,
+                            x: imageX,
+                            y: imageY
+                        });
+
+                        // Add to history
+                        addHistoryEntry({
+                            type: 'elementAdded',
+                            description: `Imported image: ${file.name}`,
+                            linesSnapshot: [...renderableObjects]
+                        });
+
+                        // Show success toast
+                        toast.success("Success", {
+                            description: `Image "${file.name}" opened successfully`,
+                            duration: 5000,
+                        });
+                    };
+                    img.src = e.target?.result as string;
+                };
+                reader.readAsDataURL(file);
+            } else if (fileName.endsWith('.json')) {
+                // Import JSON project files
+                const text = await file.text();
+                try {
+                    const projectData = JSON.parse(text);
+                    if (projectData.renderableObjects) {
+                        setRenderableObjects(projectData.renderableObjects);
+                        if (projectData.stageSize) {
+                            setStageSize(projectData.stageSize);
+                        }
+                        addHistoryEntry({
+                            type: 'elementAdded',
+                            description: `Imported project: ${file.name}`,
+                            linesSnapshot: projectData.renderableObjects
+                        });
+
+                        // Show success toast
+                        toast.success("Success", {
+                            description: `Project "${file.name}" opened successfully`,
+                            duration: 5000,
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error parsing JSON:', error);
+                     toast.error("Error", {
+                        description: "Invalid JSON file format",
+                        duration: 5000,
+                      });
+                }
+            } else {
+                toast.error("Error", {
+                    description: "Unsupported file format. Please use PNG, JPG, or JSON files.",
+                    duration: 5000,
+                  });
+            }
+        } catch (error) {
+            console.error('Error importing file:', error);
+            toast.error("Error", {
+                description: "Error importing file: " + error,
+                duration: 5000,
+              });
+        }
+    };
+
+    const exportFile = async (format: 'png' | 'jpg' | 'pdf' | 'json') => {
+        try {
+            if (format === 'json') {
+                // Export project data as JSON
+                const projectData = {
+                    version: '1.0',
+                    timestamp: new Date().toISOString(),
+                    stageSize,
+                    renderableObjects,
+                    settings: {
+                        backgroundColor,
+                        backgroundOpacity
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                const fileName = `project_${Date.now()}.json`;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                // Show success toast
+                toast.success("Success", {
+                    description: `Project saved as "${fileName}"`,
+                    duration: 5000,
+                });
+            } else if (canvasExporter) {
+                // Use canvas exporter for image formats
+                await canvasExporter(format);
+            } else {
+                console.warn('Canvas exporter not registered');
+                 toast.error("Error", {
+                    description: "Canvas not ready for export. Please try again.",
+                    duration: 5000,
+                  });
+            }
+        } catch (error) {
+            console.error('Error exporting file:', error);
+             toast.error("Error", {
+                description: 'Error exporting file: ' + error,
+                duration: 5000,
+              });
+        }
+    };
+
+    const registerCanvasExporter = (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) => {
+        setCanvasExporter(() => exporter);
+    };
+
     return (
         <ToolContext.Provider
             value={{
@@ -666,6 +843,14 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
                 isApplyingCrop,
                 setIsApplyingCrop,
+
+                // File import/export functions
+                importFile,
+                exportFile,
+                registerCanvasExporter,
+
+                // State for storing the canvas exporter function
+                canvasExporter,
             }}
         >
             {children}

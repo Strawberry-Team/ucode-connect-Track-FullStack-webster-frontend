@@ -84,7 +84,7 @@ const CanvasPage: React.FC = () => {
   return (
     <ElementsManagerProvider options={elementsManagerOptions}>
       <div className="flex flex-col h-screen bg-[#292C31FF] text-gray-200 overflow-hidden">
-        <Header />
+        {/* <Header /> */}
         <PropertiesPanel />
         <div className="flex flex-1 overflow-hidden">
           <Toolbar />

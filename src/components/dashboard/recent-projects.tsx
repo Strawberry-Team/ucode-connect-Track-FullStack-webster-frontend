@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Clock, ImageUp, Trash2, Copy } from 'lucide-react';
 import type { RecentProject } from '@/types/dashboard';
 import { formatDimensionDisplay } from '@/utils/format-utils';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface RecentProjectsProps {
   projects: RecentProject[];
@@ -32,12 +33,27 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <h2 className="text-xl font-semibold mb-4 text-gray-100 flex items-center">
+      <h2 className="text-xl font-semibold mb-4 text-gray-100 flex items-center ">
         <Clock className="mr-2 h-5 w-5 text-gray-400" />
         Recent projects
       </h2>
-      
-      <div className="cursor-pointer overflow-x-auto custom-scroll pb-2">
+
+      <div className="recent-projects-scroll cursor-pointer overflow-x-auto pb-2">
+        <style dangerouslySetInnerHTML={{ __html: `
+          .recent-projects-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+            background-color: #292C31;
+          }
+          .recent-projects-scroll::-webkit-scrollbar-thumb {
+            background-color: #44474A;
+            border-radius: 4px;
+          }
+          .recent-projects-scroll::-webkit-scrollbar-track {
+            background-color: #292C31;
+            border-radius: 4px;
+          }
+        ` }} />
         <div className="flex gap-4 min-w-max">
           {projects.map((project) => (
             <Card
@@ -77,9 +93,9 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-            
+
               </div>
-              
+
               <CardContent className="px-4">
                 <h3 className="font-medium text-gray-100 truncate mb-2">
                   {project.name}
@@ -97,7 +113,7 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
           ))}
         </div>
       </div>
-      
+
       <div className="text-xs text-gray-500 text-center mt-2">
         {projects.length > 4 && "← Scroll to view all projects →"}
       </div>

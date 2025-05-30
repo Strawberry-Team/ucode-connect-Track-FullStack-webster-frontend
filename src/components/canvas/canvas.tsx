@@ -3,6 +3,8 @@ import {useTool} from "@/context/tool-context";
 import {useRef, useState, useEffect, useCallback} from "react";
 import {Stage, Layer, Line as KonvaLine, Rect, Image as KonvaImage, Transformer} from "react-konva";
 import Konva from "konva";
+import jsPDF from 'jspdf';
+import { toast } from 'sonner';
 import {
     createCheckerboardPattern,
 } from "@/utils/canvas-utils.ts";
@@ -104,7 +106,8 @@ const Canvas: React.FC = () => {
         borderColorOpacity,
         borderWidth,
         borderStyle,
-        cornerRadius
+        cornerRadius,
+        registerCanvasExporter
     } = toolContext;
 
     const drawingManager = useDrawing({
@@ -170,6 +173,14 @@ const Canvas: React.FC = () => {
     const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
     const [originalBackgroundImage, setOriginalBackgroundImage] = useState<HTMLImageElement | null>(null);
     const backgroundImageNodeRef = useRef<Konva.Image | null>(null);
+    
+    // State to store imported image dimensions and position
+    const [backgroundImageParams, setBackgroundImageParams] = useState<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | null>(null);
 
     const liquifyManager = useLiquify({
         stageRef,
@@ -237,6 +248,85 @@ const Canvas: React.FC = () => {
         stageRef
     });
 
+    // Canvas export function
+    const exportCanvas = useCallback(async (format: 'png' | 'jpg' | 'pdf' | 'json') => {
+        if (!stageRef.current || !contextStageSize) {
+            throw new Error('Canvas not ready for export');
+        }
+
+        const stage = stageRef.current;
+        
+        try {
+            switch (format) {
+                case 'png':
+                    const pngDataURL = stage.toDataURL({ mimeType: 'image/png', quality: 1 });
+                    const pngFileName = `project_${Date.now()}.png`;
+                    downloadDataURL(pngDataURL, pngFileName);
+                    toast.success("Success", {
+                        description: `Project saved as "${pngFileName}"`,
+                        duration: 5000,
+                    });
+                    break;
+                    
+                case 'jpg':
+                    const jpgDataURL = stage.toDataURL({ mimeType: 'image/jpeg', quality: 0.9 });
+                    const jpgFileName = `project_${Date.now()}.jpg`;
+                    downloadDataURL(jpgDataURL, jpgFileName);
+                    toast.success("Success", {
+                        description: `Project saved as "${jpgFileName}"`,
+                        duration: 5000,
+                    });
+                    break;
+                    
+                case 'pdf':
+                    const pdfCanvas = stage.toCanvas();
+                    const pdf = new jsPDF({
+                        orientation: contextStageSize.width > contextStageSize.height ? 'landscape' : 'portrait',
+                        unit: 'px',
+                        format: [contextStageSize.width, contextStageSize.height]
+                    });
+                    
+                    pdf.addImage(
+                        pdfCanvas.toDataURL('image/png'),
+                        'PNG',
+                        0,
+                        0,
+                        contextStageSize.width,
+                        contextStageSize.height
+                    );
+                    
+                    const pdfFileName = `project_${Date.now()}.pdf`;
+                    pdf.save(pdfFileName);
+                    toast.success("Success", {
+                        description: `Project saved as "${pdfFileName}"`,
+                        duration: 5000,
+                    });
+                    break;
+                    
+                default:
+                    throw new Error(`Unsupported export format: ${format}`);
+            }
+        } catch (error) {
+            console.error('Error exporting canvas:', error);
+            throw error;
+        }
+    }, [contextStageSize]);
+
+    // Helper function to download data URL
+    const downloadDataURL = (dataURL: string, filename: string) => {
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Register the export function
+    useEffect(() => {
+        registerCanvasExporter(exportCanvas);
+    }, [registerCanvasExporter, exportCanvas]);
+
     useEffect(() => {
         const checkAndUpdateImageStatus = () => {
             const imageNode = backgroundImageNodeRef.current;
@@ -282,6 +372,15 @@ const Canvas: React.FC = () => {
             img.onload = () => {
                 setBackgroundImage(img);
                 setOriginalBackgroundImage(img);
+                
+                // Store image positioning parameters
+                setBackgroundImageParams({
+                    x: initialImage.x || 0,
+                    y: initialImage.y || 0,
+                    width: initialImage.width,
+                    height: initialImage.height
+                });
+                
                 setTimeout(() => {
                     setInitialImage(null);
                 }, 0);
@@ -290,6 +389,7 @@ const Canvas: React.FC = () => {
                 console.error("The initial image for the canvas could not be loaded.");
                 setBackgroundImage(null);
                 setOriginalBackgroundImage(null);
+                setBackgroundImageParams(null);
                 setInitialImage(null);
                 setIsImageReadyForLiquify(false);
             };
@@ -1272,10 +1372,10 @@ const Canvas: React.FC = () => {
                         {backgroundImage && contextStageSize && (
                             <KonvaImage
                                 image={backgroundImage}
-                                x={0}
-                                y={0}
-                                width={contextStageSize.width}
-                                height={contextStageSize.height}
+                                x={backgroundImageParams?.x || 0}
+                                y={backgroundImageParams?.y || 0}
+                                width={backgroundImageParams?.width || contextStageSize.width}
+                                height={backgroundImageParams?.height || contextStageSize.height}
                                 listening={false}
                                 ref={backgroundImageNodeRef}
                             />

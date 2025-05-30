@@ -218,6 +218,68 @@ const DashboardPage: React.FC = () => {
   const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      const fileName = file.name.toLowerCase();
+      
+      // Handle JSON project files
+      if (fileName.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const text = e.target?.result as string;
+            const projectData = JSON.parse(text);
+            
+            if (projectData.renderableObjects) {
+              resetAllToolSettings();
+              
+              // Set stage size if available
+              if (projectData.stageSize) {
+                setStageSize(projectData.stageSize);
+              } else {
+                // Default canvas size if no stageSize in project
+                setStageSize({ width: 1920, height: 1080 });
+              }
+              
+              setIsCanvasManuallyResized(true);
+              
+              // Set renderable objects
+              setRenderableObjects(projectData.renderableObjects);
+              
+              // Add to history
+              clearHistory();
+              addHistoryEntry({
+                type: 'elementAdded',
+                description: `Imported project: ${file.name}`,
+                linesSnapshot: projectData.renderableObjects
+              });
+              
+              // Show success toast
+              toast.success("Success", {
+                description: `Project "${file.name}" imported successfully`,
+                duration: 3000,
+              });
+              
+              // Navigate to canvas with project name
+              const projectName = file.name.replace(/\.[^/.]+$/, "");
+              navigate(`/canvas?name=${encodeURIComponent(projectName)}`);
+            } else {
+              toast.error("Invalid Project", {
+                description: "This JSON file doesn't contain valid project data",
+                duration: 3000,
+              });
+            }
+          } catch (error) {
+            console.error('Error parsing JSON:', error);
+            toast.error("Import Error", {
+              description: "Invalid JSON file format",
+              duration: 3000,
+            });
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
+      
+      // Handle image files (existing logic)
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new window.Image();
@@ -232,6 +294,10 @@ const DashboardPage: React.FC = () => {
         };
         img.onerror = () => {
           console.error("Error loading image for size determination.");
+          toast.error("Image Error", {
+            description: "Could not load the selected image",
+            duration: 3000,
+          });
         };
         if (e.target?.result) {
           img.src = e.target.result as string;
@@ -370,7 +436,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#292C31FF] text-gray-200 p-6">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-7xl">
         <motion.div
           className="flex flex-col items-center justify-center relative"
           initial={{ opacity: 0 }}
@@ -407,7 +473,7 @@ const DashboardPage: React.FC = () => {
                 )}
               </div>
 
-              <CardContent className="p-0 flex items-stretch">
+              <CardContent className="p-0 flex items-center justify-center items-stretch">
                 <div className="relative overflow-hidden" style={{ height: '380px' }}>
                   <motion.div
                     className="flex flex-row w-[200%] h-full"
@@ -429,7 +495,7 @@ const DashboardPage: React.FC = () => {
                         <ImageUp size={60} className="mb-6 text-gray-400" strokeWidth={1.5} />
                         <h2 className="text-xl font-semibold mb-2 text-gray-100">Start new project</h2>
                         <p className="text-gray-400 mb-4">
-                          Upload an image or start with a blank canvas.
+                          <span>Upload an image, import a JSON project, <br /> or start with a blank canvas.</span>
                         </p>
                         <Button
                           onClick={handleOpenImageClick}
@@ -438,13 +504,13 @@ const DashboardPage: React.FC = () => {
                           disabled={isLoadingAuth}
                         >
                           <Plus className="!h-5 !w-5 mr-1" />
-                          Open Image
+                          Open file
                         </Button>
                         <input
                           type="file"
                           ref={fileInputRef}
                           onChange={handleImageFileChange}
-                          accept="image/*"
+                          accept="image/*,.json"
                           className="hidden"
                           disabled={isLoadingAuth}
                         />

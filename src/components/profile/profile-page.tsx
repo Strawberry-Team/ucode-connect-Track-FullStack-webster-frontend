@@ -269,22 +269,13 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#292C31FF] text-gray-200 p-8 flex flex-col justify-center items-center">
-      <div className="w-[500px] max-w-3xl">
-        <Button 
-          variant="ghost" 
-          className="p-2 px-4 mb-6 text-gray-400 hover:text-white hover:bg-[#353840FF]"
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Home page
-        </Button>
-        
-        <Card className="w-full h-[550px] max-w-3xl bg-[#25282CFF] border-2 border-[#44474AFF] shadow-xl flex flex-col">
-          <CardContent className="p-6 flex-1">
-            <div className="flex flex-col items-center gap-6">
+      <div className="w-[500px] max-w-3xl flex flex-col items-center space-y-10">
+        <Card className="w-full h-[580px] max-w-3xl bg-[#25282CFF] border-2 border-[#44474AFF] shadow-xl flex flex-col space-y-2">
+          <CardContent className="flex-1">
+            <div className="flex flex-col items-center space-y-3">
               {/* Avatar with upload option */}
-              <div className="relative group">
-                <Avatar className="h-55 w-55 border-4 border-[#44474AFF]">
+              <div className="relative group m-0 p-0 mb-4">
+                <Avatar className="h-80 w-80 border-4 border-[#44474AFF]">
                   {!avatarLoading && avatarUrl && (
                     <AvatarImage 
                       src={avatarUrl} 
@@ -319,7 +310,7 @@ const ProfilePage: React.FC = () => {
               
               {/* User information */}
               {editMode ? (
-                <div className="w-full max-w-md space-y-4 mx-auto mt-7 px-20 ">
+                <div className="w-full max-w-md space-y-4 mx-auto mt-4 px-20 ">
                   <div className="text-center">
                     <Input
                       id="firstName"
@@ -345,7 +336,7 @@ const ProfilePage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center space-y-3">
+                <div className="text-center space-y-2">
                   <h1 className="text-3xl font-medium text-white">
                     {loggedInUser?.firstName} {loggedInUser?.lastName}
                   </h1>
@@ -361,9 +352,9 @@ const ProfilePage: React.FC = () => {
             </div>
           </CardContent>
           
-          <CardFooter className="p-6">
+          <CardFooter>
             {editMode ? (
-              <div className="flex w-full gap-4">
+              <div className="flex w-full space-x-4">
                 <Button 
                   variant="outline" 
                   onClick={handleCancel}
@@ -390,6 +381,15 @@ const ProfilePage: React.FC = () => {
             )}
           </CardFooter>
         </Card>
+
+        <Button 
+          variant="ghost" 
+          className="p-2 px-4 mb-6 text-gray-400 hover:text-white hover:bg-[#353840FF] border-2 border-[#44474AFF] rounded-full"
+          onClick={() => navigate('/')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Home page
+        </Button>
       </div>
     </div>
   );

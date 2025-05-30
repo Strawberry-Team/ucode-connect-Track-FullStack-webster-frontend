@@ -1,6 +1,6 @@
 import type React from "react"
 import { useState } from "react"
-import { Save, FileUp, FileDown, Undo, Redo, HelpCircle } from "lucide-react"
+import { Save, FileUp, FileDown, Undo, Redo, HelpCircle, Brush, Eraser, Text, Shapes, Waves, Type, Droplet, Crop, Hand } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useUser } from "@/context/user-context"
@@ -11,17 +11,12 @@ const Header: React.FC = () => {
 
   const menus = [
     { id: "file", label: "File" },
-    { id: "edit", label: "Edit" },
-    { id: "image", label: "Image" },
-    { id: "view", label: "View" },
-    { id: "window", label: "Window" },
-    { id: "help", label: "Help" },
   ]
 
   return (
     <header className="bg-[#202225FF] border-b-2 border-[#44474AFF] flex flex-col">
-      <div className="flex items-center justify-between px-2 h-10">
-        <div className="flex items-center space-x-1">
+      <div className="flex items-center justify-between px-5 h-10">
+        <div className="flex items-center space-x-6">
           {menus.map((menu) => (
             <DropdownMenu key={menu.id}>
               <DropdownMenuTrigger asChild>
@@ -32,38 +27,22 @@ const Header: React.FC = () => {
               <DropdownMenuContent className="bg-[#2a2a2a] border-[#1a1a1a] text-gray-200">
                 {menu.id === "file" && (
                   <>
+                    {/* <DropdownMenuItem className="hover:bg-[#3a3a3a]">
+                      <FileUp className="mr-2 h-4 w-4" />
+                      <span>Import</span>
+                    </DropdownMenuItem> */}
                     <DropdownMenuItem className="hover:bg-[#3a3a3a]">
                       <FileUp className="mr-2 h-4 w-4" />
                       <span>Open</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="hover:bg-[#3a3a3a]">
                       <Save className="mr-2 h-4 w-4" />
-                      <span>Save</span>
+                      <span>Save as</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#3a3a3a]">
+                    {/* <DropdownMenuItem className="hover:bg-[#3a3a3a]">
                       <FileDown className="mr-2 h-4 w-4" />
                       <span>Export</span>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                {menu.id === "edit" && (
-                  <>
-                    <DropdownMenuItem className="hover:bg-[#3a3a3a]">
-                      <Undo className="mr-2 h-4 w-4" />
-                      <span>Undo</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#3a3a3a]">
-                      <Redo className="mr-2 h-4 w-4" />
-                      <span>Redo</span>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                {menu.id === "help" && (
-                  <>
-                    <DropdownMenuItem className="hover:bg-[#3a3a3a]">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      <span>About</span>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                   </>
                 )}
               </DropdownMenuContent>
@@ -72,8 +51,8 @@ const Header: React.FC = () => {
         </div>
         
         {loggedInUser && (
-          <div className="flex items-center space-x-2 -mr-2 py-1 h-8 border-1 border-[#44474AFF] rounded-full">
-            <div className="h-8 w-8 rounded-full overflow-hidden  flex-shrink-0">
+          <div className="flex items-center space-x-3 -mr-2 py-1 min-h-9 min-w-9 border-none border-[#44474AFF] rounded-full hover:bg-[#3a3a3a]">
+            <div className="h-9 w-9 rounded-full overflow-hidden flex-shrink-0">
               <img 
                 src={loggedInUser.profilePictureName 
                   ? `http://localhost:8080/uploads/user-avatars/${loggedInUser.profilePictureName}` 
@@ -87,9 +66,10 @@ const Header: React.FC = () => {
                 </div>
               )}
             </div>
-            <span className="mr-3 text-sm font-medium text-gray-200 truncate max-w-[100px]">
-              {loggedInUser.firstName} {loggedInUser.lastName}
-            </span>
+            <div className="mr-3 text-sm font-medium text-gray-200 truncate max-w-[100px] flex items-left space-x-1">
+              <span>{loggedInUser.firstName}</span>
+              <span>{loggedInUser.lastName}</span>
+            </div>
           </div>
         )}
       </div>
