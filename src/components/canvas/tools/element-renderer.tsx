@@ -298,8 +298,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
         const node = e.target as Konva.Node;
         const type = element.type;
-        const newElementX = node.x();
-        const newElementY = node.y();
+        let newElementX = node.x();
+        let newElementY = node.y();
         const newRotation = node.rotation();
 
         let newDesignWidth: number;
@@ -308,6 +308,11 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         if (type === 'text') {
             newDesignWidth = node.width() * node.scaleX();
             newDesignHeight = node.height() * node.scaleY();
+            
+            // For text elements, node.x() and node.y() are center coordinates due to offsetX/Y
+            // We need to convert them to top-left coordinates for ElementData
+            newElementX = node.x() - newDesignWidth / 2;
+            newElementY = node.y() - newDesignHeight / 2;
         } else if (type === 'line' || type === 'arrow') {
             const lineNode = node as Konva.Line;
             const points = lineNode.points();
@@ -369,9 +374,6 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
             e.cancelBubble = true;
             onClick?.(element.id, e);
-            if (element.type === "text" && activeTool?.type === "text" && !isEditing && canInteractWithElement()) {
-                handleTextEdit(e);
-            }
         },
         onDblClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
             if (element.type === "text" && canInteractWithElement()) {
@@ -748,7 +750,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         width={element.width}
                         height={element.height}
                         {...commonProps}
-                        draggable={isSelected && activeTool?.type === 'text' ? commonProps.draggable : false}
+                        draggable={isSelected && (activeTool?.type === 'text' || activeTool?.type === 'cursor') ? commonProps.draggable : false}
                     >
                         <Rect
                             width={element.width}

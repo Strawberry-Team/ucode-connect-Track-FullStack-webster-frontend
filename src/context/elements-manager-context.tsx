@@ -7,7 +7,7 @@ import type Konva from "konva";
 
 // Define the type for the context value
 interface ElementsManagerContextValue {
-  addElement: (type: ShapeType | "text" | "custom-image", pos: { x: number; y: number }, isRightClick?: boolean, text?: string, settings?: Partial<ElementData>) => void;
+  addElement: (type: ShapeType | "text" | "custom-image", pos: { x: number; y: number }, text?: string, settings?: Partial<ElementData>) => void;
   updateElement: (id: string, newData: Partial<ElementData>) => void;
   updateTextElement: (id: string, newText: string) => void;
   updateSelectedElementStyle: (styleUpdate: Partial<ElementData>) => void;

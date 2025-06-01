@@ -300,10 +300,12 @@ const ShapeOptions: React.FC = () => {
   }
 
   //  Changed condition for activating buttons - now they are available,
-  // if an element is selected that is a shape (not text)
+  // if an element is selected that is a shape (not text) and the correct tool is active
   const isShapeElementSelected = selectedElementId !== null &&
     selectedElementData !== null && // Ensure element is found
-    isConsideredShapeType;         // Ensure it's a shape/image type
+    selectedElementData !== undefined && // Add explicit undefined check
+    isConsideredShapeType &&         // Ensure it's a shape/image type
+    (activeTool?.type === "shape" || activeTool?.type === "cursor"); // Allow if shape or cursor tool is active
 
   // Sync tool state with selected element
   useEffect(() => {

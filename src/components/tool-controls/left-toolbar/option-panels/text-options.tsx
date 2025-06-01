@@ -360,9 +360,12 @@ const TextOptions: React.FC = () => {
     // and its dependencies are all listed here
   ]);
 
-  // Check if the selected element is a text element
+  // Check if the selected element is a text element and the correct tool is active
+  const selectedElementData = selectedElementId ? getElementDataFromRenderables().find(el => el.id === selectedElementId) : null;
   const isTextElementSelected = selectedElementId !== null &&
-    getElementDataFromRenderables().find(el => el.id === selectedElementId)?.type === "text" &&
+    selectedElementData !== null &&
+    selectedElementData !== undefined &&
+    selectedElementData.type === "text" &&
     (activeTool?.type === "text" || activeTool?.type === "cursor"); // Allow if text or cursor tool is active
 
   // Handle duplicate button click
