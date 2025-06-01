@@ -247,7 +247,7 @@ const useElementsManagement = ({
     const clickedElement = elementResult.element;
     let canBeSelectedBasedOnToolAndElementType = false;
 
-    //  Shapes can be selected regardless of the active tool
+    // Shapes and images can be selected regardless of the active tool
     if (clickedElement.type !== "text") {
         canBeSelectedBasedOnToolAndElementType = true;
     } 

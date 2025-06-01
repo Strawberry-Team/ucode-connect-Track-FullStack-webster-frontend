@@ -168,7 +168,7 @@ const ShapeSelector: React.FC<{
               ))}
             </div>
           </ScrollArea>
-          <div className="sticky bottom-0 bg-[#292C31FF] pt-1 border-t border-[#44474AFF] mt-0">
+          {/* <div className="sticky bottom-0 bg-[#292C31FF] pt-1 border-t border-[#44474AFF] mt-0">
             <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer">
               <label className="flex items-center w-full cursor-pointer">
                 <FileUp size={14} className="mx-2" color="white" />
@@ -187,7 +187,7 @@ const ShapeSelector: React.FC<{
                 />
               </label>
             </DropdownMenuItem>
-          </div>
+          </div> */}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

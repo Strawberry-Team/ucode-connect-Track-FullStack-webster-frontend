@@ -8,7 +8,8 @@ import type {
     TextCase,
     BorderStyle,
     ShapeType,
-    RenderableObject
+    RenderableObject,
+    ElementData
 } from "@/types/canvas"
 import { toast } from 'sonner';
 
@@ -348,6 +349,11 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
             setBrushTransformModeActive(false);
             setSelectedLineId(null);
         }
+        
+        // Reset any element selection when changing tools (except cursor and text tools)
+        if (tool?.type !== 'cursor' && tool?.type !== 'text') {
+            // This will help clear any selection-related cursor states
+        }
     }, []);
 
     const addRenderableObject = useCallback((obj: RenderableObject) => {
@@ -525,7 +531,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
         try {
             if (fileType.startsWith('image/') || fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpg')) {
-                // Import image files
+                // Import image files as manageable elements
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const img = new Image();
@@ -537,17 +543,19 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
                         // If no stage size exists, create canvas with image dimensions
                         if (!stageSize) {
-                            setStageSize({ width: img.width, height: img.height });
+                            setStageSize({ width: Math.max(img.width, 800), height: Math.max(img.height, 600) });
+                            imageX = Math.max(img.width, 800) / 2 - imageWidth / 2;
+                            imageY = Math.max(img.height, 600) / 2 - imageHeight / 2;
                         } else {
                             // Calculate positioning and scaling for existing canvas
                             const canvasWidth = stageSize.width;
                             const canvasHeight = stageSize.height;
 
-                            // Check if image is larger than canvas
-                            if (img.width > canvasWidth || img.height > canvasHeight) {
-                                // Scale down image to fit canvas while preserving aspect ratio
-                                const scaleX = canvasWidth / img.width;
-                                const scaleY = canvasHeight / img.height;
+                            // Check if image is larger than canvas, scale down if needed
+                            const maxSize = Math.min(canvasWidth * 0.8, canvasHeight * 0.8); // 80% of canvas size
+                            if (img.width > maxSize || img.height > maxSize) {
+                                const scaleX = maxSize / img.width;
+                                const scaleY = maxSize / img.height;
                                 const scale = Math.min(scaleX, scaleY);
                                 
                                 imageWidth = img.width * scale;
@@ -559,21 +567,36 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                             imageY = (canvasHeight - imageHeight) / 2;
                         }
                         
-                        // Set as initial image with calculated dimensions and position
-                        setInitialImage({
-                            src: e.target?.result as string,
+                        // Create image element
+                        const imageElement: ElementData = {
+                            id: `image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                            type: "custom-image",
+                            x: imageX,
+                            y: imageY,
                             width: imageWidth,
                             height: imageHeight,
-                            file: file,
-                            x: imageX,
-                            y: imageY
-                        });
+                            src: e.target?.result as string,
+                            borderColor: "#000000",
+                            borderColorOpacity: 100,
+                            borderWidth: 0,
+                            borderStyle: "hidden",
+                            color: "#000000",
+                            opacity: 100,
+                            rotation: 0,
+                            scaleX: 1,
+                            scaleY: 1,
+                            draggable: true,
+                            preserveAspectRatio: true,
+                        };
+
+                        // Add as renderable object
+                        addRenderableObject(imageElement);
 
                         // Add to history
                         addHistoryEntry({
                             type: 'elementAdded',
                             description: `Imported image: ${file.name}`,
-                            linesSnapshot: [...renderableObjects]
+                            linesSnapshot: [...renderableObjects, imageElement]
                         });
 
                         // Show success toast

@@ -211,7 +211,13 @@ const Canvas: React.FC = () => {
     const setCursorBasedOnTool = useCallback(() => {
         if (!containerRef.current) return;
         
-        // Don't change cursor if hovering over UI elements
+        // HIGHEST PRIORITY: Hand tool should always show grab/grabbing cursor
+        if (activeTool?.type === 'hand') {
+            containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+            return;
+        }
+        
+        // Don't change cursor if hovering over UI elements (except for hand tool)
         if (isHoveringInteractiveElement) {
             containerRef.current.style.cursor = 'default';
             return;
@@ -231,14 +237,42 @@ const Canvas: React.FC = () => {
             containerRef.current.style.cursor = "none";
         } else if (activeTool?.type === 'blur') {
             containerRef.current.style.cursor = "none";
-        } else if (activeTool?.type === 'hand') {
-            containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
         } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor') {
             containerRef.current.style.cursor = "default";
         } else {
             containerRef.current.style.cursor = "default";
         }
     }, [activeTool, isAddModeActive, isBrushTransformModeActive, isHoveringInteractiveElement, isDragging]);
+
+    // Reset cursor when tool changes
+    useEffect(() => {
+        setCursorBasedOnTool();
+    }, [activeTool, setCursorBasedOnTool]);
+
+    // Global cursor reset on window focus/blur
+    useEffect(() => {
+        const handleWindowFocus = () => {
+            // Reset cursor when window gains focus
+            setTimeout(() => {
+                setCursorBasedOnTool();
+            }, 100);
+        };
+
+        const handleWindowBlur = () => {
+            // Reset cursor when window loses focus
+            if (containerRef.current) {
+                containerRef.current.style.cursor = 'default';
+            }
+        };
+
+        window.addEventListener('focus', handleWindowFocus);
+        window.addEventListener('blur', handleWindowBlur);
+
+        return () => {
+            window.removeEventListener('focus', handleWindowFocus);
+            window.removeEventListener('blur', handleWindowBlur);
+        };
+    }, [setCursorBasedOnTool]);
 
     useProjectManager({
         loggedInUser,
@@ -364,37 +398,6 @@ const Canvas: React.FC = () => {
             });
         };
     }, [liquifyManager.resetLiquify, blurManager.resetBlur, setIsImageReadyForLiquify, originalBackgroundImage]);
-
-    useEffect(() => {
-        if (initialImage && initialImage.src) {
-            const img = new window.Image();
-            img.src = initialImage.src;
-            img.onload = () => {
-                setBackgroundImage(img);
-                setOriginalBackgroundImage(img);
-                
-                // Store image positioning parameters
-                setBackgroundImageParams({
-                    x: initialImage.x || 0,
-                    y: initialImage.y || 0,
-                    width: initialImage.width,
-                    height: initialImage.height
-                });
-                
-                setTimeout(() => {
-                    setInitialImage(null);
-                }, 0);
-            };
-            img.onerror = () => {
-                console.error("The initial image for the canvas could not be loaded.");
-                setBackgroundImage(null);
-                setOriginalBackgroundImage(null);
-                setBackgroundImageParams(null);
-                setInitialImage(null);
-                setIsImageReadyForLiquify(false);
-            };
-        }
-    }, [initialImage, setInitialImage, setIsImageReadyForLiquify]);
 
     useEffect(() => {
         const imageNode = backgroundImageNodeRef.current;
@@ -602,7 +605,14 @@ const Canvas: React.FC = () => {
         const isOverVerticalScroll = verticalScrollbarRef.current && verticalScrollbarRef.current.contains(e.target as Node);
         if (isOverZoomCtrl || isOverHorizontalScroll || isOverVerticalScroll) {
             if (!isHoveringInteractiveElement) setIsHoveringInteractiveElement(true);
-            if (containerRef.current) containerRef.current.style.cursor = 'default';
+            
+            // Hand tool should always show grab cursor, even over UI elements
+            if (activeTool?.type === 'hand') {
+                if (containerRef.current) containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+            } else {
+                if (containerRef.current) containerRef.current.style.cursor = 'default';
+            }
+            
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
@@ -617,7 +627,17 @@ const Canvas: React.FC = () => {
         const mouseY = (e.clientY - containerRect.top - stagePosition.y) / currentScale;
         setCursorPositionOnCanvas({x: mouseX, y: mouseY});
 
-        // PRIORITY 1: Element creation mode (добавление элементов)
+        // PRIORITY 1: Hand tool always gets grab/grabbing cursor
+        if (activeTool?.type === 'hand') {
+            if (containerRef.current) containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+            setShowBrushCursor(false);
+            setShowEraserCursor(false);
+            setShowLiquifyCursor(false);
+            setShowBlurCursor(false);
+            return;
+        }
+
+        // PRIORITY 2: Element creation mode (добавление элементов)
         if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
             // Crosshair cursor for element creation mode
             if (containerRef.current) containerRef.current.style.cursor = "crosshair";
@@ -626,7 +646,7 @@ const Canvas: React.FC = () => {
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
         }
-        // PRIORITY 2: Specific tool cursors (but not when hovering over interactive elements)
+        // PRIORITY 3: Specific tool cursors (but not when hovering over interactive elements)
         else if (activeTool?.type === 'brush') {
             if (isBrushTransformModeActive) {
                 if (containerRef.current) containerRef.current.style.cursor = "default";
@@ -706,8 +726,14 @@ const Canvas: React.FC = () => {
     };
 
     const handleMouseLeave = () => {
-        // Force reset cursor to default when leaving canvas area
-        if (containerRef.current) containerRef.current.style.cursor = 'default';
+        // Force reset cursor to default when leaving canvas area, unless Hand tool is active
+        if (containerRef.current) {
+            if (activeTool?.type === 'hand') {
+                containerRef.current.style.cursor = 'grab';
+            } else {
+                containerRef.current.style.cursor = 'default';
+            }
+        }
         
         if (drawingManager.getIsDrawing()) drawingManager.endDrawing();
         if (liquifyManager.getIsLiquifying()) liquifyManager.endLiquify();
@@ -899,6 +925,8 @@ const Canvas: React.FC = () => {
             if (evt.button === 1) {
                 isDragging.current = true;
                 isManuallyDragging.current = true;
+                // Middle mouse button always shows grabbing cursor regardless of active tool
+                if (containerRef.current) containerRef.current.style.cursor = "grabbing";
             }
             return;
         }
@@ -906,6 +934,8 @@ const Canvas: React.FC = () => {
         if (evt.button === 1) {
             isDragging.current = true;
             isManuallyDragging.current = true;
+            // Middle mouse button always shows grabbing cursor regardless of active tool
+            if (containerRef.current) containerRef.current.style.cursor = "grabbing";
         }
     };
 
@@ -959,53 +989,17 @@ const Canvas: React.FC = () => {
     };
 
     const handleMouseUp = () => {
-        // Handle element creation completion
-        if (isCreatingElement && previewElement && creationStartPoint) {
-            // Only create element if it has meaningful size (more than just a click)
-            if (previewElement.width > 20 && previewElement.height > 20) {
-                const creationType = previewElement.type as ShapeType | "text" | "custom-image";
-                
-                // Prepare settings from preview element, keeping only necessary properties
+        // Element creation
+        if (isCreatingElement && creationStartPoint && previewElement && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
+            const creationType = currentAddToolType;
+            if (creationType && (creationType !== 'brush' && creationType !== 'eraser')) {
                 const settings: Partial<ElementData> = {
                     width: previewElement.width,
                     height: previewElement.height,
-                    color: previewElement.color,
-                    opacity: 100, // Full opacity for final element (0-100 scale)
-                    rotation: previewElement.rotation,
-                    scaleX: previewElement.scaleX,
-                    scaleY: previewElement.scaleY,
-                    preserveAspectRatio: previewElement.preserveAspectRatio
                 };
-                
-                // Add type-specific properties
+
                 if (creationType === "text") {
-                    settings.text = previewElement.text;
-                    settings.textColorOpacity = previewElement.textColorOpacity;
-                    settings.fontSize = previewElement.fontSize;
-                    settings.fontFamily = previewElement.fontFamily;
-                    settings.fontStyles = previewElement.fontStyles;
-                    settings.textCase = previewElement.textCase;
-                    settings.textAlignment = previewElement.textAlignment;
-                    settings.lineHeight = previewElement.lineHeight;
-                    settings.backgroundColor = previewElement.backgroundColor;
-                    settings.backgroundOpacity = previewElement.backgroundOpacity;
-                } else if (creationType === "custom-image") {
-                    settings.src = previewElement.src;
-                    settings.borderColor = previewElement.borderColor;
-                    settings.borderColorOpacity = previewElement.borderColorOpacity;
-                    settings.borderWidth = previewElement.borderWidth;
-                    settings.borderStyle = previewElement.borderStyle;
-                } else {
-                    // Shape elements
-                    settings.fillColor = previewElement.fillColor;
-                    settings.fillColorOpacity = previewElement.fillColorOpacity;
-                    settings.borderColor = previewElement.borderColor;
-                    settings.borderWidth = previewElement.borderWidth;
-                    settings.borderStyle = previewElement.borderStyle;
-                    settings.borderColorOpacity = previewElement.borderColorOpacity;
-                    if (creationType === "rounded-rectangle") {
-                        settings.cornerRadius = previewElement.cornerRadius;
-                    }
+                    settings.text = previewElement.text || "Type text here...";
                 }
                 
                 elementsManager.addElement(
@@ -1023,14 +1017,21 @@ const Canvas: React.FC = () => {
             setIsAddModeActive(false);
             setCurrentAddToolType(null);
             isDragging.current = false;
+            
+            // Reset cursor after element creation
+            setCursorBasedOnTool();
             return;
         }
 
         if (drawingManager.getIsDrawing()) {
             drawingManager.endDrawing();
         }
-        if (liquifyManager.getIsLiquifying()) liquifyManager.endLiquify();
-        if (blurManager.getIsBlurring()) blurManager.endBlurring();
+        if (liquifyManager.getIsLiquifying()) {
+            liquifyManager.endLiquify();
+        }
+        if (blurManager.getIsBlurring()) {
+            blurManager.endBlurring();
+        }
 
         if (isDragging.current) {
             isDragging.current = false;
@@ -1051,6 +1052,11 @@ const Canvas: React.FC = () => {
                     setCursorBasedOnTool();
                 }, 10);
             }
+        } else {
+            // Always ensure cursor is set correctly even if not dragging
+            setTimeout(() => {
+                setCursorBasedOnTool();
+            }, 10);
         }
     };
 

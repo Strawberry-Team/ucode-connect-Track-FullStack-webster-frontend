@@ -158,6 +158,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         if (elementType === "text") {
             return activeTool.type === "text";
         }
+        if (elementType === "custom-image") {
+            // Custom images can be selected with any tool except text tool
+            return activeTool.type !== "text";
+        }
         if (activeTool.type === "shape") {
             return true;
         }
@@ -194,7 +198,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 // Square should always maintain 1:1 aspect ratio
                 tr.keepRatio(true);
             } else {
-                // Keep aspect ratio for other shapes
+                // Keep aspect ratio for other shapes (circles, polygons, star, heart, custom-image)
                 tr.keepRatio(true);
             }
 
@@ -292,59 +296,49 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     }, [isSelected, element, canInteractWithElement]); // element contains fontSize, type etc.
 
     const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
-        const node = nodeRef.current;
-        if (node && onTransform && canInteractWithElement()) {
-            const baseScaleX = element.scaleX ?? 1;
-            const baseScaleY = element.scaleY ?? 1;
+        const node = e.target as Konva.Node;
+        const type = element.type;
+        const newElementX = node.x();
+        const newElementY = node.y();
+        const newRotation = node.rotation();
 
-            let newVisualWidth = node.width() * node.scaleX();
-            let newVisualHeight = node.height() * node.scaleY();
-            const newRotation = node.rotation();
+        let newDesignWidth: number;
+        let newDesignHeight: number;
 
-            
-            const newDesignWidth = Math.max(20, Math.abs(newVisualWidth / baseScaleX));
-            const newDesignHeight = Math.max(20, Math.abs(newVisualHeight / baseScaleY));
-
-            node.scaleX(baseScaleX); // Reset to base flip state
-            node.scaleY(baseScaleY); // Reset to base flip state
-
-            let newElementX: number;
-            let newElementY: number;
-
-            const type = element.type as ShapeType | "text" | "custom-image";
-
-            // Case 1: Node was centered using offsetX/Y (current Text and CustomImage)
-            if (node.offsetX() > 0 || node.offsetY() > 0) {
-                // node.x() is the center. Calculate top-left for ElementData.
-                const visualWForOffset = newDesignWidth * Math.abs(baseScaleX);
-                const visualHForOffset = newDesignHeight * Math.abs(baseScaleY);
-                newElementX = node.x() - visualWForOffset / 2;
-                newElementY = node.y() - visualHForOffset / 2;
+        if (type === 'text') {
+            newDesignWidth = node.width() * node.scaleX();
+            newDesignHeight = node.height() * node.scaleY();
+        } else if (type === 'line' || type === 'arrow') {
+            const lineNode = node as Konva.Line;
+            const points = lineNode.points();
+            if (points.length >= 4) {
+                const dx = points[2] - points[0];
+                const dy = points[3] - points[1];
+                newDesignWidth = Math.abs(dx);
+                newDesignHeight = Math.abs(dy);
+            } else {
+                newDesignWidth = element.width || 100;
+                newDesignHeight = element.height || 10;
             }
-            // Case 2: Node's x,y props were set to its visual center, but no offsetX/Y were used
-            // (Circle, Triangle, Pentagon, Hexagon, Star as per new rendering)
-            else if (element.type === 'circle' || element.type === 'triangle' || 
-                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                // node.x() is the center. Calculate top-left for ElementData.
-                const visualW = newDesignWidth * Math.abs(baseScaleX);
-                const visualH = newDesignHeight * Math.abs(baseScaleY);
-                newElementX = node.x() - visualW / 2;
-                newElementY = node.y() - visualH / 2;
-            }
-            // Case 3: Node's x,y props were top-left (Rects, Lines, Heart Group, Arrow as per new rendering)
-            else {
-                newElementX = node.x();
-                newElementY = node.y();
-            }
+        } else {
+            newDesignWidth = Math.abs(node.width() * node.scaleX());
+            newDesignHeight = Math.abs(node.height() * node.scaleY());
+        }
 
-            const newAttrs: Partial<ElementData> = {
-                width: newDesignWidth,
-                height: newDesignHeight,
-                x: newElementX,
-                y: newElementY,
-                rotation: newRotation,
-            };
+        node.scaleX(1);
+        node.scaleY(1);
 
+        const newAttrs: Partial<ElementData> = {
+            x: newElementX,
+            y: newElementY,
+            width: newDesignWidth,
+            height: newDesignHeight,
+            rotation: newRotation,
+            scaleX: 1,
+            scaleY: 1,
+        };
+
+        if (onTransform) {
             console.log(`Transform completed for ${element.id} (type: ${type}):`, {
                 newDesignWidth, newDesignHeight, newElementX, newElementY, newRotation,
                 nodePos: { x: node.x(), y: node.y() },
@@ -354,6 +348,15 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             });
 
             onTransform(element.id, newAttrs);
+        }
+        
+        // Reset cursor to default after transform ends, but only if not Hand tool
+        if (activeTool?.type !== 'hand') {
+            const stage = nodeRef.current?.getStage();
+            const container = stage?.container();
+            if (container) {
+                container.style.cursor = 'default';
+            }
         }
     };
 
@@ -379,7 +382,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             if (canInteractWithElement()) {
                 onHoverInteractiveElement?.(true);
                 // Only change cursor to move for cursor and text tools when element is selected
-                if (isSelected && (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text'))) {
+                // Don't change cursor if Hand tool is active
+                if (activeTool?.type !== 'hand' && isSelected && (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text'))) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
                     if (container) {
@@ -391,14 +395,21 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onMouseLeave: () => {
             if (canInteractWithElement()) {
                 onHoverInteractiveElement?.(false);
-                // Don't manually manipulate cursor here, let canvas.tsx handle it
+                // Reset cursor to default when leaving element, but only if not Hand tool
+                if (activeTool?.type !== 'hand') {
+                    const stage = nodeRef.current?.getStage();
+                    const container = stage?.container();
+                    if (container) {
+                        container.style.cursor = 'default';
+                    }
+                }
             }
         },
         onDragStart: () => {
             if (canInteractWithElement()) {
                 setActiveSnapLines([]);
-                // Set grabbing cursor during drag only for cursor and text tools
-                if (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text')) {
+                // Set grabbing cursor during drag only for cursor and text tools, not for Hand tool
+                if (activeTool?.type !== 'hand' && (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text'))) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
                     if (container) {
@@ -491,7 +502,14 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
             
-            // Don't manually set cursor here - let canvas.tsx handle cursor logic based on current tool
+            // Reset cursor to default after drag ends, but only if not Hand tool
+            if (activeTool?.type !== 'hand') {
+                const stage = nodeRef.current?.getStage();
+                const container = stage?.container();
+                if (container) {
+                    container.style.cursor = 'default';
+                }
+            }
             
             if (onDragEnd && canInteractWithElement()) {
                 const node = e.target;
@@ -975,14 +993,36 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 const imgCenterY = element.y + (element.height ?? 0) / 2;
                 const imgOffsetX = (element.width ?? 0) / 2;
                 const imgOffsetY = (element.height ?? 0) / 2;
-                if (element.src) {
-                    const img = new window.Image();
-                    img.src = element.src;
-                    // TODO: handle img.onload for async image loading if it causes issues with Konva
+                
+                const [imageLoaded, setImageLoaded] = useState(false);
+                const [imageInstance, setImageInstance] = useState<HTMLImageElement | null>(null);
+                
+                useEffect(() => {
+                    if (element.src) {
+                        const img = new window.Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                            setImageInstance(img);
+                            setImageLoaded(true);
+                        };
+                        img.onerror = () => {
+                            console.error('Failed to load image:', element.src);
+                            setImageLoaded(false);
+                        };
+                        img.src = element.src;
+                        
+                        return () => {
+                            setImageInstance(null);
+                            setImageLoaded(false);
+                        };
+                    }
+                }, [element.src]);
+                
+                if (element.src && imageLoaded && imageInstance) {
                     return (
                         <KonvaImage
                             ref={nodeRef as React.RefObject<Konva.Image>}
-                            image={img}
+                            image={imageInstance}
                             x={imgCenterX}
                             y={imgCenterY}
                             offsetX={imgOffsetX}
@@ -992,6 +1032,42 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             {...commonProps}
                             {...strokeStyleProps} // Borders for image
                         />
+                    );
+                } else if (element.src && !imageLoaded) {
+                    // Show placeholder while loading
+                    return (
+                        <Group
+                            ref={nodeRef as React.RefObject<Konva.Group>}
+                            x={imgCenterX}
+                            y={imgCenterY}
+                            offsetX={imgOffsetX}
+                            offsetY={imgOffsetY}
+                            width={element.width}
+                            height={element.height}
+                            {...commonProps}
+                        >
+                            <Rect
+                                width={element.width}
+                                height={element.height}
+                                fill="#f0f0f0"
+                                stroke="#ddd"
+                                strokeWidth={1}
+                                x={0}
+                                y={0}
+                            />
+                            <Text
+                                width={element.width}
+                                height={element.height}
+                                text="Loading..."
+                                fontSize={16}
+                                fontFamily="Arial"
+                                fill="#666"
+                                align="center"
+                                verticalAlign="middle"
+                                x={0}
+                                y={0}
+                            />
+                        </Group>
                     );
                 }
                 return null;
@@ -1019,7 +1095,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     draggable={true}
                     resizeEnabled={true}
                     rotateEnabled={true}
-                    keepRatio={element.preserveAspectRatio !== false && element.type !== 'rectangle' && element.type !== 'text'}
+                    keepRatio={element.preserveAspectRatio !== false && element.type !== 'rectangle' && element.type !== 'text' && element.type !== 'rounded-rectangle' && element.type !== 'squircle' && element.type !== 'line' && element.type !== 'arrow'}
                     centeredScaling={false}
                     enabledAnchors={[
                         'top-left', 'top-center', 'top-right',
