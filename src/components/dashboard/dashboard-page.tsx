@@ -504,7 +504,7 @@ const DashboardPage: React.FC = () => {
                           disabled={isLoadingAuth}
                         >
                           <Plus className="!h-5 !w-5 mr-1" />
-                          Open file
+                          Open
                         </Button>
                         <input
                           type="file"
