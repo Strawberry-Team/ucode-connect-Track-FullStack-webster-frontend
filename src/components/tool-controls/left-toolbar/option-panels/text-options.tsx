@@ -37,6 +37,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
 import { colorToRGBA } from "./common";
+import { loadGoogleFont, isGoogleFont } from "@/utils/font-utils";
 
 // Add types and interfaces for Google Fonts
 interface GoogleFont {
@@ -108,15 +109,12 @@ const FontSelector: React.FC<{
     }
   };
 
-  // Load font into DOM
+  // Load font into DOM using utility function
   const loadFont = (fontFamily: string) => {
     if (loadedFonts.has(fontFamily)) return;
 
-    const link = document.createElement('link');
-    link.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/\s+/g, '+')}:wght@400;700&display=swap`;
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-
+    // Use the utility function
+    loadGoogleFont(fontFamily);
     setLoadedFonts(prev => new Set([...prev, fontFamily]));
   };
 
@@ -537,10 +535,7 @@ const TextOptions: React.FC = () => {
     ];
     
     popularFonts.forEach(font => {
-      const link = document.createElement('link');
-      link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/\s+/g, '+')}:wght@400;700&display=swap`;
-      link.rel = 'stylesheet';
-      document.head.appendChild(link);
+      loadGoogleFont(font);
     });
   };
 

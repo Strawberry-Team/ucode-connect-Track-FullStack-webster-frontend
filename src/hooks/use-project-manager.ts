@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 import { saveProject, updateProject, getProjectData } from '@/utils/project-storage';
+import { loadProjectFonts } from '@/utils/font-utils';
 import type { RenderableObject } from '@/types/canvas';
 import type { User } from '@/types/auth';
 
@@ -131,6 +132,8 @@ export const useProjectManager = ({
       const projectData = getProjectData(projectId);
       if (projectData) {
         setProjectName(projectData.project.name);
+        // Load Google Fonts used in this project
+        loadProjectFonts(projectData.renderableObjects);
       } else {
         console.warn('ProjectManager: Project data not found for ID:', projectId);
       }

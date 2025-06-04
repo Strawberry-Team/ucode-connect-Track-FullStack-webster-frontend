@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState, useCallback, useRef} from "react"
+import React, {createContext, useContext, useState, useCallback, useRef, useEffect} from "react"
 import type {
     Tool,
     Element,
@@ -12,6 +12,7 @@ import type {
     ElementData
 } from "@/types/canvas"
 import { toast } from 'sonner';
+import { loadProjectFonts } from "@/utils/font-utils";
 
 // Import MousePointer2 for default tool
 import { MousePointer2 } from "lucide-react";
@@ -705,6 +706,13 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const registerCanvasExporter = (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) => {
         setCanvasExporter(() => exporter);
     };
+
+    // Auto-load Google Fonts when renderableObjects change (e.g., when loading a project)
+    useEffect(() => {
+        if (renderableObjects.length > 0) {
+            loadProjectFonts(renderableObjects);
+        }
+    }, [renderableObjects]);
 
     return (
         <ToolContext.Provider
