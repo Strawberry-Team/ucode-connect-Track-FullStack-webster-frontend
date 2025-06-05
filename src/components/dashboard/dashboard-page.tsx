@@ -16,6 +16,7 @@ import { getCurrentAuthenticatedUser } from '@/services/user-service';
 import type { User as AuthUser } from '@/types/auth';
 import { deleteProject, getProjectData, getUserProjects, duplicateProject } from '@/utils/project-storage';
 import type { RecentProject } from '@/types/dashboard';
+import type { ElementData } from '@/types/canvas.ts';
 
 const DashboardPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -285,9 +286,63 @@ const DashboardPage: React.FC = () => {
         const img = new window.Image();
         img.onload = () => {
           resetAllToolSettings();
-          setInitialImage({ src: img.src, width: img.naturalWidth, height: img.naturalHeight, file });
-          setStageSize({ width: img.naturalWidth, height: img.naturalHeight });
+          
+          // Set fixed canvas size to 1000x1000
+          const canvasSize = { width: 1000, height: 1000 };
+          setStageSize(canvasSize);
           setIsCanvasManuallyResized(true);
+          
+          // Calculate image positioning and scaling
+          let imageWidth = img.naturalWidth;
+          let imageHeight = img.naturalHeight;
+          
+          // Check if image is larger than canvas, scale down if needed
+          const maxSize = Math.min(canvasSize.width * 0.8, canvasSize.height * 0.8); // 80% of canvas size
+          if (img.naturalWidth > maxSize || img.naturalHeight > maxSize) {
+            const scaleX = maxSize / img.naturalWidth;
+            const scaleY = maxSize / img.naturalHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            imageWidth = img.naturalWidth * scale;
+            imageHeight = img.naturalHeight * scale;
+          }
+          
+          // Center the image on canvas (using center coordinates, not top-left)
+          const imageCenterX = canvasSize.width / 2;
+          const imageCenterY = canvasSize.height / 2;
+          
+          // Create image element to add to canvas
+          const imageElement = {
+            id: `image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            type: "custom-image",
+            x: imageCenterX,
+            y: imageCenterY,
+            width: imageWidth,
+            height: imageHeight,
+            src: e.target?.result as string,
+            borderColor: "#000000",
+            borderColorOpacity: 100,
+            borderWidth: 0,
+            borderStyle: "hidden",
+            color: "#000000",
+            opacity: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            draggable: true,
+            preserveAspectRatio: true,
+          };
+          
+          // Add image element to renderable objects
+          setRenderableObjects([imageElement as ElementData]);
+          
+          // Add to history
+          clearHistory();
+          addHistoryEntry({
+            type: 'elementAdded',
+            description: `Imported image: ${file.name}`,
+            linesSnapshot: [imageElement as ElementData]
+          });
           
           const fileName = file.name.replace(/\.[^/.]+$/, "");
           navigate(`/canvas?name=${encodeURIComponent(fileName)}`);

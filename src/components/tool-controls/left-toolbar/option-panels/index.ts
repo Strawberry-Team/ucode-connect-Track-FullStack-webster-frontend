@@ -6,4 +6,5 @@ export { default as CropOptions } from './crop-options';
 export { default as HandOptions } from './hand-options';
 export { default as LiquifyOptions } from './liquify-options';
 export { default as BlurOptions } from './blur-options';
+export { default as ImageTransformOptions } from './image-transform-options';
 export { MirrorSelector, lightenColor } from './common'; 

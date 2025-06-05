@@ -240,14 +240,8 @@ interface ToolContextValue {
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
 
 export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}) => {
-    // Define a default tool (e.g., cursor)
-    const defaultTool: Tool = {
-        id: "cursor",
-        name: "Cursor",
-        type: "cursor",
-        icon: MousePointer2,
-    };
-    const [activeTool, setActiveToolInternal] = useState<Tool | null>(defaultTool)
+    // No default tool selected - user must explicitly choose a tool
+    const [activeTool, setActiveToolInternal] = useState<Tool | null>(null)
     const [activeElement, setActiveElement] = useState<Element | null>(null)
     const [color, setColor] = useState("#000000")
     const [secondaryColor, setSecondaryColor] = useState("#ffffff")
@@ -545,8 +539,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                         // If no stage size exists, create canvas with image dimensions
                         if (!stageSize) {
                             setStageSize({ width: Math.max(img.width, 800), height: Math.max(img.height, 600) });
-                            imageX = Math.max(img.width, 800) / 2 - imageWidth / 2;
-                            imageY = Math.max(img.height, 600) / 2 - imageHeight / 2;
+                            imageX = Math.max(img.width, 800) / 2;
+                            imageY = Math.max(img.height, 600) / 2;
                         } else {
                             // Calculate positioning and scaling for existing canvas
                             const canvasWidth = stageSize.width;
@@ -563,9 +557,9 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                                 imageHeight = img.height * scale;
                             }
 
-                            // Center the image on canvas
-                            imageX = (canvasWidth - imageWidth) / 2;
-                            imageY = (canvasHeight - imageHeight) / 2;
+                            // Center the image on canvas (using center coordinates)
+                            imageX = canvasWidth / 2;
+                            imageY = canvasHeight / 2;
                         }
                         
                         // Create image element

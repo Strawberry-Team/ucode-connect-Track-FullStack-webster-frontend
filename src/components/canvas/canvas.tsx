@@ -237,7 +237,7 @@ const Canvas: React.FC = () => {
             containerRef.current.style.cursor = "none";
         } else if (activeTool?.type === 'blur') {
             containerRef.current.style.cursor = "none";
-        } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor') {
+        } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor' || activeTool?.type === 'image-transform') {
             containerRef.current.style.cursor = "default";
         } else {
             containerRef.current.style.cursor = "default";
@@ -917,10 +917,19 @@ const Canvas: React.FC = () => {
         const clickedOnStageBackground = target === stageRef.current || target.name() === "background";
 
         if (clickedOnStageBackground) {
-            if (elementsManager.selectedElementId) {
-                elementsManager.setSelectedElementId(null);
-                // Use centralized cursor function when deselecting element
-                setCursorBasedOnTool();
+            // Only deselect elements when using appropriate tools
+            if (elementsManager.selectedElementId && activeTool) {
+                const shouldDeselect = 
+                    activeTool.type === "shape" || 
+                    activeTool.type === "text" || 
+                    activeTool.type === "cursor" || 
+                    activeTool.type === "image-transform";
+                
+                if (shouldDeselect) {
+                    elementsManager.setSelectedElementId(null);
+                    // Use centralized cursor function when deselecting element
+                    setCursorBasedOnTool();
+                }
             }
             if (evt.button === 1) {
                 isDragging.current = true;

@@ -50,7 +50,7 @@ const LiquifyOptions: React.FC = () => {
     setLiquifyMode,
     liquifyTwirlDirection,
     setLiquifyTwirlDirection,
-    isImageReadyForLiquify,
+    renderableObjects,
   } = useTool();
 
   const handleResetClick = () => {
@@ -81,7 +81,12 @@ const LiquifyOptions: React.FC = () => {
     reconstruct: Undo2,
   };
 
-  if (!isImageReadyForLiquify) {
+  // Check if there are any imported images (custom-image type) in the project
+  const hasImportedImages = renderableObjects.some(obj => 
+    !('tool' in obj) && obj.type === 'custom-image'
+  );
+
+  if (!hasImportedImages) {
     return (
       <div className="flex items-center justify-center h-full ">
         <span className="text-xs text-[#A8AAACFF] text-center">

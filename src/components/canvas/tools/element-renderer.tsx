@@ -150,20 +150,42 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     }, []);
 
     const canInteractWithElement = useCallback(() => {
-        if (!activeTool) return true;
-        if (activeTool.type === "cursor") return true;
+        if (!activeTool) return false;
 
-        const elementType = element.type as ShapeType | "text" | "custom-image";
+        const elementType = element.type;
 
         if (elementType === "text") {
-            return activeTool.type === "text";
+            return activeTool.type === "text" || activeTool.type === "cursor";
         }
         if (elementType === "custom-image") {
-            // Custom images can be selected with any tool except text tool
-            return activeTool.type !== "text";
+            // Custom images can only be selected with image-transform tool
+            return activeTool.type === "image-transform";
         }
-        if (activeTool.type === "shape") {
-            return true;
+        // For shape elements, only allow interaction with shape tool
+        const isShapeElement = elementType !== "text" && elementType !== "custom-image";
+        if (isShapeElement) {
+            return activeTool.type === "shape";
+        }
+        return false;
+    }, [activeTool, element.type]);
+
+    const shouldShowTransformer = useCallback(() => {
+        if (!activeTool) return false;
+
+        const elementType = element.type;
+
+        // Show transformer for text elements with text or cursor tools
+        if (elementType === "text") {
+            return activeTool.type === "text" || activeTool.type === "cursor";
+        }
+        // Show transformer for custom images with image-transform tool
+        if (elementType === "custom-image") {
+            return activeTool.type === "image-transform";
+        }
+        // Show transformer for shape elements ONLY with shape tool
+        const isShapeElement = elementType !== "text" && elementType !== "custom-image";
+        if (isShapeElement) {
+            return activeTool.type === "shape";
         }
         return false;
     }, [activeTool, element.type]);
@@ -172,7 +194,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     // Removed useEffect that sets cursor to 'move' to avoid conflicts with canvas.tsx cursor logic
 
     useEffect(() => {
-        if (isSelected && transformerRef.current && nodeRef.current && canInteractWithElement()) {
+        if (isSelected && transformerRef.current && nodeRef.current && shouldShowTransformer()) {
             const tr = transformerRef.current;
             const node = nodeRef.current; // This is the Group for text elements
 
@@ -293,7 +315,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             transformerRef.current.detach();
             transformerRef.current.getLayer()?.batchDraw();
         }
-    }, [isSelected, element, canInteractWithElement]); // element contains fontSize, type etc.
+    }, [isSelected, element, shouldShowTransformer]); // element contains fontSize, type etc.
 
     const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
         const node = e.target as Konva.Node;
@@ -309,10 +331,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             newDesignWidth = node.width() * node.scaleX();
             newDesignHeight = node.height() * node.scaleY();
             
-            // For text elements, node.x() and node.y() are center coordinates due to offsetX/Y
-            // We need to convert them to top-left coordinates for ElementData
+            // For text elements, convert from center coordinates (node.x/y) to top-left coordinates (ElementData)
+            // Since text uses offsetX/Y for centering, node.x/y are center coordinates
             newElementX = node.x() - newDesignWidth / 2;
             newElementY = node.y() - newDesignHeight / 2;
+        } else if (type === 'custom-image') {
+            newDesignWidth = node.width() * node.scaleX();
+            newDesignHeight = node.height() * node.scaleY();
+            
+            // For custom-image elements, node.x() and node.y() are center coordinates due to offsetX/Y
+            // Keep them as center coordinates since custom images use center positioning
+            newElementX = node.x();
+            newElementY = node.y();
         } else if (type === 'line' || type === 'arrow') {
             const lineNode = node as Konva.Line;
             const points = lineNode.points();
@@ -325,9 +355,24 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 newDesignWidth = element.width || 100;
                 newDesignHeight = element.height || 10;
             }
-        } else {
+            // For line and arrow, coordinates are top-left based
+            newElementX = node.x();
+            newElementY = node.y();
+        } else if (type === 'circle' || type === 'triangle' || type === 'pentagon' || type === 'hexagon' || type === 'star') {
             newDesignWidth = Math.abs(node.width() * node.scaleX());
             newDesignHeight = Math.abs(node.height() * node.scaleY());
+            
+            // For centered shapes (circle, polygon, star), convert from center to top-left
+            // These shapes are positioned with center coordinates in Konva but stored as top-left in ElementData
+            newElementX = node.x() - newDesignWidth / 2;
+            newElementY = node.y() - newDesignHeight / 2;
+        } else {
+            // For rectangle, square, rounded-rectangle, squircle (top-left positioned shapes)
+            newDesignWidth = Math.abs(node.width() * node.scaleX());
+            newDesignHeight = Math.abs(node.height() * node.scaleY());
+            // These use top-left coordinates directly
+            newElementX = node.x();
+            newElementY = node.y();
         }
 
         node.scaleX(1);
@@ -348,7 +393,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 newDesignWidth, newDesignHeight, newElementX, newElementY, newRotation,
                 nodePos: { x: node.x(), y: node.y() },
                 nodeOffsets: { x: node.offsetX(), y: node.offsetY() },
-                finalNodeScale: { x: node.scaleX(), y: node.scaleY() }, // Should reflect baseScaleX/Y
+                finalNodeScale: { x: node.scaleX(), y: node.scaleY() },
                 element: {...element}
             });
 
@@ -367,7 +412,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
     const commonProps = {
         id: element.id,
-        draggable: canInteractWithElement(),
+        draggable: canInteractWithElement() && isSelected,
         opacity: element.opacity ?? 1,
         stroke: element.borderColor,
         strokeWidth: element.borderStyle === 'hidden' ? 0 : element.borderWidth ?? 0,
@@ -383,9 +428,15 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onMouseEnter: () => {
             if (canInteractWithElement()) {
                 onHoverInteractiveElement?.(true);
-                // Only change cursor to move for cursor and text tools when element is selected
+                // Only change cursor to move when element is selected and using the correct tool
                 // Don't change cursor if Hand tool is active
-                if (activeTool?.type !== 'hand' && isSelected && (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text'))) {
+                const canShowMoveCursor = activeTool?.type !== 'hand' && isSelected && 
+                    ((activeTool?.type === 'text' && element.type === 'text') || 
+                     (activeTool?.type === 'shape' && element.type !== 'text' && element.type !== 'custom-image') ||
+                     (activeTool?.type === 'image-transform' && element.type === 'custom-image') ||
+                     (activeTool?.type === 'cursor' && element.type === 'text'));
+                
+                if (canShowMoveCursor) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
                     if (container) {
@@ -410,8 +461,14 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragStart: () => {
             if (canInteractWithElement()) {
                 setActiveSnapLines([]);
-                // Set grabbing cursor during drag only for cursor and text tools, not for Hand tool
-                if (activeTool?.type !== 'hand' && (activeTool?.type === 'cursor' || (activeTool?.type === 'text' && element.type === 'text'))) {
+                // Set grabbing cursor during drag when using the correct tool
+                const canShowGrabbingCursor = activeTool?.type !== 'hand' && isSelected &&
+                    ((activeTool?.type === 'text' && element.type === 'text') || 
+                     (activeTool?.type === 'shape' && element.type !== 'text' && element.type !== 'custom-image') ||
+                     (activeTool?.type === 'image-transform' && element.type === 'custom-image') ||
+                     (activeTool?.type === 'cursor' && element.type === 'text'));
+                     
+                if (canShowGrabbingCursor) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
                     if (container) {
@@ -461,14 +518,29 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
             const staticKonvaElements: BoxProps[] = allElements
                 .filter(el => el.id !== element.id)
-                .map(el => ({
-                    id: el.id,
-                    x: el.x ?? 0,
-                    y: el.y ?? 0,
-                    width: (el.width ?? 0) * Math.abs(el.scaleX ?? 1),
-                    height: (el.height ?? 0) * Math.abs(el.scaleY ?? 1),
-                    rotation: el.rotation ?? 0,
-                }));
+                .map(el => {
+                    let elementX = el.x ?? 0;
+                    let elementY = el.y ?? 0;
+                    
+                    // Convert center coordinates to top-left for snapping for certain element types
+                    if (el.type === 'custom-image' || el.type === 'text' || 
+                        el.type === 'circle' || el.type === 'triangle' || 
+                        el.type === 'pentagon' || el.type === 'hexagon' || el.type === 'star') {
+                        const elWidth = el.width ?? 0;
+                        const elHeight = el.height ?? 0;
+                        elementX = elementX - elWidth / 2;
+                        elementY = elementY - elHeight / 2;
+                    }
+                    
+                    return {
+                        id: el.id,
+                        x: elementX,
+                        y: elementY,
+                        width: (el.width ?? 0) * Math.abs(el.scaleX ?? 1),
+                        height: (el.height ?? 0) * Math.abs(el.scaleY ?? 1),
+                        rotation: el.rotation ?? 0,
+                    };
+                });
 
             const { snapLines, snappedPosition } = getSnappingGuides(
                 draggingBox,
@@ -520,13 +592,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 
                 // Convert coordinates depending on element type
                 // For elements with offsetX/Y (text, images) node.x() returns center
-                // Need to convert to top-left coordinates
                 if (node.offsetX() > 0 || node.offsetY() > 0) {
-                    // Element is centered (text, images)
-                    const elementWidth = element.width || 0;
-                    const elementHeight = element.height || 0;
-                    newX = node.x() - elementWidth / 2;
-                    newY = node.y() - elementHeight / 2;
+                    // For text elements, convert to top-left. For custom-image, keep center coordinates
+                    if (element.type === 'text') {
+                        const elementWidth = element.width || 0;
+                        const elementHeight = element.height || 0;
+                        newX = node.x() - elementWidth / 2;
+                        newY = node.y() - elementHeight / 2;
+                    } else if (element.type === 'custom-image') {
+                        // Keep center coordinates for custom-image
+                        newX = node.x();
+                        newY = node.y();
+                    }
                 } else if (element.type === 'circle' || element.type === 'triangle' || 
                           element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
                     // Elements positioned centrally without offsetX/Y
@@ -750,7 +827,6 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         width={element.width}
                         height={element.height}
                         {...commonProps}
-                        draggable={isSelected && (activeTool?.type === 'text' || activeTool?.type === 'cursor') ? commonProps.draggable : false}
                     >
                         <Rect
                             width={element.width}
@@ -990,9 +1066,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     </Group>
                 );
             case "custom-image":
-                // Custom Image is centered using offsetX/Y, its x/y in ElementData is top-left
-                const imgCenterX = element.x + (element.width ?? 0) / 2;
-                const imgCenterY = element.y + (element.height ?? 0) / 2;
+                // Custom Image coordinates are center-based, use offset for proper positioning
+                const imgCenterX = element.x;
+                const imgCenterY = element.y;
                 const imgOffsetX = (element.width ?? 0) / 2;
                 const imgOffsetY = (element.height ?? 0) / 2;
                 
@@ -1081,7 +1157,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     return (
         <>
             {renderElement()}
-            {isSelected && canInteractWithElement() && (
+            {isSelected && shouldShowTransformer() && (
                 <Transformer
                     ref={transformerRef}
                     // Visual properties

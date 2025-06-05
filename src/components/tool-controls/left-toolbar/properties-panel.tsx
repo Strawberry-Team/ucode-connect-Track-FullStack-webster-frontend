@@ -11,7 +11,8 @@ import {
   CropOptions,
   HandOptions,
   LiquifyOptions,
-  BlurOptions
+  BlurOptions,
+  ImageTransformOptions
 } from "./option-panels"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -38,6 +39,8 @@ const PropertiesPanel: React.FC = () => {
         return <LiquifyOptions />
       case "blur":
         return <BlurOptions />
+      case "image-transform":
+        return <ImageTransformOptions />
       case "crop":
         return <CropOptions />
       case "hand":

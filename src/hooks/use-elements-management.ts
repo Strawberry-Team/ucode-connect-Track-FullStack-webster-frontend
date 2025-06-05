@@ -100,6 +100,40 @@ const useElementsManagement = ({
     return null;
   }, [renderableObjects]);
 
+  // Reset selected element when active tool changes if the element can't be interacted with the new tool
+  useEffect(() => {
+    if (selectedElementId && activeTool) {
+      const elementResult = getElementById(selectedElementId);
+      if (elementResult) {
+        const element = elementResult.element;
+        let canBeSelected = false;
+
+        // Check if current element can be selected with the new tool
+        if (element.type === "custom-image") {
+          canBeSelected = activeTool.type === "image-transform";
+        } else if (element.type === "text") {
+          canBeSelected = activeTool.type === "cursor" || activeTool.type === "text";
+        } else {
+          // For shape elements
+          const isShapeElement = element.type !== "text" && element.type !== "custom-image";
+          if (isShapeElement) {
+            canBeSelected = activeTool.type === "shape";
+          }
+        }
+
+        // Only deselect if switching to a conflicting tool
+        if (!canBeSelected && (
+          activeTool.type === "shape" || 
+          activeTool.type === "text" || 
+          activeTool.type === "cursor" || 
+          activeTool.type === "image-transform"
+        )) {
+          setSelectedElementId(null);
+        }
+      }
+    }
+  }, [activeTool, selectedElementId, getElementById]);
+
   const addElement = useCallback((
     type: ShapeType | "text" | "custom-image",
     pos: { x: number; y: number },
@@ -247,19 +281,30 @@ const useElementsManagement = ({
     const clickedElement = elementResult.element;
     let canBeSelectedBasedOnToolAndElementType = false;
 
-    // Shapes and images can be selected regardless of the active tool
-    if (clickedElement.type !== "text") {
-        canBeSelectedBasedOnToolAndElementType = true;
-    } 
-    // For text elements, we keep the previous behavior
-    else if (activeTool?.type === "cursor" || activeTool?.type === "text") {
-        canBeSelectedBasedOnToolAndElementType = true;
+    // Custom images can only be selected with image-transform tool
+    if (clickedElement.type === "custom-image") {
+        canBeSelectedBasedOnToolAndElementType = activeTool?.type === "image-transform";
+    }
+    // Text elements can be selected with cursor or text tool
+    else if (clickedElement.type === "text") {
+        canBeSelectedBasedOnToolAndElementType = activeTool?.type === "cursor" || activeTool?.type === "text";
+    }
+    // Shape elements can only be selected with shape tool
+    else {
+        const isShapeElement = clickedElement.type !== "text" && clickedElement.type !== "custom-image";
+        if (isShapeElement) {
+            canBeSelectedBasedOnToolAndElementType = activeTool?.type === "shape";
+        }
     }
 
     if (canBeSelectedBasedOnToolAndElementType) {
         setSelectedElementId(id);
     } else {
-
+        // Only deselect if using the wrong tool for this element type
+        // Don't deselect when clicking with other tools to preserve selection
+        if (activeTool?.type === "shape" || activeTool?.type === "text" || activeTool?.type === "cursor" || activeTool?.type === "image-transform") {
+            setSelectedElementId(null);
+        }
     }
   }, [activeTool, getElementById, setSelectedElementId]);
 
