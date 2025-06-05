@@ -23,6 +23,8 @@ interface ElementsManagerContextValue {
   clearElements: () => void;
   getElementById: (id: string) => { element: ElementData; indexInRenderables: number; } | null;
   getElementDataFromRenderables: () => ElementData[];
+  bringElementToFront: (elementId: string) => void;
+  sendElementToBack: (elementId: string) => void;
 }
 
 // Create the context with a default value of undefined

@@ -442,6 +442,59 @@ const useElementsManagement = ({
     }
   }, [renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
+  const bringElementToFront = useCallback((elementId: string) => {
+    const elementResult = getElementById(elementId);
+    if (!elementResult) return;
+
+    const elementToMove = elementResult.element;
+    const otherObjects = renderableObjects.filter(obj => {
+      if ('tool' in obj) return true; // Keep all lines
+      return obj.id !== elementId; // Remove the element we're moving
+    });
+
+    // Add the element to the end (front)
+    const updatedObjects = [...otherObjects, elementToMove];
+    setRenderableObjects(updatedObjects);
+
+    const elementTypeName = getElementTypeName(elementToMove.type);
+    addHistoryEntry({
+      type: 'elementModified',
+      description: `Brought ${elementTypeName} to front`,
+      linesSnapshot: updatedObjects,
+      metadata: {
+        elementId: elementId,
+        elementType: elementToMove.type
+      }
+    });
+  }, [renderableObjects, setRenderableObjects, getElementById, addHistoryEntry]);
+
+  const sendElementToBack = useCallback((elementId: string) => {
+    const elementResult = getElementById(elementId);
+    if (!elementResult) return;
+
+    const elementToMove = elementResult.element;
+    const lines = renderableObjects.filter(obj => 'tool' in obj);
+    const otherElements = renderableObjects.filter(obj => {
+      if ('tool' in obj) return false; // Exclude lines
+      return obj.id !== elementId; // Exclude the element we're moving
+    });
+
+    // Add the element after lines but before other elements (back)
+    const updatedObjects = [...lines, elementToMove, ...otherElements];
+    setRenderableObjects(updatedObjects);
+
+    const elementTypeName = getElementTypeName(elementToMove.type);
+    addHistoryEntry({
+      type: 'elementModified',
+      description: `Sent ${elementTypeName} to back`,
+      linesSnapshot: updatedObjects,
+      metadata: {
+        elementId: elementId,
+        elementType: elementToMove.type
+      }
+    });
+  }, [renderableObjects, setRenderableObjects, getElementById, addHistoryEntry]);
+
   return {
     addElement,
     updateElement,
@@ -460,6 +513,8 @@ const useElementsManagement = ({
     clearElements,
     getElementById,
     getElementDataFromRenderables,
+    bringElementToFront,
+    sendElementToBack,
   };
 };
 

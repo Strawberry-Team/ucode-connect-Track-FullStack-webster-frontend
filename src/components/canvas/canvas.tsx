@@ -1,7 +1,7 @@
 import type React from "react";
 import {useTool} from "@/context/tool-context";
 import {useRef, useState, useEffect, useCallback} from "react";
-import {Stage, Layer, Line as KonvaLine, Rect, Image as KonvaImage, Transformer} from "react-konva";
+import {Stage, Layer, Line as KonvaLine, Rect, Image as KonvaImage, Transformer, Group} from "react-konva";
 import Konva from "konva";
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
@@ -1397,66 +1397,146 @@ const Canvas: React.FC = () => {
                         )}
                     </Layer>
 
-                    <Layer perfectDrawEnabled={false}>
-                        {renderableObjects
-                            .filter(obj => 'tool' in obj)
-                            .map((obj) => {
+                    {/* Render objects with individual layers for each brush line */}
+                    {(() => {
+                        const layers: React.ReactNode[] = [];
+                        const allErasers = renderableObjects.filter(obj => 'tool' in obj && obj.tool === 'eraser') as LineData[];
+                        
+                        renderableObjects.forEach((obj, index) => {
+                            if ('tool' in obj && obj.tool === 'brush') {
                                 const line = obj as LineData;
-                                return (
-                                    <KonvaLine
-                                        key={line.id}
-                                        points={line.points}
-                                        stroke={line.tool === "eraser" ? "#ffffff" : line.color}
-                                        strokeWidth={line.strokeWidth}
-                                        tension={0.5}
-                                        lineCap="round"
-                                        lineJoin="round"
-                                        opacity={line.opacity}
-                                        globalCompositeOperation={line.tool === "eraser" ? "destination-out" : "source-over"}
-                                        x={(line as any).x ?? 0}
-                                        y={(line as any).y ?? 0}
-                                        rotation={(line as any).rotation ?? 0}
-                                        scaleX={(line as any).scaleX ?? 1}
-                                        scaleY={(line as any).scaleY ?? 1}
-                                        offsetX={(line as any).offsetX ?? 0}
-                                        offsetY={(line as any).offsetY ?? 0}
-                                        listening={isBrushTransformModeActive && activeTool?.type === 'brush'}
-                                        name={line.id}
-                                        draggable={isBrushTransformModeActive && activeTool?.type === 'brush' && !!(line as any).offsetX && !!(line as any).offsetY}
-                                        onDragEnd={(e) => {
-                                            if (isBrushTransformModeActive && activeTool?.type === 'brush') {
-                                                // Ensure the line was prepared for transform (has offsetX/Y)
-                                                if ((line as any).offsetX !== undefined && (line as any).offsetY !== undefined) {
-                                                    drawingManager.updateLinePositionAndHistory(line.id, e.target.x(), e.target.y());
-                                                }
-                                            }
-                                        }}
-                                        onClick={(e) => {
-                                            if (isBrushTransformModeActive && activeTool?.type === 'brush') {
-                                                e.cancelBubble = true;
-                                                if (!(line as any).offsetX && !(line as any).offsetY) {
-                                                    drawingManager.prepareLineForTransform(line.id);
-                                                }
-                                                setSelectedLineId(line.id);
-                                                const node = stageRef.current?.findOne('.' + line.id);
-                                                if (node) setSelectedKonvaNode(node);
-                                            }
-                                        }}
-                                        onTap={(e) => {
-                                            if (isBrushTransformModeActive && activeTool?.type === 'brush') {
-                                                e.cancelBubble = true;
-                                                if (!(line as any).offsetX && !(line as any).offsetY) {
-                                                    drawingManager.prepareLineForTransform(line.id);
-                                                }
-                                                setSelectedLineId(line.id);
-                                                const node = stageRef.current?.findOne('.' + line.id);
-                                                if (node) setSelectedKonvaNode(node);
-                                            }
-                                        }}
-                                    />
+                                
+                                // Find all erasers that come AFTER this brush line in the array
+                                const erasersAfterThisLine = allErasers.filter(eraser => {
+                                    const eraserIndex = renderableObjects.findIndex(o => 'id' in o && o.id === eraser.id);
+                                    return eraserIndex > index;
+                                });
+                                
+                                // Create individual layer for each brush line
+                                layers.push(
+                                    <Layer key={`brush-line-${line.id}`} perfectDrawEnabled={false}>
+                                        <Group>
+                                            {/* Render the brush line */}
+                                            <KonvaLine
+                                                key={line.id}
+                                                points={line.points}
+                                                stroke={line.color}
+                                                strokeWidth={line.strokeWidth}
+                                                tension={0.5}
+                                                lineCap="round"
+                                                lineJoin="round"
+                                                opacity={line.opacity}
+                                                globalCompositeOperation="source-over"
+                                                x={(line as any).x ?? 0}
+                                                y={(line as any).y ?? 0}
+                                                rotation={(line as any).rotation ?? 0}
+                                                scaleX={(line as any).scaleX ?? 1}
+                                                scaleY={(line as any).scaleY ?? 1}
+                                                offsetX={(line as any).offsetX ?? 0}
+                                                offsetY={(line as any).offsetY ?? 0}
+                                                listening={isBrushTransformModeActive && activeTool?.type === 'brush'}
+                                                name={line.id}
+                                                draggable={isBrushTransformModeActive && activeTool?.type === 'brush' && !!(line as any).offsetX && !!(line as any).offsetY}
+                                                onDragEnd={(e) => {
+                                                    if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                                                        if ((line as any).offsetX !== undefined && (line as any).offsetY !== undefined) {
+                                                            drawingManager.updateLinePositionAndHistory(line.id, e.target.x(), e.target.y());
+                                                        }
+                                                    }
+                                                }}
+                                                onClick={(e) => {
+                                                    if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                                                        e.cancelBubble = true;
+                                                        if (!(line as any).offsetX && !(line as any).offsetY) {
+                                                            drawingManager.prepareLineForTransform(line.id);
+                                                        }
+                                                        setSelectedLineId(line.id);
+                                                        const node = stageRef.current?.findOne('.' + line.id);
+                                                        if (node) setSelectedKonvaNode(node);
+                                                    }
+                                                }}
+                                                onTap={(e) => {
+                                                    if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                                                        e.cancelBubble = true;
+                                                        if (!(line as any).offsetX && !(line as any).offsetY) {
+                                                            drawingManager.prepareLineForTransform(line.id);
+                                                        }
+                                                        setSelectedLineId(line.id);
+                                                        const node = stageRef.current?.findOne('.' + line.id);
+                                                        if (node) setSelectedKonvaNode(node);
+                                                    }
+                                                }}
+                                            />
+                                            
+                                            {/* Apply only erasers that came after this brush line */}
+                                            {erasersAfterThisLine.map((eraserLine) => (
+                                                <KonvaLine
+                                                    key={`eraser-${eraserLine.id}-for-${line.id}`}
+                                                    points={eraserLine.points}
+                                                    stroke="#ffffff"
+                                                    strokeWidth={eraserLine.strokeWidth}
+                                                    tension={0.5}
+                                                    lineCap="round"
+                                                    lineJoin="round"
+                                                    opacity={eraserLine.opacity}
+                                                    globalCompositeOperation="destination-out"
+                                                    x={(eraserLine as any).x ?? 0}
+                                                    y={(eraserLine as any).y ?? 0}
+                                                    rotation={(eraserLine as any).rotation ?? 0}
+                                                    scaleX={(eraserLine as any).scaleX ?? 1}
+                                                    scaleY={(eraserLine as any).scaleY ?? 1}
+                                                    offsetX={(eraserLine as any).offsetX ?? 0}
+                                                    offsetY={(eraserLine as any).offsetY ?? 0}
+                                                    listening={false}
+                                                />
+                                            ))}
+                                        </Group>
+                                    </Layer>
                                 );
-                            })}
+                            } else if ('tool' in obj && obj.tool === 'eraser') {
+                                // Eraser lines are handled above, so skip them here
+                                return;
+                            } else {
+                                // Render elements (shapes, text, images)
+                                const element = obj as ElementData;
+                                layers.push(
+                                    <Layer key={`element-${element.id}`} perfectDrawEnabled={false}>
+                                        <ElementRenderer
+                                            key={element.id}
+                                            element={element}
+                                            onDragEnd={(id, newX, newY) => elementsManager.handleDragEnd(id, newX, newY)}
+                                            onClick={(id, KonvaE) => elementsManager.handleElementClick(id, KonvaE)}
+                                            onTextEdit={(id, newText) => elementsManager.updateTextElement(id, newText)}
+                                            onTransform={(id, attrs) => elementsManager.updateElement(id, attrs as Partial<ElementData>)}
+                                            isSelected={element.id === elementsManager.selectedElementId}
+                                            allElements={elementsManagerHook.getElementDataFromRenderables()}
+                                            stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
+                                            setActiveSnapLines={setActiveSnapLines}
+                                            onHoverInteractiveElement={setIsHoveringInteractiveElement}
+                                        />
+                                    </Layer>
+                                );
+                            }
+                        });
+                        
+                        return layers;
+                    })()}
 
+                    {/* UI Layer for tools */}
+                    <Layer perfectDrawEnabled={false}>
+                        {/* Render preview element during creation */}
+                        {previewElement && (
+                            <ElementRenderer
+                                key={previewElement.id}
+                                element={{...previewElement, opacity: 0.6}}
+                                isSelected={false}
+                                allElements={[]}
+                                stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
+                                setActiveSnapLines={() => {}}
+                            />
+                        )}
+
+                        {/* Brush transformer */}
                         {selectedKonvaNode && isBrushTransformModeActive && activeTool?.type === 'brush' && (
                             <Transformer
                                 ref={trRef}
@@ -1482,40 +1562,9 @@ const Canvas: React.FC = () => {
                         )}
                     </Layer>
 
-                    <Layer>
-                        {renderableObjects
-                            .filter(obj => !('tool' in obj))
-                            .map((obj) => {
-                                const element = obj as ElementData;
-                                return (
-                                    <ElementRenderer
-                                        key={element.id}
-                                        element={element}
-                                        onDragEnd={(id, newX, newY) => elementsManager.handleDragEnd(id, newX, newY)}
-                                        onClick={(id, KonvaE) => elementsManager.handleElementClick(id, KonvaE)}
-                                        onTextEdit={(id, newText) => elementsManager.updateTextElement(id, newText)}
-                                        onTransform={(id, attrs) => elementsManager.updateElement(id, attrs as Partial<ElementData>)}
-                                        isSelected={element.id === elementsManager.selectedElementId}
-                                        allElements={elementsManagerHook.getElementDataFromRenderables()}
-                                        stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
-                                        setActiveSnapLines={setActiveSnapLines}
-                                        onHoverInteractiveElement={setIsHoveringInteractiveElement}
-                                    />
-                                );
-                            })}
-
-                        {/* Render preview element during creation */}
-                        {previewElement && (
-                            <ElementRenderer
-                                key={previewElement.id}
-                                element={{...previewElement, opacity: 0.6}} // Make preview semi-transparent
-                                isSelected={false}
-                                allElements={[]}
-                                stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
-                                setActiveSnapLines={() => {}} // No snapping for preview
-                            />
-                        )}
-
+                    {/* UI Elements Layer - always on top */}
+                    <Layer perfectDrawEnabled={false}>
+                        {/* Crop tool - always on top */}
                         <CropTool
                             stageSize={contextStageSize}
                             scale={currentDisplayScale}
@@ -1525,6 +1574,7 @@ const Canvas: React.FC = () => {
                             handleCropRectTransformEnd={croppingManager.handleCropRectTransformEnd}
                         />
 
+                        {/* Snap lines - always on top */}
                         {activeSnapLines.map((line, i) => (
                             <KonvaLine
                                 key={`snapline-${i}`}

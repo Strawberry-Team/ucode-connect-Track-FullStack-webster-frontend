@@ -96,6 +96,14 @@ const Toolbar: React.FC = () => {
             imageUrl: "https://pixlr.com/img/tool/shape-info.jpg"
         },
         {
+            id: "image-transform",
+            name: "Image Transform",
+            type: "image-transform",
+            icon: Image,
+            description: "Select and transform imported images.",
+            imageUrl: "https://pixlr.com/img/tool/transform-info.jpg"
+        },
+        {
             id: "liquify",
             name: "Liquify",
             type: "liquify",
@@ -110,14 +118,6 @@ const Toolbar: React.FC = () => {
             icon: Droplet,
             description: "Blur parts of the image using a brush.",
             imageUrl: "https://pixlr.com/img/tool/detail-info.jpg"
-        },
-        {
-            id: "image-transform",
-            name: "Image Transform",
-            type: "image-transform",
-            icon: Image,
-            description: "Select and transform imported images.",
-            imageUrl: "https://pixlr.com/img/tool/transform-info.jpg"
         },
         {
             id: "crop",
