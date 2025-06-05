@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 import { saveProject, updateProject, getProjectData } from '@/utils/project-storage';
 import { loadProjectFonts } from '@/utils/font-utils';
+import { useTool } from '@/context/tool-context';
 import type { RenderableObject } from '@/types/canvas';
 import type { User } from '@/types/auth';
 
@@ -34,6 +35,8 @@ export const useProjectManager = ({
   backgroundImage,
   stageRef
 }: UseProjectManagerProps) => {
+  const { registerProjectSaver, setHasUnsavedChanges } = useTool();
+  
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string>("Untitled Project");
   const [showUnsavedWarning, setShowUnsavedWarning] = useState<boolean>(false);
@@ -61,24 +64,85 @@ export const useProjectManager = ({
     contextStageSizeRef.current = contextStageSize;
   }, [contextStageSize]);
 
-  const saveCurrentProjectState = useCallback(() => {
+  // Helper function to generate thumbnail safely, ensuring all images are loaded
+  const generateThumbnailSafely = useCallback(async (): Promise<string | undefined> => {
+    if (!stageRef.current) return undefined;
+
+    try {
+      const stage = stageRef.current;
+      
+      // Check if there are any custom-image elements
+      const hasCustomImages = renderableObjectsRef.current.some(obj => 
+        !('tool' in obj) && obj.type === 'custom-image'
+      );
+
+      if (hasCustomImages) {
+        // Wait for all images to be loaded by forcing a render cycle
+        return new Promise((resolve) => {
+          // Use a short timeout to ensure all images are rendered
+          setTimeout(() => {
+            try {
+              const dataURL = stage.toDataURL({ 
+                pixelRatio: 0.4, 
+                quality: 0.8,
+                mimeType: 'image/png'
+              });
+              console.log('ProjectManager: Thumbnail generated successfully with images');
+              resolve(dataURL);
+            } catch (error) {
+              console.warn('ProjectManager: Error generating thumbnail with images:', error);
+              // Try without crossOrigin
+              try {
+                const fallbackDataURL = stage.toDataURL({ 
+                  pixelRatio: 0.3, 
+                  quality: 0.7
+                });
+                resolve(fallbackDataURL);
+              } catch (fallbackError) {
+                console.error('ProjectManager: Fallback thumbnail generation failed:', fallbackError);
+                resolve(undefined);
+              }
+            }
+          }, 300); // Wait 300ms for images to render
+        });
+      } else {
+        // No custom images, generate thumbnail immediately
+        const dataURL = stage.toDataURL({ 
+          pixelRatio: 0.4, 
+          quality: 0.8 
+        });
+        console.log('ProjectManager: Thumbnail generated successfully without images');
+        return dataURL;
+      }
+    } catch (error) {
+      console.error('ProjectManager: Error in generateThumbnailSafely:', error);
+      return undefined;
+    }
+  }, []);
+
+  const saveCurrentProjectState = useCallback(async () => {
     const currentStageSize = contextStageSizeRef.current;
     const currentRenderableObjects = renderableObjectsRef.current;
     const currentProjectIdValue = currentProjectIdRef.current;
     const currentProjectName = projectNameRef.current;
     
     if (!currentStageSize || !loggedInUser) {
+      console.warn('ProjectManager: Cannot save - missing stage size or user not logged in');
       return null;
     }
     
     if (currentRenderableObjects.length === 0) {
+      console.warn('ProjectManager: Cannot save - no renderable objects');
       return null;
     }
     
-    const thumbnailUrl = stageRef.current?.toDataURL({ 
-      pixelRatio: 0.4, 
-      quality: 0.8 
+    console.log('ProjectManager: Saving project state...', {
+      projectId: currentProjectIdValue,
+      objectsCount: currentRenderableObjects.length,
+      stageSize: currentStageSize
     });
+    
+    const thumbnailUrl = await generateThumbnailSafely();
     
     if (currentProjectIdValue) {
       const success = updateProject(
@@ -88,6 +152,7 @@ export const useProjectManager = ({
         currentStageSize.width,
         currentStageSize.height
       );
+      console.log('ProjectManager: Updated existing project:', currentProjectIdValue, 'success:', success);
       return currentProjectIdValue;
     } else {
       const hasInitialImage = !!backgroundImage;
@@ -101,21 +166,39 @@ export const useProjectManager = ({
         loggedInUser?.id
       );
       
+      console.log('ProjectManager: Created new project:', newProjectId);
       currentProjectIdRef.current = newProjectId;
       setCurrentProjectId(newProjectId);
       
+      // Update URL with new project ID
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('projectId', newProjectId);
+      window.history.replaceState(null, '', newUrl.toString());
+      
       return newProjectId;
     }
-  }, [loggedInUser, backgroundImage, stageRef]);
+  }, [loggedInUser, backgroundImage, stageRef, setCurrentProjectId]);
 
   const debouncedSave = useMemo(
     () => debounce(() => {
       if (loggedInUser && contextStageSizeRef.current && renderableObjectsRef.current.length > 0) {
-        saveCurrentProjectState();
+        console.log('ProjectManager: Debounced save triggered');
+        saveCurrentProjectState().then((savedProjectId) => {
+          if (savedProjectId) {
+            console.log('ProjectManager: Debounced save completed successfully');
+          }
+        }).catch((error) => {
+          console.error('ProjectManager: Error in debounced save:', error);
+        });
       }
     }, 2000), 
     [saveCurrentProjectState, loggedInUser]
   );
+
+  // Register the project saver function with ToolContext
+  useEffect(() => {
+    registerProjectSaver(saveCurrentProjectState);
+  }, [registerProjectSaver, saveCurrentProjectState]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -128,6 +211,7 @@ export const useProjectManager = ({
     
     if (projectId) {
       setCurrentProjectId(projectId);
+      setHasUnsavedChanges(false); // Reset unsaved changes flag for existing project
       
       const projectData = getProjectData(projectId);
       if (projectData) {
@@ -140,8 +224,9 @@ export const useProjectManager = ({
     } else {
       console.warn('ProjectManager: New project detected, resetting currentProjectId');
       setCurrentProjectId(null);
+      setHasUnsavedChanges(false); // Reset unsaved changes flag for new project
     }
-  }, [location]);
+  }, [location, setHasUnsavedChanges]);
 
   useEffect(() => {
     if (!loggedInUser && !showUnsavedWarning) {
@@ -159,6 +244,7 @@ export const useProjectManager = ({
 
   useEffect(() => {
     if (loggedInUser && renderableObjects.length > 0) {
+      console.log('ProjectManager: Triggering debounced save due to changes');
       debouncedSave();
     }
   }, [renderableObjects, contextStageSize, debouncedSave, loggedInUser]);
@@ -168,7 +254,11 @@ export const useProjectManager = ({
       if (renderableObjects.length > 0) {
         if (loggedInUser) {
           console.warn('ProjectManager: BeforeUnload save triggered');
-          saveCurrentProjectState();
+          // Note: beforeunload is synchronous, so we can't await the promise
+          // We'll do a best-effort save
+          saveCurrentProjectState().catch((error) => {
+            console.error('ProjectManager: Error in beforeunload save:', error);
+          });
         } else {
           e.preventDefault();
           e.returnValue = '';
@@ -183,13 +273,15 @@ export const useProjectManager = ({
       window.removeEventListener('beforeunload', handleBeforeUnload);
 
       const wasNewProject = !currentProjectIdRef.current;
-      const savedProjectId = saveCurrentProjectState();
-      
-      if (savedProjectId && wasNewProject) {
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('projectId', savedProjectId);
-        window.history.replaceState(null, '', newUrl.toString());
-      }
+      saveCurrentProjectState().then((savedProjectId) => {
+        if (savedProjectId && wasNewProject) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('projectId', savedProjectId);
+          window.history.replaceState(null, '', newUrl.toString());
+        }
+      }).catch((error) => {
+        console.error('ProjectManager: Error in cleanup save:', error);
+      });
     };
   }, [renderableObjects, loggedInUser, saveCurrentProjectState]);
 

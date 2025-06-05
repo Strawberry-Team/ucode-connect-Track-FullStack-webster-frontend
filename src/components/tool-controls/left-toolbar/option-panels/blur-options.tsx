@@ -34,7 +34,7 @@ const BlurOptions: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <span className="text-xs text-[#A8AAACFF] text-center">
-          Add an image to the canvas to use the Blur tool.
+          Додайте зображення на полотно та клікніть по ньому для використання інструменту Blur.
         </span>
       </div>
     );

@@ -158,8 +158,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             return activeTool.type === "text" || activeTool.type === "cursor";
         }
         if (elementType === "custom-image") {
-            // Custom images can only be selected with image-transform tool
-            return activeTool.type === "image-transform";
+            // Custom images can be selected with image-transform, liquify, or blur tools
+            return activeTool.type === "image-transform" || 
+                   activeTool.type === "liquify" || 
+                   activeTool.type === "blur";
         }
         // For shape elements, only allow interaction with shape tool
         const isShapeElement = elementType !== "text" && elementType !== "custom-image";
@@ -178,7 +180,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         if (elementType === "text") {
             return activeTool.type === "text" || activeTool.type === "cursor";
         }
-        // Show transformer for custom images with image-transform tool
+        // Show transformer for custom images ONLY with image-transform tool (not liquify or blur)
         if (elementType === "custom-image") {
             return activeTool.type === "image-transform";
         }
@@ -1078,15 +1080,33 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 useEffect(() => {
                     if (element.src) {
                         const img = new window.Image();
+                        
+                        // Try to load with crossOrigin first for CORS compliance
                         img.crossOrigin = 'anonymous';
-                        img.onload = () => {
+                        
+                        let hasTriedFallback = false;
+                        
+                        const handleLoad = () => {
                             setImageInstance(img);
                             setImageLoaded(true);
+                            console.log('ElementRenderer: Image loaded successfully for element:', element.id);
                         };
-                        img.onerror = () => {
-                            console.error('Failed to load image:', element.src);
-                            setImageLoaded(false);
+                        
+                        const handleError = () => {
+                            if (!hasTriedFallback && element.src) {
+                                // Try without crossOrigin as fallback
+                                console.warn('ElementRenderer: Image failed with CORS, trying without crossOrigin:', element.src);
+                                hasTriedFallback = true;
+                                img.crossOrigin = '';
+                                img.src = element.src;
+                            } else {
+                                console.error('ElementRenderer: Failed to load image:', element.src);
+                                setImageLoaded(false);
+                            }
                         };
+                        
+                        img.onload = handleLoad;
+                        img.onerror = handleError;
                         img.src = element.src;
                         
                         return () => {
@@ -1097,19 +1117,47 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 }, [element.src]);
                 
                 if (element.src && imageLoaded && imageInstance) {
+                    // Check if liquify or blur tool is active to show special highlight
+                    const showEditingHighlight = activeTool?.type === "liquify" || activeTool?.type === "blur";
+                    
                     return (
-                        <KonvaImage
-                            ref={nodeRef as React.RefObject<Konva.Image>}
-                            image={imageInstance}
-                            x={imgCenterX}
-                            y={imgCenterY}
-                            offsetX={imgOffsetX}
-                            offsetY={imgOffsetY}
-                            width={element.width}
-                            height={element.height}
-                            {...commonProps}
-                            {...strokeStyleProps} // Borders for image
-                        />
+                        <Group
+                            ref={showEditingHighlight ? nodeRef as React.RefObject<Konva.Group> : undefined}
+                            {...(showEditingHighlight ? {
+                                x: imgCenterX,
+                                y: imgCenterY,
+                                offsetX: imgOffsetX,
+                                offsetY: imgOffsetY,
+                                width: element.width,
+                                height: element.height,
+                                ...commonProps
+                            } : {})}
+                        >
+                            <KonvaImage
+                                ref={!showEditingHighlight ? nodeRef as React.RefObject<Konva.Image> : undefined}
+                                image={imageInstance}
+                                x={showEditingHighlight ? 0 : imgCenterX}
+                                y={showEditingHighlight ? 0 : imgCenterY}
+                                offsetX={showEditingHighlight ? 0 : imgOffsetX}
+                                offsetY={showEditingHighlight ? 0 : imgOffsetY}
+                                width={element.width}
+                                height={element.height}
+                                {...(showEditingHighlight ? {} : commonProps)}
+                                {...strokeStyleProps} // Borders for image
+                            />
+                            {showEditingHighlight && (
+                                <Rect
+                                    x={0}
+                                    y={0}
+                                    width={element.width}
+                                    height={element.height}
+                                    stroke={activeTool?.type === "liquify" ? "#FF6B35" : "#4A90E2"}
+                                    strokeWidth={2}
+                                    dash={[5, 5]}
+                                    listening={false}
+                                />
+                            )}
+                        </Group>
                     );
                 } else if (element.src && !imageLoaded) {
                     // Show placeholder while loading

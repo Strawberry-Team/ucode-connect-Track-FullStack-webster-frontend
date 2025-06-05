@@ -235,6 +235,11 @@ interface ToolContextValue {
 
     // State for storing the canvas exporter function
     canvasExporter: ((format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) | null;
+
+    // Project saving state
+    hasUnsavedChanges: boolean;
+    setHasUnsavedChanges: (hasChanges: boolean) => void;
+    registerProjectSaver: (saver: () => Promise<string | null>) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -335,6 +340,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     // State for storing the canvas exporter function
     const [canvasExporter, setCanvasExporter] = useState<((format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) | null>(null);
 
+    // Project saving state
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+    const projectSaverRef = useRef<(() => Promise<string | null>) | null>(null);
+
     const setActiveTool = useCallback((tool: Tool | null) => {
         setActiveToolInternal(tool);
         setIsAddModeActive(false); // Reset add mode when tool changes
@@ -383,6 +392,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         renderableObjectsRestorerRef.current = restorer;
     }, []);
 
+    const registerProjectSaver = useCallback((saver: () => Promise<string | null>) => {
+        projectSaverRef.current = saver;
+    }, []);
+
     const addHistoryEntry = useCallback((entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => {
         setHistory(prevHistory => {
             const newHistoryBase = currentHistoryIndex < prevHistory.length - 1 && prevHistory.length > 0
@@ -400,9 +413,29 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
             const finalHistory = [...updatedHistory, newEntry];
             setCurrentHistoryIndex(finalHistory.length - 1);
+            
+            // Trigger immediate save on first change
+            if (!hasUnsavedChanges && projectSaverRef.current) {
+                console.log('ToolContext: First change detected, saving project immediately. Entry type:', entryData.type, 'Description:', entryData.description);
+                projectSaverRef.current().then((savedProjectId) => {
+                    if (savedProjectId) {
+                        console.log('ToolContext: Project saved successfully with ID:', savedProjectId);
+                        setHasUnsavedChanges(true);
+                    } else {
+                        console.warn('ToolContext: Failed to save project immediately - no project ID returned');
+                    }
+                }).catch((error) => {
+                    console.error('ToolContext: Error saving project immediately:', error);
+                });
+            } else if (hasUnsavedChanges) {
+                console.log('ToolContext: Change detected but already has unsaved changes. Entry type:', entryData.type);
+            } else {
+                console.warn('ToolContext: Change detected but no project saver registered');
+            }
+            
             return finalHistory;
         });
-    }, [currentHistoryIndex]);
+    }, [currentHistoryIndex, hasUnsavedChanges]);
 
     const revertToHistoryState = useCallback((historyId: string) => {
         const entryIndex = history.findIndex(entry => entry.id === historyId);
@@ -431,6 +464,18 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
             }))
         );
         setCurrentHistoryIndex(entryIndex);
+        
+        // Trigger immediate save after reverting to history state
+        if (projectSaverRef.current) {
+            console.log('ToolContext: History reverted, saving project immediately');
+            projectSaverRef.current().then((savedProjectId) => {
+                if (savedProjectId) {
+                    console.log('ToolContext: Project saved successfully after history revert');
+                }
+            }).catch((error) => {
+                console.error('ToolContext: Error saving project after history revert:', error);
+            });
+        }
     }, [history]);
 
     // Function that MiniMap will call
@@ -518,6 +563,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const clearHistory = () => {
         setHistory([]);
         setCurrentHistoryIndex(-1);
+        setHasUnsavedChanges(false); // Reset unsaved changes when clearing history
     };
 
     const importFile = async (file: File) => {
@@ -587,12 +633,15 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                         // Add as renderable object
                         addRenderableObject(imageElement);
 
-                        // Add to history
-                        addHistoryEntry({
-                            type: 'elementAdded',
-                            description: `Imported image: ${file.name}`,
-                            linesSnapshot: [...renderableObjects, imageElement]
-                        });
+                        // Wait a bit for image to render before adding to history and saving
+                        setTimeout(() => {
+                            // Add to history (this will trigger immediate save)
+                            addHistoryEntry({
+                                type: 'elementAdded',
+                                description: `Imported image: ${file.name}`,
+                                linesSnapshot: [...renderableObjects, imageElement]
+                            });
+                        }, 500); // Wait 500ms for image to load and render
 
                         // Show success toast
                         toast.success("Success", {
@@ -613,6 +662,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                         if (projectData.stageSize) {
                             setStageSize(projectData.stageSize);
                         }
+                        
+                        // Reset unsaved changes for imported project
+                        setHasUnsavedChanges(false);
+                        
                         addHistoryEntry({
                             type: 'elementAdded',
                             description: `Imported project: ${file.name}`,
@@ -876,6 +929,11 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
                 // State for storing the canvas exporter function
                 canvasExporter,
+
+                // Project saving state
+                hasUnsavedChanges,
+                setHasUnsavedChanges,
+                registerProjectSaver,
             }}
         >
             {children}

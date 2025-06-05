@@ -90,7 +90,7 @@ const LiquifyOptions: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full ">
         <span className="text-xs text-[#A8AAACFF] text-center">
-          Add an image to the canvas to use the Liquify tool.
+          Додайте зображення на полотно та клікніть по ньому для використання інструменту Liquify.
         </span>
       </div>
     );
