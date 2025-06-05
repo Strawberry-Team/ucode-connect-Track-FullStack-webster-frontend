@@ -9,6 +9,7 @@ import {
     createCheckerboardPattern,
 } from "@/utils/canvas-utils.ts";
 import {useDrawing, useElementsManagement, useCropping, useLiquify, useBlur} from "@/hooks";
+import useHand from "@/hooks/use-hand";
 import ScrollBar from "@/components/ui/scroll-bar";
 import BrushCursor from "@/components/canvas/tools/brush-cursor";
 import EraserCursor from "@/components/canvas/tools/eraser-cursor";
@@ -206,6 +207,15 @@ const Canvas: React.FC = () => {
         stagePosition,
     });
 
+    const handManager = useHand({
+        containerRef,
+        zoom,
+        stagePosition,
+        setStagePosition,
+        containerSize,
+        stageSize: contextStageSize,
+    });
+
     const contentWidth = contextStageSize ? contextStageSize.width * (zoom / 100) : 0;
     const contentHeight = contextStageSize ? contextStageSize.height * (zoom / 100) : 0;
 
@@ -215,7 +225,7 @@ const Canvas: React.FC = () => {
         
         // HIGHEST PRIORITY: Hand tool should always show grab/grabbing cursor
         if (activeTool?.type === 'hand') {
-            containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+            handManager.setCursor();
             return;
         }
         
@@ -244,7 +254,7 @@ const Canvas: React.FC = () => {
         } else {
             containerRef.current.style.cursor = "default";
         }
-    }, [activeTool, isAddModeActive, isBrushTransformModeActive, isHoveringInteractiveElement, isDragging]);
+    }, [activeTool, isAddModeActive, isBrushTransformModeActive, isHoveringInteractiveElement, isDragging, handManager]);
 
     // Reset cursor when tool changes
     useEffect(() => {
@@ -293,6 +303,13 @@ const Canvas: React.FC = () => {
         const stage = stageRef.current;
         
         try {
+            // Hide background pattern during export to get transparent background
+            const backgroundNode = stage.findOne('.background-pattern') as Konva.Rect | null;
+            const wasBackgroundVisible = backgroundNode?.visible();
+            if (backgroundNode) {
+                backgroundNode.visible(false);
+            }
+
             switch (format) {
                 case 'png':
                     const pngDataURL = stage.toDataURL({ mimeType: 'image/png', quality: 1 });
@@ -305,6 +322,12 @@ const Canvas: React.FC = () => {
                     break;
                     
                 case 'jpg':
+                    // JPG doesn't support transparency, so we add white background for JPG
+                    if (backgroundNode) {
+                        backgroundNode.visible(true);
+                        backgroundNode.fillPatternImage(null);
+                        backgroundNode.fill('white');
+                    }
                     const jpgDataURL = stage.toDataURL({ mimeType: 'image/jpeg', quality: 0.9 });
                     const jpgFileName = `project_${Date.now()}.jpg`;
                     downloadDataURL(jpgDataURL, jpgFileName);
@@ -342,8 +365,22 @@ const Canvas: React.FC = () => {
                 default:
                     throw new Error(`Unsupported export format: ${format}`);
             }
+            
+            // Restore background pattern after export
+            if (backgroundNode && wasBackgroundVisible) {
+                backgroundNode.visible(true);
+                backgroundNode.fill(null);
+                backgroundNode.fillPatternImage(createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF"));
+            }
         } catch (error) {
             console.error('Error exporting canvas:', error);
+            // Restore background even if export failed
+            const backgroundNode = stage.findOne('.background-pattern') as Konva.Rect | null;
+            if (backgroundNode) {
+                backgroundNode.visible(true);
+                backgroundNode.fill(null);
+                backgroundNode.fillPatternImage(createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF"));
+            }
             throw error;
         }
     }, [contextStageSize]);
@@ -413,6 +450,33 @@ const Canvas: React.FC = () => {
             setIsImageReadyForLiquify(false);
         }
     }, [backgroundImage, setIsImageReadyForLiquify]);
+
+    // Глобальні обробники подій для перетягування hand tool
+    useEffect(() => {
+        const handleGlobalMouseMove = (e: MouseEvent) => {
+            if (isDragging.current && activeTool?.type === 'hand' && isManuallyDragging.current) {
+                handManager.processPanning(e.clientX, e.clientY);
+            }
+        };
+
+        const handleGlobalMouseUp = (e: MouseEvent) => {
+            if (isDragging.current && activeTool?.type === 'hand') {
+                isDragging.current = false;
+                isManuallyDragging.current = false;
+                handManager.endPanning();
+            }
+        };
+
+        if (activeTool?.type === 'hand') {
+            document.addEventListener('mousemove', handleGlobalMouseMove);
+            document.addEventListener('mouseup', handleGlobalMouseUp);
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleGlobalMouseMove);
+            document.removeEventListener('mouseup', handleGlobalMouseUp);
+        };
+    }, [activeTool, handManager]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -605,7 +669,7 @@ const Canvas: React.FC = () => {
             
             // Hand tool should always show grab cursor, even over UI elements
             if (activeTool?.type === 'hand') {
-                if (containerRef.current) containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+                handManager.setCursor();
             } else {
                 if (containerRef.current) containerRef.current.style.cursor = 'default';
             }
@@ -626,7 +690,7 @@ const Canvas: React.FC = () => {
 
         // PRIORITY 1: Hand tool always gets grab/grabbing cursor
         if (activeTool?.type === 'hand') {
-            if (containerRef.current) containerRef.current.style.cursor = isDragging.current ? "grabbing" : "grab";
+            handManager.setCursor();
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowLiquifyCursor(false);
@@ -703,8 +767,12 @@ const Canvas: React.FC = () => {
         }
         
         if (isDragging.current) {
-            if ((e.buttons === 4 && activeTool?.type !== 'brush' && activeTool?.type !== 'eraser') || 
-                (e.buttons === 1 && activeTool?.type === 'hand')) {
+            if (activeTool?.type === 'hand' && (e.buttons === 1)) {
+                // Обробка перетягування для інструменту руки
+                isManuallyDragging.current = true;
+                handManager.processPanning(e.clientX, e.clientY);
+            } else if ((e.buttons === 4 && activeTool?.type !== 'brush' && activeTool?.type !== 'eraser')) {
+                // Middle mouse button drag for other tools
                 isManuallyDragging.current = true;
                 const dx = e.clientX - lastMousePosition.current.x;
                 const dy = e.clientY - lastMousePosition.current.y;
@@ -726,7 +794,7 @@ const Canvas: React.FC = () => {
         // Force reset cursor to default when leaving canvas area, unless Hand tool is active
         if (containerRef.current) {
             if (activeTool?.type === 'hand') {
-                containerRef.current.style.cursor = 'grab';
+                handManager.setCursor();
             } else {
                 containerRef.current.style.cursor = 'default';
             }
@@ -750,7 +818,11 @@ const Canvas: React.FC = () => {
         setCursorPositionOnCanvas(null);
         
         if (isDragging.current || isManuallyDragging.current) {
-            applyPositionConstraints();
+            if (activeTool?.type === 'hand') {
+                handManager.endPanning();
+            } else {
+                applyPositionConstraints();
+            }
         }
         isDragging.current = false;
         isManuallyDragging.current = false;
@@ -903,10 +975,8 @@ const Canvas: React.FC = () => {
             if (evt.button === 0) evt.preventDefault();
         }
         
-        if (activeTool?.type === 'hand' && evt.button === 0) {
-            isDragging.current = true;
-            isManuallyDragging.current = true;
-            if (containerRef.current) containerRef.current.style.cursor = "grabbing";
+        // Hand tool пропускаємо, тому що обробляється на рівні контейнера
+        if (activeTool?.type === 'hand') {
             return;
         }
         
@@ -1041,13 +1111,15 @@ const Canvas: React.FC = () => {
 
         if (isDragging.current) {
             isDragging.current = false;
-            if (activeTool?.type === 'hand' && containerRef.current) {
-                containerRef.current.style.cursor = "grab";
+            if (activeTool?.type === 'hand') {
+                handManager.endPanning();
             }
             
             if (isManuallyDragging.current) {
                 setTimeout(() => {
-                    applyPositionConstraints();
+                    if (activeTool?.type !== 'hand') {
+                        applyPositionConstraints();
+                    }
                     isManuallyDragging.current = false;
                     // Use centralized cursor function to set appropriate cursor
                     setCursorBasedOnTool();
@@ -1299,7 +1371,17 @@ const Canvas: React.FC = () => {
             onMouseMove={handleMouseMoveOnContainer}
             onMouseLeave={handleMouseLeave}
             onMouseUp={handleMouseUp}
-            onMouseDown={(e) => (activeTool?.type === "cursor" || activeTool?.type === "hand") && handleMouseDown({evt: e} as any)}
+            onMouseDown={(e) => {
+                if (activeTool?.type === "cursor") {
+                    handleMouseDown({evt: e} as any);
+                } else if (activeTool?.type === "hand" && e.button === 0) {
+                    // Для інструменту руки обробляємо mousedown безпосередньо на контейнері
+                    isDragging.current = true;
+                    isManuallyDragging.current = true;
+                    handManager.startPanning(e.clientX, e.clientY);
+                    e.preventDefault();
+                }
+            }}
             onContextMenu={handleContextMenu}
             onWheel={handleWheel}
             onDoubleClick={handleDoubleClick}
@@ -1374,7 +1456,7 @@ const Canvas: React.FC = () => {
                 >
                     <Layer>
                         <Rect
-                            name="background"
+                            name="background background-pattern"
                             x={0}
                             y={0}
                             width={contextStageSize?.width ?? 0}

@@ -73,8 +73,13 @@ const HandOptions: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center space-x-3">
-            <span className="text-xs text-[#D4D4D5FF]">Mode:</span>
+        <div className="flex flex-col space-y-3">
+            <div className="flex items-center space-x-2">
+                <span className="text-xs text-[#D4D4D5FF]">Панорамування:</span>
+                <span className="text-xs text-[#A8A9ABFF]">Клікайте та перетягуйте для переміщення полотна</span>
+            </div>
+            <div className="flex items-center space-x-3">
+                <span className="text-xs text-[#D4D4D5FF]">Масштаб:</span>
             <Button
                 onClick={handleSet100Percent}
                 variant="ghost"
@@ -96,7 +101,7 @@ const HandOptions: React.FC = () => {
                 >
                 Fill
             </Button>
-
+            </div>
         </div>
     );
 };
