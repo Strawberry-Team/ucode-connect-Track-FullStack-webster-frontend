@@ -96,6 +96,7 @@ export interface ElementData {
   draggable?: boolean
   preserveAspectRatio?: boolean
   src?: string
+  fileName?: string // Add fileName field for images
   textColorOpacity?: number
 }
 

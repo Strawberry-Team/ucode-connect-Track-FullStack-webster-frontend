@@ -210,12 +210,16 @@ interface ToolContextValue {
     setLiquifyTwirlDirection: (direction: 'left' | 'right') => void;
     isImageReadyForLiquify: boolean;
     setIsImageReadyForLiquify: (isReady: boolean) => void;
+    selectedLiquifyImageId: string | null;
+    setSelectedLiquifyImageId: (id: string | null) => void;
 
     // Blur tool settings
     blurBrushSize: number;
     setBlurBrushSize: (size: number) => void;
     blurStrength: number;
     setBlurStrength: (strength: number) => void;
+    selectedBlurImageId: string | null;
+    setSelectedBlurImageId: (id: string | null) => void;
 
     // New state for brush transform mode
     isBrushTransformModeActive: boolean;
@@ -313,10 +317,12 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [liquifyMode, setLiquifyMode] = useState<'push' | 'twirl' | 'pinch' | 'expand' | 'crystals' | 'edge' | 'reconstruct'>('push');
     const [liquifyTwirlDirection, setLiquifyTwirlDirection] = useState<'left' | 'right'>('left');
     const [isImageReadyForLiquify, setIsImageReadyForLiquify] = useState(false);
+    const [selectedLiquifyImageId, setSelectedLiquifyImageId] = useState<string | null>(null);
 
     // Blur tool state
     const [blurBrushSize, setBlurBrushSize] = useState(20);
     const [blurStrength, setBlurStrength] = useState(20); // Default strength for blur
+    const [selectedBlurImageId, setSelectedBlurImageId] = useState<string | null>(null);
 
     // Регистраторы для восстановления состояния
     const renderableObjectsRestorerRef = useRef<((objects: RenderableObject[]) => void) | null>(null);
@@ -617,6 +623,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                             width: imageWidth,
                             height: imageHeight,
                             src: e.target?.result as string,
+                            fileName: file.name, // Add original file name
                             borderColor: "#000000",
                             borderColorOpacity: 100,
                             borderWidth: 0,
@@ -904,12 +911,16 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setLiquifyTwirlDirection,
                 isImageReadyForLiquify,
                 setIsImageReadyForLiquify,
+                selectedLiquifyImageId,
+                setSelectedLiquifyImageId,
 
                 // Blur tool
                 blurBrushSize,
                 setBlurBrushSize,
                 blurStrength,
                 setBlurStrength,
+                selectedBlurImageId,
+                setSelectedBlurImageId,
 
                 // Brush transform mode
                 isBrushTransformModeActive,

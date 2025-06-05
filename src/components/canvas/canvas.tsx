@@ -86,6 +86,8 @@ const Canvas: React.FC = () => {
         liquifyTwirlDirection,
         blurBrushSize,
         blurStrength,
+        selectedLiquifyImageId,
+        selectedBlurImageId,
         setIsImageReadyForLiquify,
         isBrushTransformModeActive,
         selectedLineId,
@@ -182,18 +184,9 @@ const Canvas: React.FC = () => {
         height: number;
     } | null>(null);
 
-    // Add state for tracking selected image for liquify/blur operations
-    const [selectedImageForEditing, setSelectedImageForEditing] = useState<Konva.Image | null>(null);
-    const selectedImageRef = useRef<Konva.Image | null>(null);
-
-    // Update selected image ref when selection changes
-    useEffect(() => {
-        selectedImageRef.current = selectedImageForEditing;
-    }, [selectedImageForEditing]);
-
     const liquifyManager = useLiquify({
         stageRef,
-        imageNodeRef: selectedImageRef,
+        selectedImageId: selectedLiquifyImageId,
         brushSize: liquifyBrushSize,
         strength: liquifyStrength,
         mode: liquifyMode,
@@ -205,7 +198,7 @@ const Canvas: React.FC = () => {
 
     const blurManager = useBlur({
         stageRef,
-        imageNodeRef: selectedImageRef,
+        selectedImageId: selectedBlurImageId,
         brushSize: blurBrushSize,
         strength: blurStrength,
         containerRef,
@@ -243,9 +236,9 @@ const Canvas: React.FC = () => {
         } else if (activeTool?.type === 'eraser') {
             containerRef.current.style.cursor = "none";
         } else if (activeTool?.type === 'liquify') {
-            containerRef.current.style.cursor = "none";
+            containerRef.current.style.cursor = selectedLiquifyImageId ? "none" : "default";
         } else if (activeTool?.type === 'blur') {
-            containerRef.current.style.cursor = "none";
+            containerRef.current.style.cursor = selectedBlurImageId ? "none" : "default";
         } else if (activeTool?.type === 'text' || activeTool?.type === 'cursor' || activeTool?.type === 'image-transform') {
             containerRef.current.style.cursor = "default";
         } else {
@@ -372,11 +365,11 @@ const Canvas: React.FC = () => {
 
     useEffect(() => {
         const checkAndUpdateImageStatus = () => {
-            // Check if there are any custom-image elements in renderableObjects
-            const hasCustomImages = renderableObjects.some(obj => 
+            // Check if there are any image objects available
+            const hasImages = renderableObjects.some(obj => 
                 !('tool' in obj) && obj.type === 'custom-image'
             );
-            setIsImageReadyForLiquify(hasCustomImages);
+            setIsImageReadyForLiquify(hasImages);
         };
 
         checkAndUpdateImageStatus();
@@ -384,8 +377,6 @@ const Canvas: React.FC = () => {
         const originalLiquifyReset = liquifyManager.resetLiquify;
         const wrappedLiquifyReset = () => {
             originalLiquifyReset();
-            // Reset selected image
-            setSelectedImageForEditing(null);
             checkAndUpdateImageStatus();
         };
         setResetLiquifyFunction(wrappedLiquifyReset);
@@ -393,8 +384,6 @@ const Canvas: React.FC = () => {
         const originalBlurReset = blurManager.resetBlur;
         const wrappedBlurReset = () => {
             originalBlurReset();
-            // Reset selected image
-            setSelectedImageForEditing(null);
             checkAndUpdateImageStatus();
         };
         setResetBlurFunction(wrappedBlurReset);
@@ -407,13 +396,23 @@ const Canvas: React.FC = () => {
         };
     }, [liquifyManager.resetLiquify, blurManager.resetBlur, setIsImageReadyForLiquify, renderableObjects]);
 
-    // Check for custom images when renderableObjects change
     useEffect(() => {
-        const hasCustomImages = renderableObjects.some(obj => 
-            !('tool' in obj) && obj.type === 'custom-image'
-        );
-        setIsImageReadyForLiquify(hasCustomImages);
-    }, [renderableObjects, setIsImageReadyForLiquify]);
+        const imageNode = backgroundImageNodeRef.current;
+        if (imageNode) {
+            const handleImageChange = () => {
+                setIsImageReadyForLiquify(!!imageNode.image());
+            };
+            imageNode.on('imageChange', handleImageChange);
+            handleImageChange();
+            return () => {
+                if (imageNode.isListening()) {
+                    imageNode.off('imageChange', handleImageChange);
+                }
+            };
+        } else {
+            setIsImageReadyForLiquify(false);
+        }
+    }, [backgroundImage, setIsImageReadyForLiquify]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -673,22 +672,22 @@ const Canvas: React.FC = () => {
             setShowLiquifyCursor(false);
             setShowBlurCursor(false);
         } else if (activeTool?.type === 'liquify') {
-            if (!isHoveringInteractiveElement) {
+            if (!isHoveringInteractiveElement && selectedLiquifyImageId) {
                 if (containerRef.current) containerRef.current.style.cursor = "none";
                 setShowLiquifyCursor(true);
             } else {
-                if (containerRef.current) containerRef.current.style.cursor = "none";
+                if (containerRef.current) containerRef.current.style.cursor = "default";
                 setShowLiquifyCursor(false);
             }
             setShowBrushCursor(false);
             setShowEraserCursor(false);
             setShowBlurCursor(false);
         } else if (activeTool?.type === 'blur') {
-            if (!isHoveringInteractiveElement) {
+            if (!isHoveringInteractiveElement && selectedBlurImageId) {
                 if (containerRef.current) containerRef.current.style.cursor = "none";
                 setShowBlurCursor(true);
             } else {
-                if (containerRef.current) containerRef.current.style.cursor = "none";
+                if (containerRef.current) containerRef.current.style.cursor = "default";
                 setShowBlurCursor(false);
             }
             setShowBrushCursor(false);
@@ -891,43 +890,13 @@ const Canvas: React.FC = () => {
         }
 
         if (activeTool?.type === 'liquify') {
-            if (evt.button === 0) {
-                // Try to find an image element under the cursor
-                const clickedNode = e.target as Konva.Node;
-                if (clickedNode instanceof Konva.Image) {
-                    setSelectedImageForEditing(clickedNode);
-                    // Use a timeout to ensure the state update completes before starting liquify
-                    setTimeout(() => {
-                        if (selectedImageRef.current) {
-                            liquifyManager.startLiquify(e);
-                        }
-                    }, 100);
-                } else if (selectedImageRef.current?.image()) {
-                    liquifyManager.startLiquify(e);
-                } else {
-                    console.warn("Liquify: Наведіть курсор на зображення та клікніть, щоб почати редагування");
-                }
-            }
+                            if (evt.button === 0 && selectedLiquifyImageId) liquifyManager.startLiquify(e);
+            else if (evt.button === 0) console.warn("Liquify: No image");
         }
 
         if (activeTool?.type === 'blur') {
-            if (evt.button === 0) {
-                // Try to find an image element under the cursor
-                const clickedNode = e.target as Konva.Node;
-                if (clickedNode instanceof Konva.Image) {
-                    setSelectedImageForEditing(clickedNode);
-                    // Use a timeout to ensure the state update completes before starting blur
-                    setTimeout(() => {
-                        if (selectedImageRef.current) {
-                            blurManager.startBlurring(e);
-                        }
-                    }, 100);
-                } else if (selectedImageRef.current?.image()) {
-                    blurManager.startBlurring(e);
-                } else {
-                    console.warn("Blur: Наведіть курсор на зображення та клікніть, щоб почати редагування");
-                }
-            }
+                            if (evt.button === 0 && selectedBlurImageId) blurManager.startBlurring(e);
+            else if (evt.button === 0) console.warn("Blur: No image");
         }
 
         if (activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
@@ -1014,11 +983,11 @@ const Canvas: React.FC = () => {
                 drawingManager.continueDrawing(position);
             }
 
-            if (activeTool?.type === 'liquify' && liquifyManager.getIsLiquifying() && selectedImageRef.current?.image()) {
+            if (activeTool?.type === 'liquify' && liquifyManager.getIsLiquifying() && selectedLiquifyImageId) {
                 setCursorPositionOnCanvas({x: position.x, y: position.y});
                 liquifyManager.processLiquify(e);
             }
-            if (activeTool?.type === 'blur' && blurManager.getIsBlurring() && selectedImageRef.current?.image()) {
+            if (activeTool?.type === 'blur' && blurManager.getIsBlurring() && selectedBlurImageId) {
                 setCursorPositionOnCanvas({x: position.x, y: position.y});
                 blurManager.processBlurring(e);
             }

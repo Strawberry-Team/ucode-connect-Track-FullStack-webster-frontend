@@ -158,10 +158,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             return activeTool.type === "text" || activeTool.type === "cursor";
         }
         if (elementType === "custom-image") {
-            // Custom images can be selected with image-transform, liquify, or blur tools
-            return activeTool.type === "image-transform" || 
-                   activeTool.type === "liquify" || 
-                   activeTool.type === "blur";
+            // Custom images can only be selected with image-transform tool
+            return activeTool.type === "image-transform";
         }
         // For shape elements, only allow interaction with shape tool
         const isShapeElement = elementType !== "text" && elementType !== "custom-image";
@@ -180,7 +178,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         if (elementType === "text") {
             return activeTool.type === "text" || activeTool.type === "cursor";
         }
-        // Show transformer for custom images ONLY with image-transform tool (not liquify or blur)
+        // Show transformer for custom images with image-transform tool
         if (elementType === "custom-image") {
             return activeTool.type === "image-transform";
         }
@@ -1117,47 +1115,19 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 }, [element.src]);
                 
                 if (element.src && imageLoaded && imageInstance) {
-                    // Check if liquify or blur tool is active to show special highlight
-                    const showEditingHighlight = activeTool?.type === "liquify" || activeTool?.type === "blur";
-                    
                     return (
-                        <Group
-                            ref={showEditingHighlight ? nodeRef as React.RefObject<Konva.Group> : undefined}
-                            {...(showEditingHighlight ? {
-                                x: imgCenterX,
-                                y: imgCenterY,
-                                offsetX: imgOffsetX,
-                                offsetY: imgOffsetY,
-                                width: element.width,
-                                height: element.height,
-                                ...commonProps
-                            } : {})}
-                        >
-                            <KonvaImage
-                                ref={!showEditingHighlight ? nodeRef as React.RefObject<Konva.Image> : undefined}
-                                image={imageInstance}
-                                x={showEditingHighlight ? 0 : imgCenterX}
-                                y={showEditingHighlight ? 0 : imgCenterY}
-                                offsetX={showEditingHighlight ? 0 : imgOffsetX}
-                                offsetY={showEditingHighlight ? 0 : imgOffsetY}
-                                width={element.width}
-                                height={element.height}
-                                {...(showEditingHighlight ? {} : commonProps)}
-                                {...strokeStyleProps} // Borders for image
-                            />
-                            {showEditingHighlight && (
-                                <Rect
-                                    x={0}
-                                    y={0}
-                                    width={element.width}
-                                    height={element.height}
-                                    stroke={activeTool?.type === "liquify" ? "#FF6B35" : "#4A90E2"}
-                                    strokeWidth={2}
-                                    dash={[5, 5]}
-                                    listening={false}
-                                />
-                            )}
-                        </Group>
+                        <KonvaImage
+                            ref={nodeRef as React.RefObject<Konva.Image>}
+                            image={imageInstance}
+                            x={imgCenterX}
+                            y={imgCenterY}
+                            offsetX={imgOffsetX}
+                            offsetY={imgOffsetY}
+                            width={element.width}
+                            height={element.height}
+                            {...commonProps}
+                            {...strokeStyleProps} // Borders for image
+                        />
                     );
                 } else if (element.src && !imageLoaded) {
                     // Show placeholder while loading

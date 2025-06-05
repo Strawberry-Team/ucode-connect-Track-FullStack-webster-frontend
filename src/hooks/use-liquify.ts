@@ -5,7 +5,7 @@ import { useTool } from '@/context/tool-context';
 
 export interface LiquifyHookProps {
   stageRef: React.RefObject<Konva.Stage | null>;
-  imageNodeRef: React.RefObject<Konva.Image | null>; // Ref to the image we are liquifying
+  selectedImageId: string | null; // ID of the selected image to liquify
   brushSize: number;
   strength: number;
   mode: 'push' | 'twirl' | 'pinch' | 'expand' | 'crystals' | 'edge' | 'reconstruct';
@@ -23,7 +23,7 @@ interface PixelDisplacement {
 
 const useLiquify = ({ 
   stageRef,
-  imageNodeRef,
+  selectedImageId,
   brushSize,
   strength,
   mode,
@@ -39,6 +39,7 @@ const useLiquify = ({
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const baseImageDataRef = useRef<ImageData | null>(null);
+  const originalImageRef = useRef<HTMLImageElement | HTMLCanvasElement | null>(null);
   const displacementMapRef = useRef<Map<string, PixelDisplacement>>(new Map());
   const [isInitialized, setIsInitialized] = useState(false);
   const animationFrameIdRef = useRef<number | null>(null);
@@ -47,12 +48,32 @@ const useLiquify = ({
     return `${Math.floor(x)},${Math.floor(y)}`;
   };
 
-  const initializeOffscreenCanvas = useCallback(() => {
-    if (!imageNodeRef.current) return false;
+  // Helper function to get the selected image node
+  const getSelectedImageNode = (): Konva.Image | null => {
+    if (!selectedImageId || !stageRef.current) return null;
     
-    const konvaImage = imageNodeRef.current;
+    // Find the image node by its ID in the stage
+    const nodes = stageRef.current.find('Image');
+    for (const node of nodes) {
+      if (node.id() === selectedImageId) {
+        return node as Konva.Image;
+      }
+    }
+    return null;
+  };
+
+  const initializeOffscreenCanvas = useCallback(() => {
+    const imageNode = getSelectedImageNode();
+    if (!imageNode) return false;
+    
+    const konvaImage = imageNode;
     const currentImage = konvaImage.image() as HTMLImageElement | HTMLCanvasElement;
     if (!currentImage) return false;
+    
+    // Store original image reference if not already stored
+    if (!originalImageRef.current) {
+      originalImageRef.current = currentImage;
+    }
     
     if (!offscreenCanvasRef.current) {
       const canvas = document.createElement('canvas');
@@ -66,8 +87,10 @@ const useLiquify = ({
     }
     
     if (offscreenCtxRef.current) {
+      // Always use original image for initialization, not current modified image
+      const imageToUse = originalImageRef.current || currentImage;
       offscreenCtxRef.current.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
-      offscreenCtxRef.current.drawImage(currentImage, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      offscreenCtxRef.current.drawImage(imageToUse, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
       
       baseImageDataRef.current = offscreenCtxRef.current.getImageData(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
     }
@@ -75,7 +98,7 @@ const useLiquify = ({
     displacementMapRef.current.clear();
     setIsInitialized(true);
     return true;
-  }, [imageNodeRef]);
+  }, [selectedImageId, stageRef]);
 
   const getMousePosOnCanvas = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current || !stageRef.current) return null;
@@ -85,6 +108,53 @@ const useLiquify = ({
     const y = (clientY - containerRect.top - stagePosition.y) / scale;
     return { x, y };
   }, [containerRef, stageRef, zoom, stagePosition]);
+
+  // Convert canvas coordinates to image-local coordinates
+  const getMousePosOnImage = useCallback((canvasX: number, canvasY: number) => {
+    const imageNode = getSelectedImageNode();
+    if (!imageNode) return null;
+    
+    // Get image transform properties
+    const imageX = imageNode.x();
+    const imageY = imageNode.y();
+    const imageWidth = imageNode.width();
+    const imageHeight = imageNode.height();
+    const imageScaleX = imageNode.scaleX();
+    const imageScaleY = imageNode.scaleY();
+    const imageRotation = imageNode.rotation(); // In radians
+    const imageOffsetX = imageNode.offsetX();
+    const imageOffsetY = imageNode.offsetY();
+
+    // Transform canvas coordinates to image coordinates
+    // First, translate relative to image position
+    let localX = canvasX - imageX;
+    let localY = canvasY - imageY;
+
+    // Apply rotation (if any) - reverse rotation
+    if (imageRotation !== 0) {
+      const cos = Math.cos(-imageRotation);
+      const sin = Math.sin(-imageRotation);
+      const rotatedX = localX * cos - localY * sin;
+      const rotatedY = localX * sin + localY * cos;
+      localX = rotatedX;
+      localY = rotatedY;
+    }
+
+    // Apply scale transformation - reverse scale
+    localX = localX / imageScaleX;
+    localY = localY / imageScaleY;
+
+    // Apply offset
+    localX += imageOffsetX;
+    localY += imageOffsetY;
+
+    // Check if the point is within image bounds
+    if (localX < 0 || localX >= imageWidth || localY < 0 || localY >= imageHeight) {
+      return null; // Outside image bounds
+    }
+
+    return { x: localX, y: localY };
+  }, [selectedImageId, stageRef]);
 
   const getBrushStrength = useCallback((distanceFromCenter: number): number => {
     const radius = brushSize / 2;
@@ -140,15 +210,17 @@ const useLiquify = ({
     
     ctx.putImageData(resultData, 0, 0);
     
-    if (imageNodeRef.current) {
-      imageNodeRef.current.image(canvas);
-      imageNodeRef.current.getLayer()?.batchDraw(); 
+    const imageNode = getSelectedImageNode();
+    if (imageNode) {
+      imageNode.image(canvas);
+      imageNode.getLayer()?.batchDraw(); 
     }
     animationFrameIdRef.current = null; // Allow new frame requests
-  }, [imageNodeRef]);
+  }, [selectedImageId, stageRef]);
 
   const startLiquify = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
-    if (!imageNodeRef.current || !konvaEvent.evt || !imageNodeRef.current.image()) return;
+    const imageNode = getSelectedImageNode();
+    if (!imageNode || !konvaEvent.evt || !imageNode.image()) return;
     
     if (!isInitialized || !offscreenCanvasRef.current) {
       const success = initializeOffscreenCanvas();
@@ -158,21 +230,28 @@ const useLiquify = ({
       }
     }
     
-    const mousePos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
-    if (!mousePos) return;
+    const canvasPos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
+    if (!canvasPos) return;
+
+    const imagePos = getMousePosOnImage(canvasPos.x, canvasPos.y);
+    if (!imagePos) return; // Outside image bounds
 
     isLiquifyingRef.current = true;
-    lastMousePositionRef.current = mousePos;
+    lastMousePositionRef.current = imagePos;
     
-    // console.log(`Liquify Start: Mode=${mode}, Size=${brushSize}, Strength=${strength}`, mousePos);
-  }, [imageNodeRef, isInitialized, initializeOffscreenCanvas, getMousePosOnCanvas]);
+    // console.log(`Liquify Start: Mode=${mode}, Size=${brushSize}, Strength=${strength}`, imagePos);
+  }, [selectedImageId, stageRef, isInitialized, initializeOffscreenCanvas, getMousePosOnCanvas, getMousePosOnImage]);
 
   const processLiquify = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
-    if (!isLiquifyingRef.current || !imageNodeRef.current || !lastMousePositionRef.current || !konvaEvent.evt) return;
+    const imageNode = getSelectedImageNode();
+    if (!isLiquifyingRef.current || !imageNode || !lastMousePositionRef.current || !konvaEvent.evt) return;
     if (!offscreenCanvasRef.current || !offscreenCtxRef.current) return;
     
-    const currentMousePos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
-    if (!currentMousePos) return;
+    const canvasPos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
+    if (!canvasPos) return;
+
+    const currentMousePos = getMousePosOnImage(canvasPos.x, canvasPos.y);
+    if (!currentMousePos) return; // Outside image bounds
 
     const dx = currentMousePos.x - lastMousePositionRef.current.x;
     const dy = currentMousePos.y - lastMousePositionRef.current.y;
@@ -356,13 +435,16 @@ const useLiquify = ({
     
     lastMousePositionRef.current = currentMousePos;
   }, [
-    imageNodeRef, 
+    selectedImageId, 
+    stageRef,
     brushSize, 
     strength, 
     mode, 
+    twirlDirection,
     getMousePosOnCanvas, 
     getBrushStrength, 
-    renderLiquifiedImageToKonva // Added as dependency
+    renderLiquifiedImageToKonva, // Added as dependency
+    getMousePosOnImage
   ]);
 
   const endLiquify = useCallback(() => {
@@ -377,7 +459,8 @@ const useLiquify = ({
     // Ensure the final state is rendered
     renderLiquifiedImageToKonva();
     
-    if (imageNodeRef.current?.image()) {
+    const imageNode = getSelectedImageNode();
+    if (imageNode?.image()) {
       addHistoryEntry({
         type: 'liquifyApplied',
         description: `liquify`,
@@ -387,7 +470,7 @@ const useLiquify = ({
     }
     
     // console.log("Liquify End");
-  }, [mode, strength, addHistoryEntry, renderableObjects]);
+  }, [selectedImageId, stageRef, mode, strength, addHistoryEntry, renderableObjects, renderLiquifiedImageToKonva]);
 
   const getIsLiquifying = () => isLiquifyingRef.current;
 
@@ -397,11 +480,18 @@ const useLiquify = ({
       cancelAnimationFrame(animationFrameIdRef.current);
       animationFrameIdRef.current = null;
     }
+    
+    const imageNode = getSelectedImageNode();
+    if (imageNode && originalImageRef.current) {
+      // Restore original image directly from original image reference
+      imageNode.image(originalImageRef.current);
+      imageNode.getLayer()?.batchDraw();
+    }
+    
     displacementMapRef.current.clear();
-    baseImageDataRef.current = null;
     setIsInitialized(false); // Force reinitialization if used again
     
-  }, []);
+  }, [selectedImageId, stageRef]);
 
   useEffect(() => {
     return () => {
@@ -410,6 +500,14 @@ const useLiquify = ({
       }
     };
   }, []);
+
+  // Reset when selected image changes
+  useEffect(() => {
+    setIsInitialized(false);
+    originalImageRef.current = null;
+    baseImageDataRef.current = null;
+    displacementMapRef.current.clear();
+  }, [selectedImageId]);
 
   return {
     startLiquify,

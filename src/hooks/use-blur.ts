@@ -5,7 +5,7 @@ import { useTool } from '@/context/tool-context';
 
 export interface BlurHookProps {
   stageRef: React.RefObject<Konva.Stage | null>;
-  imageNodeRef: React.RefObject<Konva.Image | null>; // Ref to the image we are blurring
+  selectedImageId: string | null; // ID of the selected image to blur
   brushSize: number;
   strength: number; // Strength of the blur (e.g., blur radius or iteration count)
   containerRef: React.RefObject<HTMLDivElement | null>; // For cursor offset calculations
@@ -15,7 +15,7 @@ export interface BlurHookProps {
 
 const useBlur = ({
   stageRef,
-  imageNodeRef,
+  selectedImageId,
   brushSize,
   strength,
   containerRef,
@@ -30,14 +30,36 @@ const useBlur = ({
   const offscreenCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const originalImageDataRef = useRef<ImageData | null>(null);
+  const originalImageRef = useRef<HTMLImageElement | HTMLCanvasElement | null>(null);
+
+  // Helper function to get the selected image node
+  const getSelectedImageNode = (): Konva.Image | null => {
+    if (!selectedImageId || !stageRef.current) return null;
+    
+    // Find the image node by its ID in the stage
+    const nodes = stageRef.current.find('Image');
+    for (const node of nodes) {
+      if (node.id() === selectedImageId) {
+        return node as Konva.Image;
+      }
+    }
+    return null;
+  };
 
   // Initialize offscreen canvas and context with the original image
   const initializeOffscreenCanvas = useCallback(() => {
-    if (!imageNodeRef.current) return false;
+    const imageNode = getSelectedImageNode();
+    if (!imageNode) return false;
     
-    const konvaImage = imageNodeRef.current;
+    const konvaImage = imageNode;
     const currentImage = konvaImage.image() as HTMLImageElement | HTMLCanvasElement;
     if (!currentImage) return false;
+
+    // Store original image reference if not already stored
+    if (!originalImageRef.current) {
+      originalImageRef.current = currentImage;
+    }
 
     if (!offscreenCanvasRef.current) {
       const canvas = document.createElement('canvas');
@@ -50,12 +72,17 @@ const useBlur = ({
     }
     
     if (offscreenCtxRef.current) {
+      // Always use original image for initialization, not current modified image
+      const imageToUse = originalImageRef.current || currentImage;
       offscreenCtxRef.current.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
-      offscreenCtxRef.current.drawImage(currentImage, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      offscreenCtxRef.current.drawImage(imageToUse, 0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      
+      // Store original image data for reset functionality
+      originalImageDataRef.current = offscreenCtxRef.current.getImageData(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
     }
     setIsInitialized(true);
     return true;
-  }, [imageNodeRef]);
+  }, [selectedImageId, stageRef]);
 
   const getMousePosOnCanvas = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current || !stageRef.current) return null;
@@ -66,13 +93,61 @@ const useBlur = ({
     return { x, y };
   }, [containerRef, stageRef, zoom, stagePosition]);
 
+  // Convert canvas coordinates to image-local coordinates
+  const getMousePosOnImage = useCallback((canvasX: number, canvasY: number) => {
+    const imageNode = getSelectedImageNode();
+    if (!imageNode) return null;
+    
+    // Get image transform properties
+    const imageX = imageNode.x();
+    const imageY = imageNode.y();
+    const imageWidth = imageNode.width();
+    const imageHeight = imageNode.height();
+    const imageScaleX = imageNode.scaleX();
+    const imageScaleY = imageNode.scaleY();
+    const imageRotation = imageNode.rotation(); // In radians
+    const imageOffsetX = imageNode.offsetX();
+    const imageOffsetY = imageNode.offsetY();
+
+    // Transform canvas coordinates to image coordinates
+    // First, translate relative to image position
+    let localX = canvasX - imageX;
+    let localY = canvasY - imageY;
+
+    // Apply rotation (if any) - reverse rotation
+    if (imageRotation !== 0) {
+      const cos = Math.cos(-imageRotation);
+      const sin = Math.sin(-imageRotation);
+      const rotatedX = localX * cos - localY * sin;
+      const rotatedY = localX * sin + localY * cos;
+      localX = rotatedX;
+      localY = rotatedY;
+    }
+
+    // Apply scale transformation - reverse scale
+    localX = localX / imageScaleX;
+    localY = localY / imageScaleY;
+
+    // Apply offset
+    localX += imageOffsetX;
+    localY += imageOffsetY;
+
+    // Check if the point is within image bounds
+    if (localX < 0 || localX >= imageWidth || localY < 0 || localY >= imageHeight) {
+      return null; // Outside image bounds
+    }
+
+    return { x: localX, y: localY };
+  }, [selectedImageId, stageRef]);
+
   // Applies blur to a region of the offscreen canvas and updates Konva image
   const applyBlurToRegion = useCallback((centerX: number, centerY: number) => {
-    if (!offscreenCtxRef.current || !offscreenCanvasRef.current || !imageNodeRef.current) return;
+    const imageNode = getSelectedImageNode();
+    if (!offscreenCtxRef.current || !offscreenCanvasRef.current || !imageNode) return;
 
     const ctx = offscreenCtxRef.current;
     const canvas = offscreenCanvasRef.current;
-    const konvaImageNode = imageNodeRef.current;
+    const konvaImageNode = imageNode;
     
     const radius = brushSize / 2;
     const blurAmount = Math.max(1, Math.floor(strength / 10)); // Scale strength to blur radius/iterations
@@ -118,10 +193,11 @@ const useBlur = ({
     // Update the Konva Image node
     konvaImageNode.image(canvas); // Update with the modified offscreen canvas
     konvaImageNode.getLayer()?.batchDraw();
-  }, [brushSize, strength, imageNodeRef]);
+  }, [brushSize, strength, selectedImageId, stageRef]);
 
   const startBlurring = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
-    if (!imageNodeRef.current || !konvaEvent.evt || !imageNodeRef.current.image()) return;
+    const imageNode = getSelectedImageNode();
+    if (!imageNode || !konvaEvent.evt || !imageNode.image()) return;
 
     if (!isInitialized) {
       const success = initializeOffscreenCanvas();
@@ -131,19 +207,26 @@ const useBlur = ({
       }
     }
 
-    const mousePos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
-    if (!mousePos) return;
+    const canvasPos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
+    if (!canvasPos) return;
+
+    const imagePos = getMousePosOnImage(canvasPos.x, canvasPos.y);
+    if (!imagePos) return; // Outside image bounds
 
     isBlurringRef.current = true;
-    lastMousePositionRef.current = mousePos;
-    applyBlurToRegion(mousePos.x, mousePos.y); // Apply blur at the start point
-  }, [imageNodeRef, isInitialized, initializeOffscreenCanvas, getMousePosOnCanvas, applyBlurToRegion]);
+    lastMousePositionRef.current = imagePos;
+    applyBlurToRegion(imagePos.x, imagePos.y); // Apply blur at the start point
+  }, [selectedImageId, stageRef, isInitialized, initializeOffscreenCanvas, getMousePosOnCanvas, getMousePosOnImage, applyBlurToRegion]);
 
   const processBlurring = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
-    if (!isBlurringRef.current || !imageNodeRef.current || !lastMousePositionRef.current || !konvaEvent.evt) return;
+    const imageNode = getSelectedImageNode();
+    if (!isBlurringRef.current || !imageNode || !lastMousePositionRef.current || !konvaEvent.evt) return;
     
-    const currentMousePos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
-    if (!currentMousePos) return;
+    const canvasPos = getMousePosOnCanvas(konvaEvent.evt.clientX, konvaEvent.evt.clientY);
+    if (!canvasPos) return;
+
+    const currentMousePos = getMousePosOnImage(canvasPos.x, canvasPos.y);
+    if (!currentMousePos) return; // Outside image bounds
 
     // Interpolate points between last and current mouse position for smoother blur
     const dist = Math.sqrt(
@@ -166,13 +249,14 @@ const useBlur = ({
     
     lastMousePositionRef.current = currentMousePos;
     // No need for requestAnimationFrame here if applyBlurToRegion handles drawing
-  }, [imageNodeRef, brushSize, getMousePosOnCanvas, applyBlurToRegion]);
+  }, [selectedImageId, stageRef, brushSize, getMousePosOnCanvas, getMousePosOnImage, applyBlurToRegion]);
 
   const endBlurring = useCallback(() => {
     if (!isBlurringRef.current) return;
     isBlurringRef.current = false;
     
-    if (imageNodeRef.current?.image()) {
+    const imageNode = getSelectedImageNode();
+    if (imageNode?.image()) {
       addHistoryEntry({
         type: 'blurApplied',
         description: `blur`, 
@@ -180,7 +264,7 @@ const useBlur = ({
         metadata: {}
       });
     }
-  }, [strength, addHistoryEntry, renderableObjects]);
+  }, [selectedImageId, stageRef, strength, addHistoryEntry, renderableObjects]);
 
   const getIsBlurring = () => isBlurringRef.current;
 
@@ -189,9 +273,17 @@ const useBlur = ({
       cancelAnimationFrame(animationFrameIdRef.current);
       animationFrameIdRef.current = null;
     }
+    
+    const imageNode = getSelectedImageNode();
+    if (imageNode && originalImageRef.current) {
+      // Restore original image directly from original image reference
+      imageNode.image(originalImageRef.current);
+      imageNode.getLayer()?.batchDraw();
+    }
+    
     setIsInitialized(false); // Force reinitialization if used again
     
-  }, []);
+  }, [selectedImageId, stageRef]);
 
   useEffect(() => {
     return () => {
@@ -200,6 +292,13 @@ const useBlur = ({
       }
     };
   }, []);
+
+  // Reset when selected image changes
+  useEffect(() => {
+    setIsInitialized(false);
+    originalImageRef.current = null;
+    originalImageDataRef.current = null;
+  }, [selectedImageId]);
 
   return {
     startBlurring,

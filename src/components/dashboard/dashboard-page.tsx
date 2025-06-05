@@ -320,6 +320,7 @@ const DashboardPage: React.FC = () => {
             width: imageWidth,
             height: imageHeight,
             src: e.target?.result as string,
+            fileName: file.name, // Add original file name
             borderColor: "#000000",
             borderColorOpacity: 100,
             borderWidth: 0,
