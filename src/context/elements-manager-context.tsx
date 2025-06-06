@@ -14,6 +14,8 @@ interface ElementsManagerContextValue {
   removeSelectedElement: () => void;
   selectedElementId: string | null;
   setSelectedElementId: (id: string | null) => void;
+  hoveredElementId: string | null;
+  setHoveredElementId: (id: string | null) => void;
   handleDragEnd: (id: string, newX: number, newY: number) => void;
   handleElementClick: (id: string, e: Konva.KonvaEventObject<MouseEvent>) => void;
   flipSelectedElementHorizontal: () => void;

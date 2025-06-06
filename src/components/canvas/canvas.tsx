@@ -39,6 +39,7 @@ export const setResetBlurFunction = (fn: () => void) => {
 const Canvas: React.FC = () => {
     const toolContext = useTool();
     const { loggedInUser } = useUser();
+    const { hoveredElementId } = useElementsManager();
     const {
         activeTool,
         setActiveTool: setContextActiveTool,
@@ -1588,6 +1589,7 @@ const Canvas: React.FC = () => {
                                             onTextEdit={(id, newText) => elementsManager.updateTextElement(id, newText)}
                                             onTransform={(id, attrs) => elementsManager.updateElement(id, attrs as Partial<ElementData>)}
                                             isSelected={element.id === elementsManager.selectedElementId}
+                                            isHovered={element.id === hoveredElementId}
                                             allElements={elementsManagerHook.getElementDataFromRenderables()}
                                             stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
                                             setActiveSnapLines={setActiveSnapLines}
@@ -1609,6 +1611,7 @@ const Canvas: React.FC = () => {
                                 key={previewElement.id}
                                 element={{...previewElement, opacity: 0.6}}
                                 isSelected={false}
+                                isHovered={false}
                                 allElements={[]}
                                 stageSize={contextStageSize ? { width: contextStageSize.width, height: contextStageSize.height } : undefined}
                                 setActiveSnapLines={() => {}}

@@ -270,14 +270,34 @@ export const useProjectManager = ({
       if (projectData) {
         setProjectName(projectData.project.name);
         
+        // Migrate any legacy opacity values (fix for opacity being stored as 0-100 instead of 0-1)
+        const migratedObjects = projectData.renderableObjects.map(obj => {
+          if (!('tool' in obj) && typeof obj.opacity === 'number' && obj.opacity > 1) {
+            console.warn('ProjectManager: Migrating legacy opacity value:', {
+              elementId: obj.id.slice(-6),
+              oldOpacity: obj.opacity,
+              newOpacity: obj.opacity / 100
+            });
+            return { ...obj, opacity: obj.opacity / 100 };
+          }
+          return obj;
+        });
+        
         // Log element order when loading project
-        const elementOrder = projectData.renderableObjects
+        const elementOrder = migratedObjects
           .filter(obj => !('tool' in obj))
           .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
         console.log('ProjectManager: Loading project with element order:', elementOrder);
         
         // Load Google Fonts used in this project
-        loadProjectFonts(projectData.renderableObjects);
+        loadProjectFonts(migratedObjects);
+        
+        // If we migrated any objects, save the updated version
+        if (migratedObjects.some((obj, index) => obj !== projectData.renderableObjects[index])) {
+          console.log('ProjectManager: Auto-saving migrated opacity values');
+          // Update the project with migrated data
+          updateProject(projectId, migratedObjects);
+        }
       } else {
         console.warn('ProjectManager: Project data not found for ID:', projectId);
       }

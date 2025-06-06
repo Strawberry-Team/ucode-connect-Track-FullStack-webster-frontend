@@ -36,7 +36,7 @@ const scrollbarStyles = `
 
 const ImageTransformOptions: React.FC = () => {
   const { renderableObjects } = useTool();
-  const { selectedElementId, updateElement, getElementById, setSelectedElementId, sendElementToBackground } = useElementsManager();
+  const { selectedElementId, updateElement, getElementById, setSelectedElementId, sendElementToBackground, setHoveredElementId } = useElementsManager();
 
   const [selectedImageId, setSelectedImageId] = useState<string | null>(selectedElementId);
 
@@ -105,18 +105,19 @@ const ImageTransformOptions: React.FC = () => {
             className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0"
           >
             <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
-            <ScrollArea className="h-[200px] w-[250px]">
+            <ScrollArea className="h-[150px] w-[150px]">
               <div className="p-1">
                 {availableImages.map((image) => (
                   <DropdownMenuItem
                     key={image.id}
                     className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer"
                     onClick={() => handleSelectImage(image.id)}
+                    onMouseEnter={() => setHoveredElementId(image.id)}
+                    onMouseLeave={() => setHoveredElementId(null)}
                   >
                     <ImageIcon size={14} />
                     <div className="flex flex-col items-start">
                       <span className="text-xs">{image.fileName || `Image ${image.id.slice(-6)}`}</span>
-                      <span className="text-xs text-gray-400">ID: {image.id.slice(-6)}</span>
                     </div>
                   </DropdownMenuItem>
                 ))}
@@ -133,7 +134,21 @@ const ImageTransformOptions: React.FC = () => {
   const flipVertical = imageElement.flipVertical || false;
   const brightness = imageElement.brightness || 0;
   const contrast = imageElement.contrast || 0;
-  const imageOpacity = imageElement.opacity !== undefined ? Math.round(imageElement.opacity * 100) : 100;
+  // Handle opacity conversion correctly - if opacity is already in 0-100 range (legacy), use as is
+  // If opacity is in 0-1 range (correct), convert to 0-100 for display
+  const rawOpacity = imageElement.opacity;
+  const imageOpacity = rawOpacity !== undefined 
+    ? (rawOpacity > 1 ? Math.round(rawOpacity) : Math.round(rawOpacity * 100))
+    : 100;
+    
+  // Debug logging for opacity issues
+  if (rawOpacity !== undefined && rawOpacity > 1) {
+    console.warn('ImageTransform: Found opacity value > 1:', {
+      rawOpacity,
+      displayOpacity: imageOpacity,
+      elementId: imageElement.id?.slice(-6)
+    });
+  }
 
   const handleFlipHorizontal = () => {
     if (currentSelectedImageId) {
@@ -165,8 +180,12 @@ const ImageTransformOptions: React.FC = () => {
 
   const handleOpacityChange = (value: number) => {
     if (currentSelectedImageId) {
-      const opacityValue = value / 100; // Convert from 0-100 to 0-1
-      console.log('ImageTransform: Setting opacity:', opacityValue);
+      const opacityValue = Math.max(0, Math.min(1, value / 100)); // Convert from 0-100 to 0-1 and clamp
+      console.log('ImageTransform: Setting opacity:', {
+        inputValue: value,
+        normalizedOpacity: opacityValue,
+        elementId: currentSelectedImageId.slice(-6)
+      });
       updateElement(currentSelectedImageId, { opacity: opacityValue });
     }
   };

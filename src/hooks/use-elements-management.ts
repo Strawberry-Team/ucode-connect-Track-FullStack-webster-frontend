@@ -85,6 +85,7 @@ const useElementsManagement = ({
   } = useTool();
 
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
 
   const getElementDataFromRenderables = useCallback(() => {
     return renderableObjects.filter(obj => !('tool' in obj)) as ElementData[];
@@ -567,6 +568,8 @@ const useElementsManagement = ({
       removeElement: removeSelectedElement,
       selectedElementId,
       setSelectedElementId,
+      hoveredElementId,
+      setHoveredElementId,
       handleDragEnd,
       handleElementClick,
       removeSelectedElement,

@@ -13,6 +13,7 @@ interface ElementRendererProps {
     onTextEdit?: (id: string, newText: string) => void;
     onTransform?: (id: string, newAttrs: Partial<ElementData>) => void;
     isSelected?: boolean;
+    isHovered?: boolean;
     allElements: ElementData[];
     stageSize?: { width: number; height: number };
     setActiveSnapLines: React.Dispatch<React.SetStateAction<SnapLineType[]>>;
@@ -122,6 +123,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                                                              onTextEdit,
                                                              onTransform,
                                                              isSelected,
+                                                             isHovered,
                                                              allElements,
                                                              stageSize,
                                                              setActiveSnapLines,
@@ -194,7 +196,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     // Removed useEffect that sets cursor to 'move' to avoid conflicts with canvas.tsx cursor logic
 
     useEffect(() => {
-        if (isSelected && transformerRef.current && nodeRef.current && shouldShowTransformer()) {
+        if ((isSelected || isHovered) && transformerRef.current && nodeRef.current && shouldShowTransformer()) {
             const tr = transformerRef.current;
             const node = nodeRef.current; // This is the Group for text elements
 
@@ -315,7 +317,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             transformerRef.current.detach();
             transformerRef.current.getLayer()?.batchDraw();
         }
-    }, [isSelected, element, shouldShowTransformer]); // element contains fontSize, type etc.
+    }, [isSelected, isHovered, element, shouldShowTransformer]); // element contains fontSize, type etc.
 
     const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
         const node = e.target as Konva.Node;
@@ -1253,29 +1255,29 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     return (
         <>
             {renderElement()}
-            {isSelected && shouldShowTransformer() && (
+            {(isSelected || isHovered) && shouldShowTransformer() && (
                 <Transformer
                     ref={transformerRef}
-                    // Visual properties
+                    // Visual properties - different styles for selected vs hovered
                     borderDash={[3, 3]}
-                    anchorStroke="#0096FF"
-                    anchorFill="#FFFFFF"
-                    anchorSize={8}
-                    borderStroke="#0096FF"
+                    anchorStroke={isSelected ? "#0096FF" : "#FFB800"}
+                    anchorFill={isSelected ? "#FFFFFF" : "#FFE066"}
+                    anchorSize={isSelected ? 8 : 6}
+                    borderStroke={isSelected ? "#0096FF" : "#FFB800"}
                     rotateAnchorOffset={30}
 
                     // Function properties will be set in useEffect for full control
                     // Just providing additional visual cues here
-                    draggable={true}
-                    resizeEnabled={true}
-                    rotateEnabled={true}
+                    draggable={isSelected} // Only allow dragging for selected elements, not hovered
+                    resizeEnabled={isSelected} // Only allow resizing for selected elements
+                    rotateEnabled={isSelected} // Only allow rotation for selected elements
                     keepRatio={element.preserveAspectRatio !== false && element.type !== 'rectangle' && element.type !== 'text' && element.type !== 'rounded-rectangle' && element.type !== 'squircle' && element.type !== 'line' && element.type !== 'arrow'}
                     centeredScaling={false}
-                    enabledAnchors={[
+                    enabledAnchors={isSelected ? [
                         'top-left', 'top-center', 'top-right',
                         'middle-left', 'middle-right',
                         'bottom-left', 'bottom-center', 'bottom-right'
-                    ]}
+                    ] : []} // No anchors for hovered elements, just border
                     padding={0}
                 />
             )}
