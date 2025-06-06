@@ -40,10 +40,10 @@ function Skeleton({
                 {`
                     @keyframes moveStrip {
                         0% {
-                            left: -10px; /* Смещение за пределы слева */
+                            left: -10px; /* Offset beyond the left edge */
                         }
                         100% {
-                            left: 100%; /* Движение до конца элемента */
+                            left: 100%; /* Move to the end of element */
                         }
                     }
                 `}

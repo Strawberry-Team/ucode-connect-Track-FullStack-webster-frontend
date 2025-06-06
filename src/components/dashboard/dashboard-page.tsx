@@ -368,7 +368,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleAuthSuccess = (user: import('@/types/auth').User) => {
-    console.log('Пользователь успешно авторизован в DashboardPage, обновляем контекст:', user);
+    console.log('User successfully authorized in DashboardPage, updating context:', user);
     loginUserContext(user);
     setIsAuthVisible(false);
     
@@ -387,7 +387,7 @@ const DashboardPage: React.FC = () => {
     const projectData = getProjectData(projectId);
     
     if (!projectData) {
-      toast.error("Ошибка", { description: "Не удалось загрузить проект", duration: 3000 });
+      toast.error("Error", { description: "Failed to load project", duration: 3000 });
       return;
     }
     

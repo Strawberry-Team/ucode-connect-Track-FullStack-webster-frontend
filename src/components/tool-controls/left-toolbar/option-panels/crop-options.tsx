@@ -282,9 +282,9 @@ const CropOptions: React.FC = () => {
   const selectedLabel = aspectRatios.find(r => r.value === selectedAspectRatio)?.label || "Proportion";
 
   return (
-    <div className="flex items-center space-x-3  bg-[#292C31FF] text-white h-full">
-      <div className="flex items-center space-x-1.5">
-        <Label className="text-xs text-[#D4D4D5FF]">Width:</Label>
+    <div className="flex items-center space-x-4  bg-[#292C31FF] text-white h-full">
+      <div className="flex items-center space-x-3">
+        <Label className="text-xs text-[#D4D4D5FF] ml-1">Width:</Label>
         <Input
           id="crop-width"
           type="number"
@@ -296,8 +296,8 @@ const CropOptions: React.FC = () => {
           disabled={!isCropping}
         />
       </div>
-      <div className="flex items-center space-x-1.5">
-        <Label className="text-xs text-[#D4D4D5FF]">Height:</Label>
+      <div className="flex items-center space-x-3">
+        <Label className="text-xs text-[#D4D4D5FF] ml-1">Height:</Label>
         <Input
           id="crop-height"
           type="number"
@@ -309,8 +309,8 @@ const CropOptions: React.FC = () => {
           disabled={!isCropping}
         />
       </div>
-      <div className="flex items-center space-x-1.5">
-        <Label className="text-xs text-[#D4D4D5FF] pl-3">Aspect Ratio:</Label>
+      <div className="flex items-center space-x-3">
+        <Label className="text-xs text-[#D4D4D5FF] ml-1">Aspect Ratio:</Label>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={!isCropping || !stageSize}>
             <Button
@@ -342,7 +342,7 @@ const CropOptions: React.FC = () => {
         </DropdownMenu>
       </div>
 
-      <div className="h-6 ml-3 border-l border-[#44474AFF]"></div>
+      <div className="h-6 ml-2 mr-3 border-l border-[#44474AFF]"></div>
 
       <div className="flex items-center space-x-3">
       <TooltipProvider>

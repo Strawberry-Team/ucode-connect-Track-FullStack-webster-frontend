@@ -25,7 +25,7 @@ const useHand = ({
     isDraggingRef.current = true;
     lastMousePositionRef.current = { x: clientX, y: clientY };
     
-    // Змінюємо курсор на grabbing
+    // Change cursor to grabbing
     if (containerRef.current) {
       containerRef.current.style.cursor = "grabbing";
     }
@@ -51,16 +51,16 @@ const useHand = ({
     isDraggingRef.current = false;
     lastMousePositionRef.current = null;
     
-    // Змінюємо курсор назад на grab
+    // Change cursor back to grab
     if (containerRef.current) {
       containerRef.current.style.cursor = "grab";
     }
     
-    // НЕ застосовуємо автоматичні обмеження при завершенні перетягування
-    // Дозволяємо користувачу розмістити полотно де завгодно
+    // DO NOT apply automatic constraints when ending drag
+    // Allow user to position canvas wherever they want
   }, [containerRef]);
 
-  // М'які обмеження - застосовуються тільки в крайніх випадках
+  // Soft constraints - applied only in extreme cases
   const applySoftConstraints = useCallback(() => {
     if (!stageSize || !containerSize) return;
     
@@ -74,10 +74,10 @@ const useHand = ({
     let newY = stagePosition.y;
     let needsUpdate = false;
 
-    // Дуже м'які обмеження - дозволяємо полотну майже повністю зникнути
-    const minVisiblePart = 50; // Мінімум 50px видимої частини
+    // Very soft constraints - allow canvas to almost completely disappear
+    const minVisiblePart = 50; // Minimum 50px of visible part
 
-    // Горизонтальні обмеження
+    // Horizontal constraints
     if (newX > containerWidth - minVisiblePart) {
       newX = containerWidth - minVisiblePart;
       needsUpdate = true;
@@ -86,7 +86,7 @@ const useHand = ({
       needsUpdate = true;
     }
 
-    // Вертикальні обмеження
+    // Vertical constraints
     if (newY > containerHeight - minVisiblePart) {
       newY = containerHeight - minVisiblePart;
       needsUpdate = true;
@@ -95,13 +95,13 @@ const useHand = ({
       needsUpdate = true;
     }
 
-    // Застосовуємо нові координати тільки якщо дійсно потрібно
+    // Apply new coordinates only if really needed
     if (needsUpdate) {
       setStagePosition({ x: newX, y: newY });
     }
   }, [stageSize, containerSize, zoom, stagePosition, setStagePosition]);
 
-  // Жорсткі обмеження для інших інструментів (залишаємо для сумісності)
+  // Hard constraints for other tools (keeping for compatibility)
   const applyPositionConstraints = useCallback(() => {
     if (!stageSize || !containerSize) return;
     
@@ -114,21 +114,21 @@ const useHand = ({
     let newX = stagePosition.x;
     let newY = stagePosition.y;
 
-    // Обмеження для горизонтального переміщення
+    // Constraints for horizontal movement
     if (scaledContentWidth > containerWidth) {
       newX = Math.max(containerWidth - scaledContentWidth, Math.min(0, stagePosition.x));
     } else {
       newX = (containerWidth - scaledContentWidth) / 2;
     }
 
-    // Обмеження для вертикального переміщення
+    // Constraints for vertical movement
     if (scaledContentHeight > containerHeight) {
       newY = Math.max(containerHeight - scaledContentHeight, Math.min(0, stagePosition.y));
     } else {
       newY = (containerHeight - scaledContentHeight) / 2;
     }
 
-    // Застосовуємо нові координати тільки якщо вони змінилися
+    // Apply new coordinates only if they have changed
     if (newX !== stagePosition.x || newY !== stagePosition.y) {
       setStagePosition({ x: newX, y: newY });
     }

@@ -168,11 +168,11 @@ interface ToolContextValue {
 
     // History
     history: HistoryEntry[];
-    currentHistoryIndex: number; // Индекс текущего активного состояния в истории
+    currentHistoryIndex: number; // Index of current active state in history
     addHistoryEntry: (entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => void;
     revertToHistoryState: (historyId: string) => void;
     registerRenderableObjectsRestorer: (restorer: (objects: RenderableObject[]) => void) => void;
-    clearHistory: () => void; // Новая функция для очистки истории
+    clearHistory: () => void; // New function for clearing history
 
     // New state for all renderable objects
     renderableObjects: RenderableObject[];
@@ -324,7 +324,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [blurStrength, setBlurStrength] = useState(20); // Default strength for blur
     const [selectedBlurImageId, setSelectedBlurImageId] = useState<string | null>(null);
 
-    // Регистраторы для восстановления состояния
+    // Registrators for state restoration
     const renderableObjectsRestorerRef = useRef<((objects: RenderableObject[]) => void) | null>(null);
 
     // New state for all renderable objects
@@ -420,20 +420,40 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
             const finalHistory = [...updatedHistory, newEntry];
             setCurrentHistoryIndex(finalHistory.length - 1);
             
-            // Trigger immediate save on first change
-            if (!hasUnsavedChanges && projectSaverRef.current) {
-                console.log('ToolContext: First change detected, saving project immediately. Entry type:', entryData.type, 'Description:', entryData.description);
+            // Trigger immediate save for critical changes or first change
+            const isCriticalChange = entryData.type === 'elementModified' && 
+                (entryData.description?.toString().includes('to back') || 
+                 entryData.description?.toString().includes('to front') ||
+                 entryData.description?.toString().includes('as background'));
+            
+            if ((!hasUnsavedChanges || isCriticalChange) && projectSaverRef.current) {
+                const logMessage = isCriticalChange 
+                    ? 'ToolContext: Critical change detected (layer reordering), saving project immediately'
+                    : 'ToolContext: First change detected, saving project immediately';
+                console.log(logMessage, 'Entry type:', entryData.type, 'Description:', entryData.description);
+                
                 projectSaverRef.current().then((savedProjectId) => {
                     if (savedProjectId) {
                         console.log('ToolContext: Project saved successfully with ID:', savedProjectId);
                         setHasUnsavedChanges(true);
+                        
+                        // Log element order after critical changes
+                        if (isCriticalChange && entryData.linesSnapshot) {
+                            const elementOrder = entryData.linesSnapshot
+                                .filter(obj => !('tool' in obj))
+                                .map((obj, index) => {
+                                    const element = obj as ElementData;
+                                    return { index, type: element.type, id: element.id.slice(-6) };
+                                });
+                            console.log('ToolContext: Element order after save:', elementOrder);
+                        }
                     } else {
                         console.warn('ToolContext: Failed to save project immediately - no project ID returned');
                     }
                 }).catch((error) => {
                     console.error('ToolContext: Error saving project immediately:', error);
                 });
-            } else if (hasUnsavedChanges) {
+            } else if (hasUnsavedChanges && !isCriticalChange) {
                 console.log('ToolContext: Change detected but already has unsaved changes. Entry type:', entryData.type);
             } else {
                 console.warn('ToolContext: Change detected but no project saver registered');

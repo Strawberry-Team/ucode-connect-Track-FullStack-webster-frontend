@@ -98,6 +98,11 @@ export interface ElementData {
   src?: string
   fileName?: string // Add fileName field for images
   textColorOpacity?: number
+  // Image transform properties
+  flipHorizontal?: boolean
+  flipVertical?: boolean
+  brightness?: number // -100 to 100
+  contrast?: number // -100 to 100
 }
 
 export interface ToolSettings {

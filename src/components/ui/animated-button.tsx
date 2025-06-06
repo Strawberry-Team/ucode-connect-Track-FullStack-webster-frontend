@@ -41,7 +41,7 @@ export default function AnimatedButton({
                 className
             )}
         >
-            {/* Левый верхний угол */}
+            {/* Top left corner */}
             <span
                 className={cn(
                     "z-10 absolute w-8 h-8 flex flex-col transition-all duration-300 pointer-events-none"
@@ -55,7 +55,7 @@ export default function AnimatedButton({
                 <span className="w-2 h-8 bg-foreground/50 rounded-b-md" />
             </span>
 
-            {/* Правый верхний угол */}
+            {/* Top right corner */}
             <span
                 className={cn(
                     "z-10 absolute w-8 h-8 flex flex-col items-end transition-all duration-300 pointer-events-none"
@@ -69,7 +69,7 @@ export default function AnimatedButton({
                 <span className="w-2 h-8 bg-foreground/50 rounded-b-md" />
             </span>
 
-            {/* Левый нижний угол */}
+            {/* Bottom left corner */}
             <span
                 className={cn(
                     "z-10 absolute w-8 h-8 flex flex-col justify-end transition-all duration-300 pointer-events-none"
@@ -83,7 +83,7 @@ export default function AnimatedButton({
                 <span className="w-8 h-3 bg-foreground/50 rounded-r-md rounded-bl-2xl" />
             </span>
 
-            {/* Правый нижний угол */}
+            {/* Bottom right corner */}
             <span
                 className={cn(
                     "z-10 absolute w-8 h-8 flex flex-col items-end justify-end transition-all duration-300 pointer-events-none"

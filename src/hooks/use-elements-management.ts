@@ -470,7 +470,10 @@ const useElementsManagement = ({
 
   const sendElementToBack = useCallback((elementId: string) => {
     const elementResult = getElementById(elementId);
-    if (!elementResult) return;
+    if (!elementResult) {
+      console.warn('ElementsManagement: Element not found for sendElementToBack:', elementId);
+      return;
+    }
 
     const elementToMove = elementResult.element;
     const lines = renderableObjects.filter(obj => 'tool' in obj);
@@ -481,6 +484,22 @@ const useElementsManagement = ({
 
     // Add the element after lines but before other elements (back)
     const updatedObjects = [...lines, elementToMove, ...otherElements];
+    
+    // Log the reordering operation
+    const beforeOrder = renderableObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+    const afterOrder = updatedObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+    
+    console.log('ElementsManagement: Sending element to back', {
+      elementId: elementId.slice(-6),
+      elementType: elementToMove.type,
+      beforeOrder,
+      afterOrder
+    });
+    
     setRenderableObjects(updatedObjects);
 
     const elementTypeName = getElementTypeName(elementToMove.type);
@@ -495,27 +514,73 @@ const useElementsManagement = ({
     });
   }, [renderableObjects, setRenderableObjects, getElementById, addHistoryEntry]);
 
-  return {
-    addElement,
-    updateElement,
-    updateTextElement,
-    updateSelectedElementStyle,
-    removeElement: removeSelectedElement,
-    selectedElementId,
-    setSelectedElementId,
-    handleDragEnd,
-    handleElementClick,
-    removeSelectedElement,
-    flipSelectedElementHorizontal,
-    flipSelectedElementVertical,
-    rotateSelectedElement,
-    duplicateSelectedElement,
-    clearElements,
-    getElementById,
-    getElementDataFromRenderables,
-    bringElementToFront,
-    sendElementToBack,
-  };
+  const sendElementToBackground = useCallback((elementId: string) => {
+    const elementResult = getElementById(elementId);
+    if (!elementResult) {
+      console.warn('ElementsManagement: Element not found for sendElementToBackground:', elementId);
+      return;
+    }
+
+    const elementToMove = elementResult.element;
+    const otherObjects = renderableObjects.filter(obj => {
+      if ('tool' in obj) return true; // Keep all lines
+      return obj.id !== elementId; // Exclude the element we're moving
+    });
+
+    // Add the element at the very beginning (true background - before everything including lines)
+    const updatedObjects = [elementToMove, ...otherObjects];
+    
+    // Log the reordering operation
+    const beforeOrder = renderableObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+    const afterOrder = updatedObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+    
+    console.log('ElementsManagement: Setting element as true background', {
+      elementId: elementId.slice(-6),
+      elementType: elementToMove.type,
+      beforeOrder,
+      afterOrder
+    });
+    
+    setRenderableObjects(updatedObjects);
+
+    const elementTypeName = getElementTypeName(elementToMove.type);
+    addHistoryEntry({
+      type: 'elementModified',
+      description: `Set ${elementTypeName} as background`,
+      linesSnapshot: updatedObjects,
+      metadata: {
+        elementId: elementId,
+        elementType: elementToMove.type
+      }
+    });
+  }, [renderableObjects, setRenderableObjects, getElementById, addHistoryEntry]);
+
+      return {
+      addElement,
+      updateElement,
+      updateTextElement,
+      updateSelectedElementStyle,
+      removeElement: removeSelectedElement,
+      selectedElementId,
+      setSelectedElementId,
+      handleDragEnd,
+      handleElementClick,
+      removeSelectedElement,
+      flipSelectedElementHorizontal,
+      flipSelectedElementVertical,
+      rotateSelectedElement,
+      duplicateSelectedElement,
+      clearElements,
+      getElementById,
+      getElementDataFromRenderables,
+      bringElementToFront,
+      sendElementToBack,
+      sendElementToBackground,
+    };
 };
 
 const getElementTypeName = (type: string): string => {

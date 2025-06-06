@@ -15,7 +15,6 @@ import {
   PlusCircle,
   Trash2,
   Copy,
-  FileUp,
   Strikethrough,
   Baseline,
   ChevronDown,
@@ -32,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/components/ui/tooltip";
-import type { TextCase, Element, ElementData, FontStyles, TextAlignment, BorderStyle } from "@/types/canvas";
+import type { TextCase, Element, ElementData, FontStyles, TextAlignment } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
@@ -183,9 +182,9 @@ const FontSelector: React.FC<{
     });
   };
 
-  // Handle search input change - предотвращаем потерю фокуса
+  // Handle search input change - prevent focus loss
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation(); // Предотвращаем всплытие события
+    e.stopPropagation(); // Prevent event bubbling
     setSearchQuery(e.target.value);
   };
 

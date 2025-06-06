@@ -71,7 +71,7 @@ function SelectContent({
         >
           <SelectPrimitive.Viewport
               className={cn(
-                  "p-1 overflow-y-auto", // Добавляем overflow-y-auto сюда
+                  "p-1 overflow-y-auto", // Add overflow-y-auto here
                   position === "popper" &&
                   "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
               )}>

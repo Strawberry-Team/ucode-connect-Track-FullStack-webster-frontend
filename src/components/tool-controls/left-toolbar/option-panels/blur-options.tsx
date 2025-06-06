@@ -2,7 +2,7 @@ import React from "react";
 import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, ChevronDown, Droplet, Image as ImageIcon, MousePointer } from "lucide-react";
+import { RotateCcw, ChevronDown, Droplet, Image as ImageIcon, MousePointer, MousePointerClick } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { resetBlurFunction } from "@/components/canvas/canvas";
@@ -133,7 +133,7 @@ const BlurOptions: React.FC = () => {
               className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
               onClick={handleSelectDifferentImage}
             >
-              <MousePointer size={14} />
+              <MousePointerClick size={14} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

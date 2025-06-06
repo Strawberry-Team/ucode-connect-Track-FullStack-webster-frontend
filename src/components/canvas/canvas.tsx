@@ -451,7 +451,7 @@ const Canvas: React.FC = () => {
         }
     }, [backgroundImage, setIsImageReadyForLiquify]);
 
-    // Глобальні обробники подій для перетягування hand tool
+    // Global event handlers for hand tool dragging
     useEffect(() => {
         const handleGlobalMouseMove = (e: MouseEvent) => {
             if (isDragging.current && activeTool?.type === 'hand' && isManuallyDragging.current) {
@@ -698,7 +698,7 @@ const Canvas: React.FC = () => {
             return;
         }
 
-        // PRIORITY 2: Element creation mode (добавление элементов)
+        // PRIORITY 2: Element creation mode (adding elements)
         if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
             // Crosshair cursor for element creation mode
             if (containerRef.current) containerRef.current.style.cursor = "crosshair";
@@ -768,7 +768,7 @@ const Canvas: React.FC = () => {
         
         if (isDragging.current) {
             if (activeTool?.type === 'hand' && (e.buttons === 1)) {
-                // Обробка перетягування для інструменту руки
+                // Handle dragging for hand tool
                 isManuallyDragging.current = true;
                 handManager.processPanning(e.clientX, e.clientY);
             } else if ((e.buttons === 4 && activeTool?.type !== 'brush' && activeTool?.type !== 'eraser')) {
@@ -975,7 +975,7 @@ const Canvas: React.FC = () => {
             if (evt.button === 0) evt.preventDefault();
         }
         
-        // Hand tool пропускаємо, тому що обробляється на рівні контейнера
+        // Skip hand tool as it's handled at container level
         if (activeTool?.type === 'hand') {
             return;
         }
@@ -1375,7 +1375,7 @@ const Canvas: React.FC = () => {
                 if (activeTool?.type === "cursor") {
                     handleMouseDown({evt: e} as any);
                 } else if (activeTool?.type === "hand" && e.button === 0) {
-                    // Для інструменту руки обробляємо mousedown безпосередньо на контейнері
+                    // For hand tool, handle mousedown directly on container
                     isDragging.current = true;
                     isManuallyDragging.current = true;
                     handManager.startPanning(e.clientX, e.clientY);
@@ -1677,7 +1677,7 @@ const Canvas: React.FC = () => {
                     <button
                         onClick={handleZoomOutClick}
                         className="cursor-pointer px-1.5 ml-1 mr-1 hover:bg-white/20 rounded"
-                        aria-label="Уменьшить масштаб"
+                        aria-label="Zoom out"
                         tabIndex={0}
                     >
                         -
@@ -1686,7 +1686,7 @@ const Canvas: React.FC = () => {
                     <button
                         onClick={handleZoomInClick}
                         className="cursor-pointer px-1 ml-1 hover:bg-white/20 rounded"
-                        aria-label="Увеличить масштаб"
+                        aria-label="Zoom in"
                         tabIndex={0}
                     >
                         +

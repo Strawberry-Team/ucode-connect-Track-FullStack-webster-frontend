@@ -55,31 +55,31 @@ export default tseslint.config({
 
 # Webster Frontend
 
-## Функціональність імпорту зображень
+## Image Import Functionality
 
-### Додавання зображень через File -> Open
+### Adding Images via File -> Open
 
-Тепер у Webster Editor можна додавати зображення як керовані елементи на полотні:
+Webster Editor now supports adding images as managed elements on the canvas:
 
-#### Як використовувати:
-1. Натисніть на кнопку "File" у лівому тулбарі
-2. Виберіть "Open" з випадаючого меню
-3. Оберіть зображення (підтримуються PNG, JPG, JPEG)
-4. Зображення з'явиться в центрі полотна
+#### How to use:
+1. Click the "File" button in the left toolbar
+2. Select "Open" from the dropdown menu
+3. Choose an image (PNG, JPG, JPEG supported)
+4. The image will appear in the center of the canvas
 
-#### Функціональність зображень:
-- **Переміщення**: Перетягуйте зображення мишею
-- **Масштабування**: Використовуйте ручки трансформації для зміни розміру
-- **Збереження пропорцій**: Автоматично зберігаються оригінальні пропорції
-- **Поворот**: Використовуйте ручку обертання для повороту на 360°
-- **Snapping**: Зображення притягуються до інших елементів та меж полотна
-- **Видалення**: Натисніть Delete/Backspace для видалення вибраного зображення
+#### Image functionality:
+- **Moving**: Drag images with the mouse
+- **Scaling**: Use transformation handles to resize
+- **Preserve proportions**: Original proportions are automatically preserved
+- **Rotation**: Use the rotation handle for 360° rotation
+- **Snapping**: Images snap to other elements and canvas edges
+- **Deletion**: Press Delete/Backspace to remove selected image
 
-#### Технічні деталі:
-- Зображення автоматично масштабуються до 80% розміру полотна якщо вони більші
-- Підтримуються всі формати зображень: PNG, JPG, JPEG
-- Зображення зберігаються в історії операцій (undo/redo)
-- Експорт проекту включає всі додані зображення
+#### Technical details:
+- Images are automatically scaled to 80% of canvas size if they are larger
+- All image formats supported: PNG, JPG, JPEG
+- Images are saved in operation history (undo/redo)
+- Project export includes all added images
 
 ## Development
 

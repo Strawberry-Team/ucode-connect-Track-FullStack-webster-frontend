@@ -410,6 +410,27 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         }
     };
 
+    // For custom-image elements, calculate transform separately to handle flip
+    const getElementTransforms = () => {
+        if (element.type === 'custom-image') {
+            let scaleX = element.scaleX || 1;
+            let scaleY = element.scaleY || 1;
+            
+            // Apply flip transformations
+            if (element.flipHorizontal) {
+                scaleX *= -1;
+            }
+            if (element.flipVertical) {
+                scaleY *= -1;
+            }
+            
+            return { scaleX, scaleY };
+        }
+        return { scaleX: element.scaleX ?? 1, scaleY: element.scaleY ?? 1 };
+    };
+
+    const elementTransforms = getElementTransforms();
+
     const commonProps = {
         id: element.id,
         draggable: canInteractWithElement() && isSelected,
@@ -619,8 +640,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         },
         onTransformEnd: handleTransformEnd,
         rotation: element.rotation || 0,
-        scaleX: element.scaleX ?? 1,
-        scaleY: element.scaleY ?? 1,
+        scaleX: element.type === 'custom-image' ? 1 : (element.scaleX ?? 1),
+        scaleY: element.type === 'custom-image' ? 1 : (element.scaleY ?? 1),
     };
 
     const borderStyleProps = getBorderStyleProperties(element.borderStyle, element.borderWidth);
@@ -751,7 +772,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         const adjustedWidth = box.width * stageScaleX;
         const adjustedHeight = box.height * stageScaleY;
 
-        textarea.style.position = 'fixed'; // Використовуємо fixed для кращого контролю
+        textarea.style.position = 'fixed'; // Use fixed for better control
         textarea.style.top = `${adjustedY}px`;
         textarea.style.left = `${adjustedX}px`;
         textarea.style.width = `${adjustedWidth}px`;
@@ -1112,12 +1133,66 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             setImageLoaded(false);
                         };
                     }
-                }, [element.src]);
+                }, [element.src, element.brightness, element.contrast, element.flipHorizontal, element.flipVertical]);
                 
                 if (element.src && imageLoaded && imageInstance) {
+                    // Create image filters for brightness and contrast
+                    const filters = [];
+                    
+                    if (element.brightness && element.brightness !== 0) {
+                        filters.push(Konva.Filters.Brighten);
+                    }
+                    
+                    if (element.contrast && element.contrast !== 0) {
+                        filters.push(Konva.Filters.Contrast);
+                    }
+                    
+                    // Create custom props for image without scaleX/scaleY to avoid conflicts
+                    const imageCommonProps = {
+                        id: element.id,
+                        draggable: canInteractWithElement() && isSelected,
+                        opacity: element.opacity ?? 1,
+                        stroke: element.borderColor,
+                        strokeWidth: element.borderStyle === 'hidden' ? 0 : element.borderWidth ?? 0,
+                        onClick: commonProps.onClick,
+                        onDblClick: commonProps.onDblClick,
+                        onMouseEnter: commonProps.onMouseEnter,
+                        onMouseLeave: commonProps.onMouseLeave,
+                        onDragStart: commonProps.onDragStart,
+                        onDragMove: commonProps.onDragMove,
+                        onDragEnd: commonProps.onDragEnd,
+                        onTransformEnd: commonProps.onTransformEnd,
+                        rotation: element.rotation || 0,
+                    };
+                    
                     return (
                         <KonvaImage
-                            ref={nodeRef as React.RefObject<Konva.Image>}
+                            ref={(node) => {
+                                if (node) {
+                                    // Clear existing cache before applying new filters
+                                    node.clearCache();
+                                    
+                                    // Apply brightness filter
+                                    if (element.brightness && element.brightness !== 0) {
+                                        node.brightness(element.brightness / 100); // Convert from -100/100 to -1/1 range
+                                    } else {
+                                        node.brightness(0); // Reset brightness if 0
+                                    }
+                                    
+                                    // Apply contrast filter
+                                    if (element.contrast && element.contrast !== 0) {
+                                        node.contrast(element.contrast); // Contrast uses the same range
+                                    } else {
+                                        node.contrast(0); // Reset contrast if 0
+                                    }
+                                    
+                                    // Cache the filtered result only if filters are applied
+                                    if (filters.length > 0) {
+                                        node.cache();
+                                    }
+                                }
+                                (nodeRef as React.MutableRefObject<Konva.Image | null>).current = node;
+                            }}
                             image={imageInstance}
                             x={imgCenterX}
                             y={imgCenterY}
@@ -1125,7 +1200,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             offsetY={imgOffsetY}
                             width={element.width}
                             height={element.height}
-                            {...commonProps}
+                            scaleX={elementTransforms.scaleX}
+                            scaleY={elementTransforms.scaleY}
+                            filters={filters}
+                            {...imageCommonProps}
                             {...strokeStyleProps} // Borders for image
                         />
                     );

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Clock, ImageUp, Trash2, Copy } from 'lucide-react';
 import type { RecentProject } from '@/types/dashboard';
 import { formatDimensionDisplay } from '@/utils/format-utils';
-import { ScrollArea } from '../ui/scroll-area';
 
 interface RecentProjectsProps {
   projects: RecentProject[];

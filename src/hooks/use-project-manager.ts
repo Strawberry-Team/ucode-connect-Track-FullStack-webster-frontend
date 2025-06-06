@@ -77,17 +77,36 @@ export const useProjectManager = ({
       );
 
       if (hasCustomImages) {
+        // Log the current order of elements for debugging
+        const elementOrder = renderableObjectsRef.current
+          .filter(obj => !('tool' in obj))
+          .map((obj, index) => ({ index, type: obj.type, id: obj.id }));
+        console.log('ProjectManager: Element order for thumbnail generation:', elementOrder);
+        
         // Wait for all images to be loaded by forcing a render cycle
         return new Promise((resolve) => {
-          // Use a short timeout to ensure all images are rendered
+          // Use a longer timeout to ensure all images are rendered in correct order
           setTimeout(() => {
             try {
+              // Hide background pattern during thumbnail generation for better preview
+              const backgroundPattern = stage.findOne('.background-pattern');
+              const wasBackgroundVisible = backgroundPattern?.visible();
+              if (backgroundPattern) {
+                backgroundPattern.visible(false);
+              }
+              
               const dataURL = stage.toDataURL({ 
                 pixelRatio: 0.4, 
                 quality: 0.8,
                 mimeType: 'image/png'
               });
-              console.log('ProjectManager: Thumbnail generated successfully with images');
+              
+              // Restore background pattern visibility
+              if (backgroundPattern && wasBackgroundVisible) {
+                backgroundPattern.visible(true);
+              }
+              
+              console.log('ProjectManager: Thumbnail generated successfully with images in correct order');
               resolve(dataURL);
             } catch (error) {
               console.warn('ProjectManager: Error generating thumbnail with images:', error);
@@ -97,22 +116,41 @@ export const useProjectManager = ({
                   pixelRatio: 0.3, 
                   quality: 0.7
                 });
+                console.log('ProjectManager: Fallback thumbnail generated successfully');
                 resolve(fallbackDataURL);
               } catch (fallbackError) {
                 console.error('ProjectManager: Fallback thumbnail generation failed:', fallbackError);
                 resolve(undefined);
               }
             }
-          }, 300); // Wait 300ms for images to render
+          }, 500); // Increased wait time to 500ms for better image loading
         });
       } else {
         // No custom images, generate thumbnail immediately
-        const dataURL = stage.toDataURL({ 
-          pixelRatio: 0.4, 
-          quality: 0.8 
-        });
-        console.log('ProjectManager: Thumbnail generated successfully without images');
-        return dataURL;
+        try {
+          // Hide background pattern for cleaner preview
+          const backgroundPattern = stage.findOne('.background-pattern');
+          const wasBackgroundVisible = backgroundPattern?.visible();
+          if (backgroundPattern) {
+            backgroundPattern.visible(false);
+          }
+          
+          const dataURL = stage.toDataURL({ 
+            pixelRatio: 0.4, 
+            quality: 0.8 
+          });
+          
+          // Restore background pattern visibility
+          if (backgroundPattern && wasBackgroundVisible) {
+            backgroundPattern.visible(true);
+          }
+          
+          console.log('ProjectManager: Thumbnail generated successfully without custom images');
+          return dataURL;
+        } catch (error) {
+          console.error('ProjectManager: Error generating thumbnail without images:', error);
+          return undefined;
+        }
       }
     } catch (error) {
       console.error('ProjectManager: Error in generateThumbnailSafely:', error);
@@ -136,9 +174,15 @@ export const useProjectManager = ({
       return null;
     }
     
+    // Log current element order for debugging
+    const elementOrder = currentRenderableObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+    
     console.log('ProjectManager: Saving project state...', {
       projectId: currentProjectIdValue,
       objectsCount: currentRenderableObjects.length,
+      elementOrder: elementOrder,
       stageSize: currentStageSize
     });
     
@@ -153,6 +197,9 @@ export const useProjectManager = ({
         currentStageSize.height
       );
       console.log('ProjectManager: Updated existing project:', currentProjectIdValue, 'success:', success);
+      if (success) {
+        console.log('ProjectManager: Element order saved successfully:', elementOrder);
+      }
       return currentProjectIdValue;
     } else {
       const hasInitialImage = !!backgroundImage;
@@ -166,7 +213,7 @@ export const useProjectManager = ({
         loggedInUser?.id
       );
       
-      console.log('ProjectManager: Created new project:', newProjectId);
+      console.log('ProjectManager: Created new project:', newProjectId, 'with element order:', elementOrder);
       currentProjectIdRef.current = newProjectId;
       setCurrentProjectId(newProjectId);
       
@@ -178,6 +225,12 @@ export const useProjectManager = ({
       return newProjectId;
     }
   }, [loggedInUser, backgroundImage, stageRef, setCurrentProjectId]);
+  
+  // Force immediate save when critical changes occur (like element reordering)
+  const saveImmediately = useCallback(async () => {
+    console.log('ProjectManager: Immediate save triggered');
+    return saveCurrentProjectState();
+  }, [saveCurrentProjectState]);
 
   const debouncedSave = useMemo(
     () => debounce(() => {
@@ -191,7 +244,7 @@ export const useProjectManager = ({
           console.error('ProjectManager: Error in debounced save:', error);
         });
       }
-    }, 2000), 
+    }, 1500), // Reduced debounce time for faster saves
     [saveCurrentProjectState, loggedInUser]
   );
 
@@ -216,13 +269,20 @@ export const useProjectManager = ({
       const projectData = getProjectData(projectId);
       if (projectData) {
         setProjectName(projectData.project.name);
+        
+        // Log element order when loading project
+        const elementOrder = projectData.renderableObjects
+          .filter(obj => !('tool' in obj))
+          .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+        console.log('ProjectManager: Loading project with element order:', elementOrder);
+        
         // Load Google Fonts used in this project
         loadProjectFonts(projectData.renderableObjects);
       } else {
         console.warn('ProjectManager: Project data not found for ID:', projectId);
       }
     } else {
-      console.warn('ProjectManager: New project detected, resetting currentProjectId');
+      console.log('ProjectManager: New project detected, resetting currentProjectId');
       setCurrentProjectId(null);
       setHasUnsavedChanges(false); // Reset unsaved changes flag for new project
     }
@@ -289,6 +349,7 @@ export const useProjectManager = ({
     currentProjectId,
     projectName,
     setProjectName,
-    setCurrentProjectId
+    setCurrentProjectId,
+    saveImmediately
   };
 }; 

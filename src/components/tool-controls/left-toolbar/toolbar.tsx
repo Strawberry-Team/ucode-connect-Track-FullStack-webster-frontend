@@ -101,7 +101,7 @@ const Toolbar: React.FC = () => {
             type: "image-transform",
             icon: Image,
             description: "Select and transform imported images.",
-            imageUrl: "https://pixlr.com/img/tool/transform-info.jpg"
+            imageUrl: "/tooltips/option-tooltips/landscape.jpg"
         },
         {
             id: "liquify",

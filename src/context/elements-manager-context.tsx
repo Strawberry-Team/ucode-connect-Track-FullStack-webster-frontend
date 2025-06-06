@@ -25,6 +25,7 @@ interface ElementsManagerContextValue {
   getElementDataFromRenderables: () => ElementData[];
   bringElementToFront: (elementId: string) => void;
   sendElementToBack: (elementId: string) => void;
+  sendElementToBackground: (elementId: string) => void;
 }
 
 // Create the context with a default value of undefined
