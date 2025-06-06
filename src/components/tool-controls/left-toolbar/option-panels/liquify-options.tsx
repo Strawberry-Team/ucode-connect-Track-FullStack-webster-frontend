@@ -16,7 +16,8 @@ import {
   RotateCw,
   RotateCcw as TwirlLeft,
   Image as ImageIcon,
-  MousePointer
+  MousePointer,
+  MousePointerClick
 } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -106,7 +107,7 @@ const LiquifyOptions: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <span className="text-xs text-[#A8AAACFF] text-center">
-          Add an image to the canvas to use the Liquify tool.
+          Add an image to the canvas to use the <b>Liquify</b> tool.
         </span>
       </div>
     );
@@ -157,13 +158,12 @@ const LiquifyOptions: React.FC = () => {
   return (
     <div className="flex items-center space-x-2">
       {/* Selected Image Indicator */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-4">
         <Label className="text-xs text-[#D4D4D5FF]">Selected:</Label>
         <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
           <ImageIcon size={14} />
           <div className="flex flex-col items-start">
             <span className="text-xs">{selectedImage?.fileName || `Image ${selectedImage?.id.slice(-6)}`}</span>
-            <span className="text-xs text-gray-400">ID: {selectedImage?.id.slice(-6)}</span>
           </div>
         </Button>
         <Tooltip>
@@ -173,7 +173,7 @@ const LiquifyOptions: React.FC = () => {
               className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
               onClick={handleSelectDifferentImage}
             >
-              <MousePointer size={14} />
+              <MousePointerClick size={14} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -186,8 +186,8 @@ const LiquifyOptions: React.FC = () => {
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" className="flex items-center space-x-1 h-8 pl-1 pr-1 ">
-            <span className="text-xs text-[#D4D4D5FF]">Liquify:</span>
+          <Button variant="ghost" className="flex items-center space-x-1 h-8 ml-3 ">
+            <span className="text-xs text-[#D4D4D5FF]">Size:</span>
             <div className="relative flex flex-col items-center mt-1">
               <span className="text-xs text-white">{liquifyBrushSize}</span>
               <ChevronDown size={12} className="text-[#A8AAACFF] -mt-1" />
@@ -297,7 +297,7 @@ const LiquifyOptions: React.FC = () => {
             className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
             onClick={handleResetClick}
           >
-            <span className="text-xs">Reset all</span>
+            <RotateCcw size={14} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

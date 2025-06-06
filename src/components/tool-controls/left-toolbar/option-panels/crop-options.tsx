@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useTool } from '@/context/tool-context';
-import { Crop, Check, ChevronDown } from 'lucide-react';
+import { Crop, Check, ChevronDown, RotateCcw, Save } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -288,7 +288,7 @@ const CropOptions: React.FC = () => {
         <Input
           id="crop-width"
           type="number"
-          placeholder="Ш"
+          placeholder="W"
           className="w-15 bg-[#1E1F22] hide-arrows border-2 border-[#44474AFF] rounded text-xs !h-7 px-1 focus-within:border-blue-500 text-center"
           value={widthInput}
           onChange={(e) => handleDimensionChange(e.target.value, 'width')}
@@ -301,7 +301,7 @@ const CropOptions: React.FC = () => {
         <Input
           id="crop-height"
           type="number"
-          placeholder="В"
+          placeholder="H"
           className="w-15 bg-[#1E1F22] border-2 hide-arrows border-[#44474AFF] rounded text-xs !h-7 px-1 focus-within:border-blue-500 text-center"
           value={heightInput}
           onChange={(e) => handleDimensionChange(e.target.value, 'height')}
@@ -345,6 +345,23 @@ const CropOptions: React.FC = () => {
       <div className="h-6 ml-3 border-l border-[#44474AFF]"></div>
 
       <div className="flex items-center space-x-3">
+      <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleApplyCrop}
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                disabled={!isCropping || !cropRect || cropRect.width <= 0 || cropRect.height <= 0}
+              >
+                <Save size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Save Crop</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -354,24 +371,7 @@ const CropOptions: React.FC = () => {
                 className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
                 disabled={!isCropping}
               >
-                Reset
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Reset Crop</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handleApplyCrop}
-                className="flex items-center justify-center px-2 min-w-7 min-h-7 ml-3 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
-                disabled={!isCropping || !cropRect || cropRect.width <= 0 || cropRect.height <= 0}
-              >
-                Save
+                <RotateCcw size={14} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

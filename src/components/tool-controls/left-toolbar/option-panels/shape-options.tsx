@@ -23,6 +23,7 @@ import {
   Trash2,
   Copy,
   PlusCircle,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -837,7 +838,7 @@ const ShapeOptions: React.FC = () => {
               className="flex items-center justify-center px-2 min-w-7 ml-3 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
               onClick={resetAllStyles}
             >
-              <span className="text-xs">Reset all</span>
+              <RotateCcw size={14} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

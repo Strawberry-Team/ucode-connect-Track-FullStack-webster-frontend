@@ -13,7 +13,7 @@ const ImageTransformOptions: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <span className="text-xs text-[#A8AAACFF] text-center">
-          Add an image to the canvas to use the Image Transform tool.
+          Add an image to the canvas to use the <b>Image Transform</b> tool.
         </span>
       </div>
     );
