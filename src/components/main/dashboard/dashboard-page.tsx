@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTool } from '@/context/tool-context';
 import CreateProjectModal from './create-project-modal.tsx';
-import AuthContainer from '../auth/auth-container';
-import RecentProjects from './recent-projects';
+import AuthContainer from '../../auth/auth-container.tsx';
+import RecentProjects from './recent-projects.tsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImageUp, Plus, User, X, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { UserMenuDropdown } from './user-menu-dropdown';
+import { UserMenuDropdown } from './user-menu-dropdown.tsx';
 import { useUser } from '@/context/user-context';
 import { toast } from 'sonner';
 import Cookies from 'js-cookie';
@@ -556,7 +556,7 @@ const DashboardPage: React.FC = () => {
                         <Button
                           onClick={handleOpenImageClick}
                           variant="secondary"
-                          className="w-full max-w-[220px] h-10 rounded-full mb-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                          className="w-full max-w-[220px] h-10 rounded-full mb-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold"
                           disabled={isLoadingAuth}
                         >
                           <Plus className="!h-5 !w-5 mr-1" />

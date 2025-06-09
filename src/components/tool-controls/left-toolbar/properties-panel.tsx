@@ -21,8 +21,8 @@ const PropertiesPanel: React.FC = () => {
   const navigate = useNavigate()
 
   const handleNavigateHome = () => {
-    navigate('/')
-  }
+    navigate('/', { state: { showDashboard: true } });
+  };
 
 
   const renderToolOptions = () => {
