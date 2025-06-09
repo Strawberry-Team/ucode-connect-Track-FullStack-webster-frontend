@@ -80,7 +80,11 @@ export const useProjectManager = ({
         // Log the current order of elements for debugging
         const elementOrder = renderableObjectsRef.current
           .filter(obj => !('tool' in obj))
-          .map((obj, index) => ({ index, type: obj.type, id: obj.id }));
+          .map((obj, index) => ({ 
+            index, 
+            type: 'type' in obj ? obj.type : 'unknown', 
+            id: obj.id 
+          }));
         console.log('ProjectManager: Element order for thumbnail generation:', elementOrder);
         
         // Wait for all images to be loaded by forcing a render cycle
@@ -88,11 +92,13 @@ export const useProjectManager = ({
           // Use a longer timeout to ensure all images are rendered in correct order
           setTimeout(() => {
             try {
-              // Hide background pattern during thumbnail generation for better preview
+              // Keep background pattern visible during thumbnail generation to show canvas background
               const backgroundPattern = stage.findOne('.background-pattern');
               const wasBackgroundVisible = backgroundPattern?.visible();
+              
+              // Ensure background pattern is visible for thumbnail
               if (backgroundPattern) {
-                backgroundPattern.visible(false);
+                backgroundPattern.visible(true);
               }
               
               const dataURL = stage.toDataURL({ 
@@ -101,12 +107,12 @@ export const useProjectManager = ({
                 mimeType: 'image/png'
               });
               
-              // Restore background pattern visibility
-              if (backgroundPattern && wasBackgroundVisible) {
-                backgroundPattern.visible(true);
+              // Restore original background pattern visibility
+              if (backgroundPattern && wasBackgroundVisible !== undefined) {
+                backgroundPattern.visible(wasBackgroundVisible);
               }
               
-              console.log('ProjectManager: Thumbnail generated successfully with images in correct order');
+              console.log('ProjectManager: Thumbnail generated successfully with images in correct order and canvas background');
               resolve(dataURL);
             } catch (error) {
               console.warn('ProjectManager: Error generating thumbnail with images:', error);
@@ -128,11 +134,13 @@ export const useProjectManager = ({
       } else {
         // No custom images, generate thumbnail immediately
         try {
-          // Hide background pattern for cleaner preview
+          // Keep background pattern visible during thumbnail generation to show canvas background
           const backgroundPattern = stage.findOne('.background-pattern');
           const wasBackgroundVisible = backgroundPattern?.visible();
+          
+          // Ensure background pattern is visible for thumbnail
           if (backgroundPattern) {
-            backgroundPattern.visible(false);
+            backgroundPattern.visible(true);
           }
           
           const dataURL = stage.toDataURL({ 
@@ -140,12 +148,12 @@ export const useProjectManager = ({
             quality: 0.8 
           });
           
-          // Restore background pattern visibility
-          if (backgroundPattern && wasBackgroundVisible) {
-            backgroundPattern.visible(true);
+          // Restore original background pattern visibility
+          if (backgroundPattern && wasBackgroundVisible !== undefined) {
+            backgroundPattern.visible(wasBackgroundVisible);
           }
           
-          console.log('ProjectManager: Thumbnail generated successfully without custom images');
+          console.log('ProjectManager: Thumbnail generated successfully without custom images and with canvas background');
           return dataURL;
         } catch (error) {
           console.error('ProjectManager: Error generating thumbnail without images:', error);
@@ -177,7 +185,11 @@ export const useProjectManager = ({
     // Log current element order for debugging
     const elementOrder = currentRenderableObjects
       .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+      .map((obj, index) => ({ 
+        index, 
+        type: 'type' in obj ? obj.type : 'unknown', 
+        id: obj.id.slice(-6) 
+      }));
     
     console.log('ProjectManager: Saving project state...', {
       projectId: currentProjectIdValue,
@@ -286,7 +298,11 @@ export const useProjectManager = ({
         // Log element order when loading project
         const elementOrder = migratedObjects
           .filter(obj => !('tool' in obj))
-          .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+          .map((obj, index) => ({ 
+            index, 
+            type: 'type' in obj ? obj.type : 'unknown', 
+            id: obj.id.slice(-6) 
+          }));
         console.log('ProjectManager: Loading project with element order:', elementOrder);
         
         // Load Google Fonts used in this project

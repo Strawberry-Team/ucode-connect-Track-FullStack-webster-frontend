@@ -43,16 +43,17 @@ const HomePage: React.FC = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-2">
           <div className="flex items-center justify-between">
             <motion.div
               className="flex items-center space-x-3"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">                <a onClick={handleLogoClick} className="cursor-pointer">
-                <Blend className="!h-7 !w-7 "/>
-              </a>
+              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                <a onClick={handleLogoClick} className="cursor-pointer">
+                  <Blend className="!h-7 !w-7 " />
+                </a>
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
                 <a onClick={handleLogoClick} className="cursor-pointer">Flowy</a>
@@ -73,7 +74,7 @@ const HomePage: React.FC = () => {
                 className="w-[160px] h-10 rounded-full bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-white font-semibold"
               >
 
-                {viewMode === 'landing' ? 'Go to Dashboard' : 'Back to Landing'}
+                {viewMode === 'landing' ? 'Dashboard' : 'Landing'}
               </Button>
             </div>
 
@@ -103,7 +104,7 @@ const HomePage: React.FC = () => {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="px-6 py-4 space-y-4">
+              <div className="px-6 py-4 space-y-4 flex flex-col items-center justify-center">
                 {viewMode === 'landing' && (
                   <>
                     <a href="#features" className="block text-gray-300 hover:text-blue-400">Features</a>
@@ -113,9 +114,9 @@ const HomePage: React.FC = () => {
                 )}
                 <button
                   onClick={toggleView}
-                  className="w-full bg-gradient-to-r from-blue-400 to-blue-600 px-6 py-2 rounded-full text-white font-semibold"
+                  className="max-w-5/10 min-w-50 bg-gradient-to-r from-blue-400 to-blue-600 px-6 py-2 rounded-full text-white font-semibold"
                 >
-                  {viewMode === 'landing' ? 'Go to Dashboard' : 'Back to Landing'}
+                  {viewMode === 'landing' ? 'Dashboard' : 'Landing'}
                 </button>
               </div>
             </motion.div>

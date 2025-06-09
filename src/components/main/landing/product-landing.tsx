@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image } from 'lucide-react';
+import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 import { Shield, FileText, Lock, Users, Database, Eye, CheckCircle, AlertCircle, Info } from 'lucide-react';
@@ -72,13 +72,11 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
         },
     ];
 
-
-
     const PrivacyDialog = () => (
         <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
             <DialogContent className="bg-gradient-to-br from-[#1a1d21] via-[#25282c] to-[#2a2d31] max-w-5xl max-h-[85vh] overflow-y-auto custom-scroll p-0 border-none shadow-2xl">
                 {/* Header with gradient background */}
-                <div className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-8 text-center overflow-hidden">
+                <div className="relative bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 p-8 text-center overflow-hidden">
                     <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-600/20"
                         animate={{
@@ -317,7 +315,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
         <Dialog open={showTerms} onOpenChange={setShowTerms}>
             <DialogContent className="bg-gradient-to-br from-[#1a1d21] via-[#25282c] to-[#2a2d31] max-w-5xl max-h-[85vh] overflow-y-auto custom-scroll p-0 border-none shadow-2xl">
                 {/* Header */}
-                <div className="relative bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 p-8 text-center overflow-hidden">
+                <div className="relative bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 p-8 text-center overflow-hidden">
                     <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-600/20"
                         animate={{
@@ -507,7 +505,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.8 }}
-                        className="bg-gradient-to-r from-blue-500/10 to-purple-600/10 rounded-2xl p-6 border border-blue-500/30 text-center"
+                        className="bg-gradient-to-r from-blue-400/10 to-purple-600/10 rounded-2xl p-6 border border-blue-500/30 text-center"
                     >
                         <h3 className="text-xl font-bold text-white mb-4">Need Help?</h3>
                         <p className="text-gray-300 mb-4">
@@ -583,19 +581,19 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
         {
             name: "Inessa Repeshko",
             role: ["Team Lead", "Frontend Engineer"],
-            avatar: "/teams/inessa.png",
+            avatar: "/teams/inessa.webp",
             social: { github: "https://github.com/InessaRepeshko" }
         },
         {
             name: "Andrew Laskevych",
             role: ["Backend Developer", "Product Manager"],
-            avatar: "/teams/andrew.png",
+            avatar: "/teams/andrew.webp",
             social: { github: "https://github.com/laskevych" }
         },
         {
             name: "Vadym Zharyi",
             role: ["Frontend Engineer", "UI/UX Designer"],
-            avatar: "/teams/vadym.png",
+            avatar: "/teams/vadym.webp",
             social: { github: "https://github.com/vzharyi" }
         },
     ];
@@ -611,15 +609,6 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8, ease: "easeOut" }}
                         >
-                            <motion.div
-                                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-400/10 to-blue-600/20 px-4 py-2 rounded-full border border-blue-500/30 mb-6"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2, duration: 0.6 }}
-                            >
-                                <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                <span className="text-sm text-gray-300">Simple Creative Editor</span>
-                            </motion.div>
                             <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
                                 <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Create</span><br />
                                 <span className="text-white">Without Limits</span>
@@ -670,14 +659,14 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     animate={{ y: [0, -10, 0], rotate: [0, 5, -5, 0] }}
                                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                                 >
-                                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    <Brush className="w-8 h-8 text-white" />
                                 </motion.div>
                                 <motion.div
-                                    className="absolute -bottom-4 -left-4 bg-gradient-to-br from-pink-500 to-orange-500 w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
+                                    className="absolute -bottom-4 -left-4 bg-gradient-to-br from-blue-400 to-blue-600 w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
                                     animate={{ y: [0, 10, 0], rotate: [0, -5, 5, 0] }}
                                     transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                                 >
-                                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                    <Image className="w-6 h-6 text-white" />
                                 </motion.div>
                             </div>
                         </motion.div>
@@ -698,12 +687,12 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Powerful Features</span>
                         </h2>
                         <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                            Everything you need for quick creativity. Simple tools that work right away — without studying the instructions and settings.
+                            Everything you need for quick creativity. <br /> Simple tools that work without studying the instructions and settings.
                         </p>
                     </motion.div>
 
                     {/* Сетка карточек фичей */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
@@ -756,7 +745,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Meet the Team</span>
                         </h2>
                         <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                            Built with passion by creative minds who understand what artists and designers need.
+                            Forged by enthusiasts to unlock easy design for newcomers.
                         </p>
                     </motion.div>
 
@@ -815,14 +804,11 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             <Button
                                 onClick={toggleView}
                                 variant="secondary"
-                                className="font-semibold text-lg rounded-full bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-full text-white font-semibold"
+                                className="font-semibold text-lg rounded-full bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-full text-white font-semibold "
                             >
-
                                 <svg className="!w-6 !h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                <span>Start Creating Now</span>
+                                <span>Start Now for Free</span>
                             </Button>
-
-
                         </div>
                     </motion.div>
                 </div>
@@ -832,14 +818,11 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row items-center justify-between">
                         <div className="flex items-center space-x-3 mb-6 md:mb-0">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                                <Blend className="!h-7 !w-7 " />
                             </div>
                             <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-                                Flowy
+                                <p className="cursor-pointer">Flowy</p>
                             </span>
                         </div>
                         <div className="flex items-center space-x-6">
@@ -854,7 +837,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 }
                             >
                                 <a
-                                    href="https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-webster-backend"
+                                    href="https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-flowy-backend"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block w-full px-4 py-2 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer text-gray-200 rounded"
@@ -862,7 +845,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     Backend
                                 </a>
                                 <a
-                                    href="https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-webster-frontend"
+                                    href="https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-flowy-frontend"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block w-full px-4 py-2 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer text-gray-200 rounded"
@@ -877,7 +860,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                         </div>
                     </div>
                     <div className="mt-8 pt-8 border-t border-gray-700/50 text-center text-gray-400">
-                        <p>© 2025 Flowy. Made with ❤️ for creators everywhere.</p>
+                        <p>© 2025 Flowy. Made with 💙 for creators everywhere.</p>
                     </div>
                 </div>
             </footer>

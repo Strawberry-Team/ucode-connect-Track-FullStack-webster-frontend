@@ -483,6 +483,55 @@ const Canvas: React.FC = () => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 elementsManager.removeSelectedElement();
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                // Перевіряємо, чи не знаходимось в полі вводу тексту
+                const activeElement = document.activeElement;
+                if (activeElement && (
+                    activeElement.tagName === 'INPUT' || 
+                    activeElement.tagName === 'TEXTAREA' || 
+                    (activeElement as HTMLElement).isContentEditable
+                )) {
+                    return; // Не обробляємо стрілки, якщо фокус на полі вводу
+                }
+                
+                e.preventDefault(); // Запобігаємо скролінгу сторінки
+                
+                // Визначаємо відстань переміщення (більша з Shift)
+                const distance = e.shiftKey ? 10 : 1;
+                
+                // Перевіряємо, чи виділений об'єкт пензля в режимі трансформації
+                if (selectedLineId && isBrushTransformModeActive && activeTool?.type === 'brush') {
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            drawingManager.moveSelectedLine(selectedLineId, 'up', distance);
+                            break;
+                        case 'ArrowDown':
+                            drawingManager.moveSelectedLine(selectedLineId, 'down', distance);
+                            break;
+                        case 'ArrowLeft':
+                            drawingManager.moveSelectedLine(selectedLineId, 'left', distance);
+                            break;
+                        case 'ArrowRight':
+                            drawingManager.moveSelectedLine(selectedLineId, 'right', distance);
+                            break;
+                    }
+                } else {
+                    // Переміщення звичайних елементів
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            elementsManager.moveSelectedElement('up', distance);
+                            break;
+                        case 'ArrowDown':
+                            elementsManager.moveSelectedElement('down', distance);
+                            break;
+                        case 'ArrowLeft':
+                            elementsManager.moveSelectedElement('left', distance);
+                            break;
+                        case 'ArrowRight':
+                            elementsManager.moveSelectedElement('right', distance);
+                            break;
+                    }
+                }
             }
         };
 
@@ -490,7 +539,7 @@ const Canvas: React.FC = () => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [elementsManager]);
+    }, [elementsManager, drawingManager, selectedLineId, isBrushTransformModeActive, activeTool]);
 
     useEffect(() => {
         const container = containerRef.current;

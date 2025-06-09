@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { Template } from '@/types/dashboard';
 
 const allTemplates: Record<string, Template[]> = {
@@ -96,7 +97,7 @@ const allTemplates: Record<string, Template[]> = {
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, width: number, height: number) => void;
+  onCreate: (name: string, width: number, height: number, backgroundImage?: string) => void;
 }
 
 type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images';
@@ -111,12 +112,39 @@ const tabs = [
   { id: 'sample-images' as TabType, label: 'Sample Images' },
 ];
 
+interface PixabayImage {
+  id: number;
+  webformatURL: string;
+  previewURL: string;
+  tags: string;
+  user: string;
+  views: number;
+  downloads: number;
+  likes: number;
+  webformatWidth: number;
+  webformatHeight: number;
+}
+
+interface PixabayResponse {
+  total: number;
+  totalHits: number;
+  hits: PixabayImage[];
+}
+
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
   const [projectName, setProjectName] = useState<string>('');
   const [canvasWidth, setCanvasWidth] = useState<string>('');
   const [canvasHeight, setCanvasHeight] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('recommended');
+  
+  // Pixabay API states
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [pixabayImages, setPixabayImages] = useState<PixabayImage[]>([]);
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
+  const [setAsBackground, setSetAsBackground] = useState<boolean>(false);
+  const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
+  const [searchError, setSearchError] = useState<string>('');
 
   const currentTemplates = allTemplates[activeTab] || [];
 
@@ -126,6 +154,67 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setCanvasHeight('');
     setSelectedTemplateId(null);
     setActiveTab('recommended');
+    // Reset Pixabay states
+    setSearchQuery('');
+    setPixabayImages([]);
+    setSelectedImageId(null);
+    setSetAsBackground(false);
+    setSearchError('');
+  };
+
+  // Function to search Pixabay images
+  const searchPixabayImages = async (query: string) => {
+    if (!query.trim()) {
+      setPixabayImages([]);
+      return;
+    }
+
+    setIsLoadingImages(true);
+    setSearchError('');
+    
+    try {
+      // Use environment variable or fallback to provided API key
+      const apiKey = import.meta.env.VITE_PIXABAY_API_KEY || '50744411-22fa88c98bef12cb7a788e3e6';
+      const encodedQuery = encodeURIComponent(query.trim());
+      const response = await fetch(
+        `https://pixabay.com/api/?key=${apiKey}&q=${encodedQuery}&image_type=photo&per_page=20&safesearch=true&order=popular`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+      
+      const data: PixabayResponse = await response.json();
+      setPixabayImages(data.hits);
+    } catch (error) {
+      console.error('Error fetching Pixabay images:', error);
+      setSearchError('Failed to fetch images. Please try again.');
+      setPixabayImages([]);
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
+
+  // Remove automatic debouncing - search only on button click
+
+  // Auto-search for "UI elements" when opening Sample Images tab
+  useEffect(() => {
+    if (activeTab === 'sample-images' && !searchQuery && pixabayImages.length === 0) {
+      setSearchQuery('UI elements');
+      searchPixabayImages('UI elements');
+    }
+  }, [activeTab]);
+
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      searchPixabayImages(searchQuery.trim());
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
   };
 
   useEffect(() => {
@@ -145,6 +234,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   const handleInputChange = () => {
     setSelectedTemplateId(null);
+    setSelectedImageId(null); // Also clear Pixabay selection
   };
 
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,6 +249,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProjectName(e.target.value);
+    // Don't clear selections when user manually types project name
   }
 
   const handleCreate = () => {
@@ -166,7 +257,17 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     const heightNum = parseInt(canvasHeight, 10);
 
     if (projectName.trim() && widthNum > 0 && heightNum > 0) {
-      onCreate(projectName.trim(), widthNum, heightNum);
+      let backgroundImage: string | undefined;
+      
+      // If user selected an image from Pixabay and wants it as background
+      if (selectedImageId && setAsBackground) {
+        const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
+        if (selectedImage) {
+          backgroundImage = selectedImage.webformatURL;
+        }
+      }
+      
+      onCreate(projectName.trim(), widthNum, heightNum, backgroundImage);
       onClose();
     } else {
       alert('Please fill in all fields correctly.');
@@ -176,6 +277,42 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const handleTabClick = (tabId: TabType) => {
     setActiveTab(tabId);
     setSelectedTemplateId(null); // Reset selected template when switching tabs
+    
+    // Reset Pixabay selection when switching away from sample-images
+    if (tabId !== 'sample-images') {
+      setSelectedImageId(null);
+      setSetAsBackground(false);
+    }
+  };
+
+  const handleImageSelect = (imageId: number) => {
+    setSelectedImageId(imageId);
+    setSelectedTemplateId(null); // Clear template selection
+    
+    // Auto-fill project name and dimensions based on selected image
+    const selectedImage = pixabayImages.find(img => img.id === imageId);
+    if (selectedImage) {
+      if (!projectName.trim()) {
+        setProjectName(`Project with ${selectedImage.tags.split(',')[0].trim()}`);
+      }
+      setCanvasWidth(selectedImage.webformatWidth.toString());
+      setCanvasHeight(selectedImage.webformatHeight.toString());
+    }
+  };
+
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setSelectedImageId(null); // Clear selection when searching
+  };
+
+  const handleBackgroundCheckboxChange = (checked: boolean) => {
+    setSetAsBackground(checked);
+  };
+
+  const handleQuickSearch = (term: string) => {
+    setSearchQuery(term);
+    setSelectedImageId(null); // Clear selection when doing quick search
+    searchPixabayImages(term); // Immediately search for the term
   };
 
   const AspectRatioPreview: React.FC<{ width: number; height: number; iconUrl?: string; title?: string, className?: string }> = ({ width, height, iconUrl, title, className }) => {
@@ -323,8 +460,229 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
         {/* Sample Images */}
         {activeTab === 'sample-images' && (
-          <div className="flex flex-col items-center justify-center p-6">
-            <h3 className="text-lg font-medium text-gray-300">Sample Images</h3>
+          <div className="flex md:flex-row flex-col gap-6 p-6 flex-1 overflow-hidden">
+            <div className="flex flex-col md:w-[700px]">
+              {/* Search Input */}
+              <div className="mb-4">
+                <Label htmlFor="pixabaySearch" className="text-gray-300 mb-2 block">
+                  Search for images
+                </Label>
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Input
+                      id="pixabaySearch"
+                      type="text"
+                      value={searchQuery}
+                      onChange={handleSearchQueryChange}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Enter keywords (e.g., buttons, icons, interface)"
+                      className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                      disabled={isLoadingImages}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSearchSubmit}
+                    disabled={isLoadingImages || !searchQuery.trim()}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2 min-w-[100px]"
+                    aria-label="Search images"
+                  >
+                    {isLoadingImages ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Searching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span>Search</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Quick Search Buttons */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs text-gray-400">Quick searches:</div>
+                  <div className="text-xs text-gray-400">
+                    Powered by{' '}
+                    <a 
+                      href="https://pixabay.com/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Pixabay
+                    </a>
+                  </div>
+                </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['social media', 'button', 'icon', 'keyboard', 'mobile', 'sticker', 'ui element'].map((term) => (
+                      <button
+                        key={term}
+                        onClick={() => handleQuickSearch(term)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleQuickSearch(term)}
+                        className={`px-3 py-1.5 text-xs rounded-lg border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                          ${searchQuery === term 
+                            ? 'bg-blue-500/30 border-blue-500 text-blue-200 shadow-md' 
+                            : 'bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200'
+                          }`}
+                        tabIndex={0}
+                        aria-label={`Quick search for ${term}`}
+                        disabled={isLoadingImages}
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Images Grid */}
+              <div className="flex-1 overflow-y-auto max-h-[calc(90vh-16rem)] pr-4 custom-scroll">
+                {isLoadingImages && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-gray-400">Loading images...</div>
+                  </div>
+                )}
+                
+                {searchError && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-red-400">{searchError}</div>
+                  </div>
+                )}
+                
+                {!isLoadingImages && !searchError && pixabayImages.length === 0 && searchQuery && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-gray-400">No images found. Try different keywords.</div>
+                  </div>
+                )}
+                
+                {!isLoadingImages && pixabayImages.length === 0 && !searchQuery && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="text-gray-400 mb-4">Ready to search</div>
+                    <div className="text-sm text-gray-500">Use quick search buttons or enter custom keywords and click Search</div>
+                  </div>
+                )}
+
+                {pixabayImages.length > 0 && (
+                  <div className="text-sm text-gray-400 mb-4">
+                    Found {pixabayImages.length} images for "{searchQuery}"
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {pixabayImages.map((image) => (
+                    <Card
+                      key={image.id}
+                      onClick={() => handleImageSelect(image.id)}
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleImageSelect(image.id)}
+                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF]
+                                  ${selectedImageId === image.id ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
+                    >
+                      <CardContent className="p-0">
+                        <div className="aspect-square overflow-hidden">
+                          <img
+                            src={image.previewURL}
+                            alt={image.tags}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="p-2">
+                          <div className="text-xs text-gray-300 truncate" title={image.tags}>
+                            {image.tags}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            by {image.user} • {image.likes} likes
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {image.webformatWidth} × {image.webformatHeight}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
+              <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
+              
+              {/* Background Checkbox */}
+              {selectedImageId && (
+                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="setAsBackground"
+                      checked={setAsBackground}
+                      onCheckedChange={handleBackgroundCheckboxChange}
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                    <Label
+                      htmlFor="setAsBackground"
+                      className="text-sm text-gray-300 cursor-pointer"
+                    >
+                      Set as background
+                    </Label>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    This image will be used as the background of your canvas
+                  </p>
+                </div>
+              )}
+
+              <div className="w-full">
+                <Label htmlFor="projectNameSample" className="text-gray-300 mb-1.5 block">Project name</Label>
+                <Input
+                  id="projectNameSample"
+                  type="text"
+                  value={projectName}
+                  onChange={handleNameChange}
+                  placeholder="My new design"
+                  className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <div>
+                  <Label htmlFor="canvasWidthSample" className="text-gray-300 mb-1.5 block">Width (px)</Label>
+                  <Input
+                    id="canvasWidthSample"
+                    type="number"
+                    value={canvasWidth}
+                    onChange={handleWidthChange}
+                    placeholder="1920"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="canvasHeightSample" className="text-gray-300 mb-1.5 block">Height (px)</Label>
+                  <Input
+                    id="canvasHeightSample"
+                    type="number"
+                    value={canvasHeight}
+                    onChange={handleHeightChange}
+                    placeholder="1080"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+              </div>
+              
+              {selectedImageId && (
+                <div className="w-full p-3 bg-[#4A4D54FF] rounded-lg">
+                  <div className="text-sm text-gray-300 mb-2">Selected Image:</div>
+                  <div className="text-xs text-gray-400">
+                    {pixabayImages.find(img => img.id === selectedImageId)?.tags}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

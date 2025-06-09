@@ -178,7 +178,7 @@ const MiniMap: React.FC = () => {
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full bg-transparent relative overflow-hidden flex items-center justify-center select-none touch-none cursor-grab"
+      className="w-full h-full bg-black/30 relative overflow-hidden flex items-center justify-center select-none touch-none cursor-grab"
       onMouseDown={handleMouseDown}
     >
       {miniMapDataURL ? (

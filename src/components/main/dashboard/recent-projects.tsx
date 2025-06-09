@@ -27,7 +27,7 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
 
   return (
     <motion.div
-      className="w-full mt-6"
+      className="w-11/12 mt-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
@@ -58,7 +58,7 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
             <Card
               key={project.id}
               onClick={() => onOpenProject(project.id)}
-              className="flex-shrink-0 w-60 bg-[#25282CFF] border-2 border-[#44474AFF] hover:border-blue-500 transition-colors duration-200 cursor-pointer overflow-hidden"
+              className="flex-shrink-0 w-55 bg-[#25282CFF] border-2 border-[#44474AFF] hover:border-blue-500 transition-colors duration-200 cursor-pointer overflow-hidden -py-2"
             >
               <div className="h-35 bg-[#1A1C1FFF] relative overflow-hidden">
                 {project.thumbnailUrl ? (
@@ -95,11 +95,11 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
 
               </div>
 
-              <CardContent className="px-4">
-                <h3 className="font-medium text-gray-100 truncate mb-2">
+              <CardContent className="px-4 -mt-2">
+                <h3 className="font-medium text-gray-100 truncate">
                   {project.name}
                 </h3>
-                <div className="flex justify-between items-center text-sm text-gray-400">
+                <div className="flex justify-between items-center text-sm text-gray-400 mb-2">
                   <span className="flex-shrink-0">
                     {(project ? formatDimensionDisplay(project.width) : "0")} × {(project ? formatDimensionDisplay(project.height) : "0")}
                   </span>

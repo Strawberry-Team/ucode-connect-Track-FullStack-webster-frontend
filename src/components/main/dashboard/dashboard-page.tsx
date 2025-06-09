@@ -491,7 +491,7 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#292C31FF] text-gray-200 p-6">
+    <div className="flex items-center justify-center min-h-screen bg-[#292C31FF] text-gray-200 p-0">
       <div className="w-full max-w-7xl">
         <motion.div
           className="flex flex-col items-center justify-center relative"
@@ -499,7 +499,7 @@ const DashboardPage: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
-          <Card className={`w-full max-w-md bg-[#25282CFF] border-2 border-dashed border-gray-600 shadow-xl relative overflow-hidden transition-opacity duration-300 ${isLoadingAuth ? 'opacity-75' : 'opacity-100'}`}>
+          <Card className={`w-full mt-20 max-w-md bg-[#25282CFF] border-2 border-dashed border-gray-600 shadow-xl relative overflow-hidden transition-opacity duration-300 ${isLoadingAuth ? 'opacity-75' : 'opacity-100'}`}>
             {isLoadingAuth && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#25282CFF] bg-opacity-50 z-20 rounded-lg">
                 <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />

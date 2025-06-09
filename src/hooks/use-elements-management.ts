@@ -560,6 +560,37 @@ const useElementsManagement = ({
     });
   }, [renderableObjects, setRenderableObjects, getElementById, addHistoryEntry]);
 
+  const moveSelectedElement = useCallback((direction: 'up' | 'down' | 'left' | 'right', distance: number = 1) => {
+    if (!selectedElementId) return;
+    
+    const elementResult = getElementById(selectedElementId);
+    if (!elementResult) return;
+    
+    const element = elementResult.element;
+    let deltaX = 0;
+    let deltaY = 0;
+    
+    switch (direction) {
+      case 'up':
+        deltaY = -distance;
+        break;
+      case 'down':
+        deltaY = distance;
+        break;
+      case 'left':
+        deltaX = -distance;
+        break;
+      case 'right':
+        deltaX = distance;
+        break;
+    }
+    
+    const newX = (element.x || 0) + deltaX;
+    const newY = (element.y || 0) + deltaY;
+    
+    updateElement(selectedElementId, { x: newX, y: newY });
+  }, [selectedElementId, getElementById, updateElement]);
+
       return {
       addElement,
       updateElement,
@@ -583,6 +614,7 @@ const useElementsManagement = ({
       bringElementToFront,
       sendElementToBack,
       sendElementToBackground,
+      moveSelectedElement,
     };
 };
 

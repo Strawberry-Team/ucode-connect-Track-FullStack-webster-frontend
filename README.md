@@ -53,13 +53,13 @@ export default tseslint.config({
 })
 ```
 
-# Webster Frontend
+# Flowy Frontend
 
 ## Image Import Functionality
 
 ### Adding Images via File -> Open
 
-Webster Editor now supports adding images as managed elements on the canvas:
+Flowy Editor now supports adding images as managed elements on the canvas:
 
 #### How to use:
 1. Click the "File" button in the left toolbar

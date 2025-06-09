@@ -312,10 +312,10 @@ const FontSelector: React.FC<{
   );
 };
 
-// Declare global interface for window.webster
+// Declare global interface for window.flowy
 declare global {
   interface Window {
-    webster: {
+    flowy: {
       getCurrentTextSettings?: () => Element;
     };
   }
@@ -507,10 +507,10 @@ const TextOptions: React.FC = () => {
 
   // Export getCurrentTextSettings through useEffect for access from other components
   useEffect(() => {
-    if (window.webster === undefined) {
-      window.webster = {};
+    if (window.flowy === undefined) {
+      window.flowy = {};
     }
-    window.webster.getCurrentTextSettings = getCurrentTextSettings;
+    window.flowy.getCurrentTextSettings = getCurrentTextSettings;
   }, [
     contextTextColor,
     textColorOpacity,

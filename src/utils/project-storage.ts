@@ -1,7 +1,7 @@
 import type { RecentProject } from '@/types/dashboard';
 import type { RenderableObject } from '@/types/canvas';
 
-const PROJECTS_STORAGE_KEY = 'webster_projects';
+const PROJECTS_STORAGE_KEY = 'flowy_projects';
 const MAX_RECENT_PROJECTS = 20;
 
 interface ProjectWithData extends RecentProject {

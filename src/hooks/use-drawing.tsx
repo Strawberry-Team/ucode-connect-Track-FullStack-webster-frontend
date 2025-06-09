@@ -305,6 +305,68 @@ const useDrawing = ({
 
     }, [setRenderableObjects, addHistoryEntry, renderableObjects]);
 
+    const moveSelectedLine = useCallback((lineId: string, direction: 'up' | 'down' | 'left' | 'right', distance: number = 1) => {
+        (setRenderableObjects as Dispatch<SetStateAction<RenderableObject[]>>)((prev: RenderableObject[]) => {
+            const lineIndex = prev.findIndex(obj => obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser'));
+            if (lineIndex === -1) return prev;
+
+            const lineToMove = prev[lineIndex] as LineData & { x?: number, y?: number, offsetX?: number, offsetY?: number };
+            
+            // Check if line is prepared for transform (has x, y, offsetX, offsetY)
+            if (lineToMove.x === undefined || lineToMove.y === undefined || 
+                lineToMove.offsetX === undefined || lineToMove.offsetY === undefined) {
+                console.warn("Cannot move line that hasn't been prepared for transform");
+                return prev;
+            }
+            
+            let deltaX = 0;
+            let deltaY = 0;
+            
+            switch (direction) {
+                case 'up':
+                    deltaY = -distance;
+                    break;
+                case 'down':
+                    deltaY = distance;
+                    break;
+                case 'left':
+                    deltaX = -distance;
+                    break;
+                case 'right':
+                    deltaX = distance;
+                    break;
+            }
+            
+            const newX = lineToMove.x + deltaX;
+            const newY = lineToMove.y + deltaY;
+            
+            const updatedLine = {
+                ...lineToMove,
+                x: newX,
+                y: newY,
+            };
+            
+            const newRenderableObjects = [...prev];
+            newRenderableObjects[lineIndex] = updatedLine;
+            return newRenderableObjects;
+        });
+
+        // Add history entry for the move
+        const currentSnapshot = renderableObjects.map(obj => {
+            if ('points' in obj) {
+                return { ...obj, points: [...obj.points] };
+            }
+            return { ...obj };
+        });
+
+        addHistoryEntry({
+            type: 'elementModified',
+            description: <> Line moved</>,
+            linesSnapshot: currentSnapshot,
+        });
+
+    }, [setRenderableObjects, renderableObjects, addHistoryEntry]);
+
     return {
         getIsDrawing,
         startDrawing,
@@ -314,6 +376,7 @@ const useDrawing = ({
         prepareLineForTransform,
         updateLineTransform,
         updateLinePositionAndHistory,
+        moveSelectedLine,
     };
 };
 
