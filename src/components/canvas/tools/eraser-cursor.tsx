@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 interface EraserCursorProps {
   size: number;
   isVisible: boolean;
   position: { x: number; y: number } | null;
+  stageContainer?: HTMLDivElement | null;
+  activeTool?: any;
 }
 
 const CURSOR_SIZE_THRESHOLD = 25;
@@ -12,7 +14,15 @@ const EraserCursor: React.FC<EraserCursorProps> = ({
   size,
   isVisible,
   position,
+  stageContainer,
+  activeTool,
 }) => {
+  // Hide system cursor when eraser tool is active
+  useEffect(() => {
+    if (stageContainer && activeTool?.type === 'eraser') {
+      stageContainer.style.cursor = 'none';
+    }
+  }, [stageContainer, activeTool]);
   if (!isVisible || !position) {
     return null;
   }

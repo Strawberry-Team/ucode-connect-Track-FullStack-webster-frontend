@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend } from 'lucide-react';
+import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend, CirclePlay, CirclePlus, Plus, Play, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 import { Shield, FileText, Lock, Users, Database, Eye, CheckCircle, AlertCircle, Info } from 'lucide-react';
@@ -623,8 +623,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     variant="secondary"
                                     className="font-semibold text-lg rounded-full bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-full text-white font-semibold"
                                 >
-
-                                    <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <Plus className="!w-7 !h-7" />
                                     <span>Start Creating</span>
                                 </Button>
 
@@ -634,7 +633,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     className="font-semibold text-lg px-8 py-4 bg-transparent hover:bg-[#303237FF] border-2 border-[#414448FF] rounded-full text-[#A7A8AAFF] hover:text-white font-semibold"
 
                                 >
-                                    <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                    <Play className="!w-7 !h-7" />
                                     <span>View Demo</span>
                                 </Button>
                             </div>
@@ -806,7 +805,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 variant="secondary"
                                 className="font-semibold text-lg rounded-full bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-full text-white font-semibold "
                             >
-                                <svg className="!w-6 !h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                <Zap className="!w-7 !h-7" />
                                 <span>Start Now for Free</span>
                             </Button>
                         </div>

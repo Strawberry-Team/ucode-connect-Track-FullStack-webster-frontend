@@ -7,14 +7,59 @@ import { Button } from '../ui/button';
 import { useLocation } from 'react-router-dom';
 import { useNavigate } from "react-router-dom"
 import { Blend } from 'lucide-react';
+import Cookies from 'js-cookie';
+import { getCurrentAuthenticatedUser } from '@/services/user-service';
+import { toast } from 'sonner';
+import type { User as AuthUser } from '@/types/auth';
 
 const HomePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'landing' | 'dashboard'>('landing');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { loggedInUser } = useUser();
+  const [isGoogleAuthSuccess, setIsGoogleAuthSuccess] = useState(false);
+  const { loggedInUser, isLoadingAuth, loginUserContext } = useUser();
   const location = useLocation();
   const navigate = useNavigate()
 
+  // Handle Google authentication tokens
+  useEffect(() => {
+    const processAuthTokens = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const accessToken = params.get('accessToken');
+      const refreshToken = params.get('refreshToken');
+
+      if (accessToken && refreshToken) {
+        Cookies.set('accessToken', accessToken, { expires: 1, path: '/', sameSite: 'lax' });
+        Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/', sameSite: 'lax' });
+        
+        // Clean URL from tokens
+        window.history.replaceState(null, '', window.location.pathname);
+
+        try {
+          const user = await getCurrentAuthenticatedUser();
+          if (user) {
+            loginUserContext(user as AuthUser);
+            setIsGoogleAuthSuccess(true);
+            toast.success("Logged In", { description: "Successfully authenticated via Google.", duration: 3000 });
+          } else {
+            toast.error("Authentication Failed", { description: "Could not verify Google session.", duration: 3000 });
+            Cookies.remove('accessToken', { path: '/' });
+            Cookies.remove('refreshToken', { path: '/' });
+          }
+        } catch (error) {
+          console.error("Error fetching user after Google login:", error);
+          toast.error("Authentication Error", { description: "An error occurred while authenticating.", duration: 3000 });
+          Cookies.remove('accessToken', { path: '/' });
+          Cookies.remove('refreshToken', { path: '/' });
+        }
+      }
+    };
+
+    if (!loggedInUser && !isLoadingAuth) {
+      processAuthTokens();
+    }
+  }, [isLoadingAuth, loggedInUser, loginUserContext]);
+
+  // Determine which view to show
   useEffect(() => {
     if (location.state?.showDashboard === false) {
       setViewMode('landing');
@@ -71,7 +116,7 @@ const HomePage: React.FC = () => {
               <Button
                 onClick={toggleView}
                 variant="secondary"
-                className="w-[160px] h-10 rounded-full bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-white font-semibold"
+                className="w-[110px] h-10 rounded-full bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-white font-semibold"
               >
 
                 {viewMode === 'landing' ? 'Dashboard' : 'Landing'}
@@ -114,7 +159,7 @@ const HomePage: React.FC = () => {
                 )}
                 <button
                   onClick={toggleView}
-                  className="max-w-5/10 min-w-50 bg-gradient-to-r from-blue-400 to-blue-600 px-6 py-2 rounded-full text-white font-semibold"
+                  className="max-w-5/10 min-w-3/10 bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-white font-semibold"
                 >
                   {viewMode === 'landing' ? 'Dashboard' : 'Landing'}
                 </button>
@@ -143,7 +188,7 @@ const HomePage: React.FC = () => {
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.5 }}
           >
-            <DashboardPage />
+            <DashboardPage googleAuthSuccess={isGoogleAuthSuccess} />
           </motion.div>
         )}
       </AnimatePresence>

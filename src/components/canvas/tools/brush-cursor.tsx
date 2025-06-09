@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 interface BrushCursorProps {
   brushSize: number;
@@ -6,6 +6,8 @@ interface BrushCursorProps {
   opacity: number;
   isVisible: boolean;
   position: { x: number; y: number } | null;
+  stageContainer?: HTMLDivElement | null;
+  activeTool?: any;
 }
 
 const CURSOR_SIZE_THRESHOLD = 25;
@@ -15,7 +17,16 @@ const BrushCursor: React.FC<BrushCursorProps> = ({
   opacity,
   isVisible,
   position,
+  stageContainer,
+  activeTool,
 }) => {
+  // Hide system cursor when brush tool is active
+  useEffect(() => {
+    if (stageContainer && activeTool?.type === 'brush') {
+      console.log('!!!!!!!!!!!!!!!!!!!!!!!!hiding cursor')
+      stageContainer.style.cursor = 'none';
+    }
+  }, [stageContainer, activeTool]);
   if (!isVisible || !position) {
     return null;
   }

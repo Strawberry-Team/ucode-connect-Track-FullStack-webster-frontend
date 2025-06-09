@@ -18,7 +18,11 @@ import { deleteProject, getProjectData, getUserProjects, duplicateProject } from
 import type { RecentProject } from '@/types/dashboard';
 import type { ElementData } from '@/types/canvas.ts';
 
-const DashboardPage: React.FC = () => {
+interface DashboardPageProps {
+  googleAuthSuccess?: boolean;
+}
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthVisible, setIsAuthVisible] = useState(false);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
@@ -87,42 +91,12 @@ const DashboardPage: React.FC = () => {
     }
   }, [loggedInUser]);
 
+  // Hide auth form when Google authentication is successful
   useEffect(() => {
-    const processAuthTokens = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const accessToken = params.get('accessToken');
-      const refreshToken = params.get('refreshToken');
-
-      if (accessToken && refreshToken) {
-        Cookies.set('accessToken', accessToken, { expires: 1, path: '/', sameSite: 'lax' });
-        Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/', sameSite: 'lax' });
-        
-        window.history.replaceState(null, '', window.location.pathname);
-
-        try {
-          const user = await getCurrentAuthenticatedUser();
-          if (user) {
-            loginUserContext(user as AuthUser);
-            setIsAuthVisible(false); 
-            toast.success("Logged In", { description: "Successfully authenticated via Google.", duration: 3000 });
-          } else {
-            toast.error("Authentication Failed", { description: "Could not verify Google session.", duration: 3000 });
-            Cookies.remove('accessToken', { path: '/' });
-            Cookies.remove('refreshToken', { path: '/' });
-          }
-        } catch (error) {
-          console.error("Error fetching user after Google login:", error);
-          toast.error("Authentication Error", { description: "An error occurred while authenticating.", duration: 3000 });
-          Cookies.remove('accessToken', { path: '/' });
-          Cookies.remove('refreshToken', { path: '/' });
-        }
-      }
-    };
-
-    if (!loggedInUser && !isLoadingAuth) {
-      processAuthTokens();
+    if (googleAuthSuccess && loggedInUser) {
+      setIsAuthVisible(false);
     }
-  }, [isLoadingAuth, loggedInUser, loginUserContext]);
+  }, [googleAuthSuccess, loggedInUser]);
 
   const resetAllToolSettings = () => {
     setActiveTool(null);

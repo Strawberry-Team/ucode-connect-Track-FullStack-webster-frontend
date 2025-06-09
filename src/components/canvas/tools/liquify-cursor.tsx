@@ -1,16 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useTool } from "@/context/tool-context";
 
 interface LiquifyCursorProps {
   isVisible: boolean;
   position: { x: number; y: number } | null;
+  stageContainer?: HTMLDivElement | null;
 }
 
 const LiquifyCursor: React.FC<LiquifyCursorProps> = ({
   isVisible,
   position,
+  stageContainer,
 }) => {
-  const { liquifyBrushSize, liquifyStrength} = useTool();
+  const { liquifyBrushSize, liquifyStrength, activeTool } = useTool();
+
+  // Hide system cursor when liquify tool is active
+  useEffect(() => {
+    if (stageContainer && activeTool?.type === 'liquify') {
+      stageContainer.style.cursor = 'none';
+    }
+  }, [stageContainer, activeTool]);
 
   if (!isVisible || !position) {
     return null;

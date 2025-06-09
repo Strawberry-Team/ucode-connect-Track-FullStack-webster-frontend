@@ -1,16 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useTool } from "@/context/tool-context";
 
 interface BlurCursorProps {
   isVisible: boolean;
   position: { x: number; y: number } | null;
+  stageContainer?: HTMLDivElement | null;
 }
 
 const BlurCursor: React.FC<BlurCursorProps> = ({
   isVisible,
   position,
+  stageContainer,
 }) => {
-  const { blurBrushSize, blurStrength } = useTool();
+  const { blurBrushSize, blurStrength, activeTool } = useTool();
+
+  // Hide system cursor when blur tool is active
+  useEffect(() => {
+    if (stageContainer && activeTool?.type === 'blur') {
+      stageContainer.style.cursor = 'none';
+    }
+  }, [stageContainer, activeTool]);
 
   if (!isVisible || !position) {
     return null;

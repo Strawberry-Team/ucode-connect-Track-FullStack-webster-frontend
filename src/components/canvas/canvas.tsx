@@ -1487,14 +1487,26 @@ const Canvas: React.FC = () => {
                     opacity={opacity}
                     isVisible={showBrushCursor}
                     position={cursorPositionOnCanvas}
+                    stageContainer={stageRef.current?.container()}
+                    activeTool={activeTool}
                 />
                 <EraserCursor
                     size={eraserSize}
                     isVisible={showEraserCursor}
                     position={cursorPositionOnCanvas}
+                    stageContainer={stageRef.current?.container()}
+                    activeTool={activeTool}
                 />
-                <LiquifyCursor isVisible={showLiquifyCursor} position={cursorPositionOnCanvas} />
-                <BlurCursor isVisible={showBlurCursor} position={cursorPositionOnCanvas} />
+                <LiquifyCursor 
+                    isVisible={showLiquifyCursor} 
+                    position={cursorPositionOnCanvas}
+                    stageContainer={stageRef.current?.container()}
+                />
+                <BlurCursor 
+                    isVisible={showBlurCursor} 
+                    position={cursorPositionOnCanvas}
+                    stageContainer={stageRef.current?.container()}
+                />
 
                 <Stage
                     width={contextStageSize?.width ?? 0}

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import Header from "@/components/header/header";
 import Canvas from "@/components/canvas/canvas";
 import { ToolProvider, useTool } from "@/context/tool-context";
 import Toolbar from "@/components/tool-controls/left-toolbar/toolbar";

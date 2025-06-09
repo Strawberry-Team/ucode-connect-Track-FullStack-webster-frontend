@@ -402,12 +402,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             onTransform(element.id, newAttrs);
         }
         
-        // Reset cursor to default after transform ends, but only if not Hand tool
+        // Reset cursor after transform ends, considering tool type
         if (activeTool?.type !== 'hand') {
             const stage = nodeRef.current?.getStage();
             const container = stage?.container();
             if (container) {
-                container.style.cursor = 'default';
+                // For tools with custom cursors, hide system cursor
+                if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                    activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
+                    container.style.cursor = 'none';
+                } else {
+                    container.style.cursor = 'default';
+                }
             }
         }
     };
@@ -471,12 +477,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onMouseLeave: () => {
             if (canInteractWithElement()) {
                 onHoverInteractiveElement?.(false);
-                // Reset cursor to default when leaving element, but only if not Hand tool
+                // Reset cursor when leaving element, considering tool type
                 if (activeTool?.type !== 'hand') {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
                     if (container) {
-                        container.style.cursor = 'default';
+                        // For tools with custom cursors, hide system cursor
+                        if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                            activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
+                            container.style.cursor = 'none';
+                        } else {
+                            container.style.cursor = 'default';
+                        }
                     }
                 }
             }
@@ -599,12 +611,18 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
             
-            // Reset cursor to default after drag ends, but only if not Hand tool
+            // Reset cursor after drag ends, considering tool type
             if (activeTool?.type !== 'hand') {
                 const stage = nodeRef.current?.getStage();
                 const container = stage?.container();
                 if (container) {
-                    container.style.cursor = 'default';
+                    // For tools with custom cursors, hide system cursor
+                    if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                        activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
+                        container.style.cursor = 'none';
+                    } else {
+                        container.style.cursor = 'default';
+                    }
                 }
             }
             

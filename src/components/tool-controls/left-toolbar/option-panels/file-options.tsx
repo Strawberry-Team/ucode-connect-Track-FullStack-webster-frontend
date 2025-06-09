@@ -60,7 +60,7 @@ const Header: React.FC = () => {
                     <DropdownMenuContent
                         side="right"
                         align="end"
-                        className="ml-2 p-1 bg-[#292C31FF] border-2 border-[#44474AFF] rounded !text-gray-200 rounded-lg"
+                        className="ml-2 mb-7 p-1 bg-[#292C31FF] border-2 border-[#44474AFF] rounded !text-gray-200 rounded-lg"
                     >
                         {menu.id === "file" && (
                             <>
