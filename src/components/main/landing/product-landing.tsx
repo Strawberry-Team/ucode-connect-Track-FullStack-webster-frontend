@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
+import { Shield, FileText, Lock, Users, Database, Eye, CheckCircle, AlertCircle, Info } from 'lucide-react';
+
 
 interface ProductLandingProps {
     toggleView: () => void;
 }
 
 const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
-    const [activeFeature, setActiveFeature] = useState(0);
-    const [currentTestimonial, setCurrentTestimonial] = useState(0);
+    const [showPrivacy, setShowPrivacy] = useState(false);
+    const [showTerms, setShowTerms] = useState(false);
 
     const features = [
         {
@@ -69,6 +73,512 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
     ];
 
 
+
+    const PrivacyDialog = () => (
+        <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+            <DialogContent className="bg-gradient-to-br from-[#1a1d21] via-[#25282c] to-[#2a2d31] max-w-5xl max-h-[85vh] overflow-y-auto custom-scroll p-0 border-none shadow-2xl">
+                {/* Header with gradient background */}
+                <div className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-8 text-center overflow-hidden">
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-600/20"
+                        animate={{
+                            background: [
+                                "linear-gradient(45deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2))",
+                                "linear-gradient(45deg, rgba(147, 51, 234, 0.2), rgba(59, 130, 246, 0.2))"
+                            ]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="relative z-10"
+                    >
+                        <Shield className="w-16 h-16 text-white mx-auto mb-4" />
+                        <DialogTitle className="text-4xl font-bold text-white mb-2">Privacy Policy</DialogTitle>
+                        <DialogDescription className="text-blue-100 text-lg">
+                            <strong>Effective Date: June 2025</strong>
+                        </DialogDescription>
+                    </motion.div>
+                </div>
+
+                {/* Content */}
+                <div className="p-8 space-y-8">
+                    {/* Information We Collect Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                                <Database className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">Information We Collect</h3>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-5 rounded-xl border border-blue-500/20">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Users className="w-5 h-5 text-blue-400" />
+                                    <h4 className="font-semibold text-blue-300 text-lg">Account Information</h4>
+                                </div>
+                                <ul className="text-gray-300 space-y-2">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Email address and password for account creation</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Profile information you choose to provide</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Authentication tokens for secure access</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-5 rounded-xl border border-purple-500/20">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <FileText className="w-5 h-5 text-purple-400" />
+                                    <h4 className="font-semibold text-purple-300 text-lg">Project Data</h4>
+                                </div>
+                                <ul className="text-gray-300 space-y-2">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Images and graphics you upload or create</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Project files, layers, and editing history</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Canvas data and tool settings</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-5 rounded-xl border border-emerald-500/20">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Eye className="w-5 h-5 text-emerald-400" />
+                                    <h4 className="font-semibold text-emerald-300 text-lg">Usage Information</h4>
+                                </div>
+                                <ul className="text-gray-300 space-y-2">
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Tool usage patterns and preferences</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Canvas interactions and drawing data</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
+                                        <span>Performance metrics and error logs</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* How We Use Your Information */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+                                <Info className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">How We Use Your Information</h3>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {[
+                                "Provide and maintain the Flowy editing platform",
+                                "Save and sync your projects across devices",
+                                "Improve our tools and user experience",
+                                "Send important service updates",
+                                "Provide customer support"
+                            ].map((item, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.4 + index * 0.1 }}
+                                    className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-500/10 to-emerald-600/5 rounded-lg border border-emerald-500/20"
+                                >
+                                    <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                                    <span className="text-gray-300">{item}</span>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Data Storage and Security */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
+                                <Lock className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">Data Storage and Security</h3>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {[
+                                "All project data is stored securely with encryption",
+                                "We implement industry-standard security measures",
+                                "Your creative work remains private and confidential",
+                                "We do not access your projects without permission"
+                            ].map((item, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.5 + index * 0.1 }}
+                                    className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-500/10 to-red-600/5 rounded-lg border border-red-500/20"
+                                >
+                                    <Shield className="w-5 h-5 text-red-400 flex-shrink-0" />
+                                    <span className="text-gray-300">{item}</span>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Data Sharing and Your Rights - Combined */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                                    <AlertCircle className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Data Sharing</h3>
+                            </div>
+                            <p className="text-gray-300 mb-4">We do not sell, trade, or share your personal information or creative work with third parties, except:</p>
+                            <div className="space-y-2">
+                                {["When required by law", "To protect our rights or safety", "With your explicit consent"].map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2 text-sm text-gray-400">
+                                        <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg">
+                                    <Users className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Your Rights</h3>
+                            </div>
+                            <div className="space-y-3">
+                                {[
+                                    "Access and download your project data",
+                                    "Delete your account and associated data",
+                                    "Modify your profile information",
+                                    "Control project sharing settings"
+                                ].map((item, index) => (
+                                    <div key={index} className="flex items-center gap-3 p-2 bg-cyan-500/10 rounded-lg">
+                                        <CheckCircle className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                                        <span className="text-gray-300 text-sm">{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+
+    const TermsDialog = () => (
+        <Dialog open={showTerms} onOpenChange={setShowTerms}>
+            <DialogContent className="bg-gradient-to-br from-[#1a1d21] via-[#25282c] to-[#2a2d31] max-w-5xl max-h-[85vh] overflow-y-auto custom-scroll p-0 border-none shadow-2xl">
+                {/* Header */}
+                <div className="relative bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 p-8 text-center overflow-hidden">
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-600/20"
+                        animate={{
+                            background: [
+                                "linear-gradient(45deg, rgba(147, 51, 234, 0.2), rgba(79, 70, 229, 0.2))",
+                                "linear-gradient(45deg, rgba(79, 70, 229, 0.2), rgba(147, 51, 234, 0.2))"
+                            ]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="relative z-10"
+                    >
+                        <FileText className="w-16 h-16 text-white mx-auto mb-4" />
+                        <DialogTitle className="text-4xl font-bold text-white mb-2">Terms of Service</DialogTitle>
+                        <DialogDescription className="text-purple-100 text-lg">
+                            <strong>Effective Date: June 2025</strong>
+                        </DialogDescription>
+                    </motion.div>
+                </div>
+
+                {/* Content */}
+                <div className="p-8 space-y-8">
+                    {/* Acceptance and Service Description */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
+                                    <CheckCircle className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Acceptance of Terms</h3>
+                            </div>
+                            <p className="text-gray-300">By using Flowy, you agree to these Terms of Service and our Privacy Policy.</p>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+                                    <Info className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Service Description</h3>
+                            </div>
+                            <p className="text-gray-300 mb-3">Flowy is a web-based graphic design platform providing:</p>
+                            <div className="space-y-1">
+                                {["Canvas-based drawing tools", "Layer management", "Image transformation", "Project saving"].map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2 text-sm text-gray-400">
+                                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+
+                    {/* User Accounts and Acceptable Use */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl">
+                                <Users className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">User Accounts & Acceptable Use</h3>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <h4 className="font-semibold text-green-400 text-lg flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4" />
+                                    Account Requirements
+                                </h4>
+                                <div className="space-y-3">
+                                    {[
+                                        "Provide accurate registration information",
+                                        "Maintain account security",
+                                        "One account per person",
+                                        "Must be 13+ years old"
+                                    ].map((item, index) => (
+                                        <div key={index} className="flex items-start gap-3 p-3 bg-green-500/10 rounded-lg">
+                                            <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                                            <span className="text-gray-300 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="font-semibold text-red-400 text-lg flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4" />
+                                    Prohibited Activities
+                                </h4>
+                                <div className="space-y-3">
+                                    {[
+                                        "Upload copyrighted material without permission",
+                                        "Create offensive or illegal content",
+                                        "Attempt to hack or disrupt service",
+                                        "Share account credentials"
+                                    ].map((item, index) => (
+                                        <div key={index} className="flex items-start gap-3 p-3 bg-red-500/10 rounded-lg">
+                                            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                                            <span className="text-gray-300 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Additional Sections in Grid */}
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg">
+                                    <FileText className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">Intellectual Property</h3>
+                            </div>
+                            <div className="space-y-2 text-sm text-gray-300">
+                                <p>• You retain ownership of your creations</p>
+                                <p>• Flowy retains platform rights</p>
+                                <p>• Respect third-party IP rights</p>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                                    <AlertCircle className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">Limitation of Liability</h3>
+                            </div>
+                            <div className="space-y-2 text-sm text-gray-300">
+                                <p>• Service provided "as is"</p>
+                                <p>• Not liable for data loss</p>
+                                <p>• No warranty on availability</p>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.7 }}
+                            className="bg-gradient-to-br from-[#2a2d31] to-[#1f2226] rounded-2xl p-6 border border-gray-700/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg">
+                                    <AlertCircle className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">Termination</h3>
+                            </div>
+                            <div className="space-y-2 text-sm text-gray-300">
+                                <p>• Delete account anytime</p>
+                                <p>• We may suspend for violations</p>
+                                <p>• Data deleted within 30 days</p>
+                            </div>
+                        </motion.div>
+                    </div>
+
+                    {/* Contact Information */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8 }}
+                        className="bg-gradient-to-r from-blue-500/10 to-purple-600/10 rounded-2xl p-6 border border-blue-500/30 text-center"
+                    >
+                        <h3 className="text-xl font-bold text-white mb-4">Need Help?</h3>
+                        <p className="text-gray-300 mb-4">
+                            For questions about these Terms or Privacy Policy, contact us at:
+                        </p>
+                        <Button
+                            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-lg"
+                            onClick={() => window.open("https://mail.google.com/mail/?view=cm&fs=1&to=support@flowy.com", "_blank")}
+                        >
+                            support@flowy.com
+                        </Button>
+                    </motion.div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+
+    interface CustomDropdownProps {
+        trigger: React.ReactNode;
+        children: React.ReactNode;
+    }
+
+    const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, children }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const dropdownRef = useRef<HTMLDivElement>(null);
+
+        const handleToggle = () => {
+            setIsOpen((prev) => !prev);
+        };
+
+        useEffect(() => {
+            const handleClickOutside = (event: MouseEvent) => {
+                if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                    setIsOpen(false);
+                }
+            };
+
+            if (isOpen) {
+                document.addEventListener('mousedown', handleClickOutside);
+            }
+
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }, [isOpen]);
+
+        return (
+            <div className="relative" ref={dropdownRef}>
+                <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleToggle}
+                    className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors outline-none cursor-pointer"
+                >
+                    {trigger}
+                </motion.div>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-full left-0 mt-2 p-1 bg-[#292C31FF] border-2 border-[#44474AFF] rounded-lg text-gray-200 min-w-[100px] z-10"
+                    >
+                        {children}
+                    </motion.div>
+                )}
+            </div>
+        );
+    };
+
     const team = [
         {
             name: "Inessa Repeshko",
@@ -89,13 +599,6 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
             social: { github: "https://github.com/vzharyi" }
         },
     ];
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveFeature((prev) => (prev + 1) % features.length);
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
 
 
     return (
@@ -122,8 +625,8 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 <span className="text-white">Without Limits</span>
                             </h1>
                             <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-                                Create captivating visuals instantly and easily. <br/> Unleash your creativity easily - no experience required!                       
-                                </p>
+                                Create captivating visuals instantly and easily. <br /> Unleash your creativity easily - no experience required!
+                            </p>
                             <div className="flex flex-col sm:flex-row gap-4">
 
                                 <Button
@@ -305,7 +808,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                         <h2 className="text-4xl lg:text-6xl font-bold mb-6">
                             Ready to <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Create?</span>
                         </h2>
-                        <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
+                        <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
                             Join thousands of creators who have already discovered the power of our creative platform. Start your journey today - it's free to get started.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -340,20 +843,37 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             </span>
                         </div>
                         <div className="flex items-center space-x-6">
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">Privacy</a>
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">Terms</a>
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">Support</a>
-                            <div className="flex space-x-4">
-                                <motion.a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                    <svg className="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.66-.22.66-.49v-1.7c-2.78.61-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03A9.564 9.564 0 0112 6.8c.85.004 1.71.11 2.52.33 1.91-1.3 2.75-1.03 2.75-1.03.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.56.94.56 1.92v2.84c0 .27.16.58.67.49A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z" /></svg>
-                                </motion.a>
-                                <motion.a href="#" className="w-10 h-10 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center transition-colors" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" /></svg>
-                                </motion.a>
-                                <motion.a href="#" className="w-10 h-10 bg-purple-600 hover:bg-purple-500 rounded-full flex items-center justify-center transition-colors" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                </motion.a>
-                            </div>
+                            <button onClick={() => setShowPrivacy(true)} className="cursor-pointer text-gray-400 hover:text-blue-400 transition-colors">Privacy</button>
+                            <button onClick={() => setShowTerms(true)} className="cursor-pointer text-gray-400 hover:text-blue-400 transition-colors">Terms</button>
+
+                            <CustomDropdown
+                                trigger={
+                                    <svg className="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.66-.22.66-.49v-1.7c-2.78.61-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03A9.564 9.564 0 0112 6.8c.85.004 1.71.11 2.52.33 1.91-1.3 2.75-1.03 2.75-1.03.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.56.94.56 1.92v2.84c0 .27.16.58.67.49A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z" />
+                                    </svg>
+                                }
+                            >
+                                <a
+                                    href="https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-webster-backend"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full px-4 py-2 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer text-gray-200 rounded"
+                                >
+                                    Backend
+                                </a>
+                                <a
+                                    href="https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-webster-frontend"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full px-4 py-2 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer text-gray-200 rounded"
+                                >
+                                    Frontend
+                                </a>
+                            </CustomDropdown>
+                            <motion.a href="https://mail.google.com/mail/?view=cm&fs=1&to=support@flowy.com" target="_blank" className="w-10 h-10 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center transition-colors" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            </motion.a>
+
                         </div>
                     </div>
                     <div className="mt-8 pt-8 border-t border-gray-700/50 text-center text-gray-400">
@@ -361,6 +881,9 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                     </div>
                 </div>
             </footer>
+
+            <PrivacyDialog />
+            <TermsDialog />
         </>
     );
 };
