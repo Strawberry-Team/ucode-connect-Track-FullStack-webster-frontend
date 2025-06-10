@@ -12,13 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Template } from '@/types/dashboard';
+import { SearchIcon, ChevronDownIcon, ChevronUpIcon, Settings2, FunnelPlus } from 'lucide-react';
 
 const allTemplates: Record<string, Template[]> = {
   recommended: [
+    { id: 'art-grid', title: 'Art grid', dimensionsText: '1000x1000 px', width: 1000, height: 1000, iconUrl: 'https://pixlr.com/img/icon/category/art.svg' },
     { id: 'social-post', title: 'Social post', dimensionsText: '1080x1080 px', width: 1080, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/social.svg' },
     { id: 'social-story', title: 'Social story', dimensionsText: '1080x1920 px', width: 1080, height: 1920, iconUrl: 'https://pixlr.com/img/icon/category/social.svg' },
     { id: 'web-med', title: 'Web med', dimensionsText: '1600x900 px', width: 1600, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'art-grid', title: 'Art grid', dimensionsText: '1000x1000 px', width: 1000, height: 1000, iconUrl: 'https://pixlr.com/img/icon/category/art.svg' },
     { id: 'thumb-720p', title: 'Thumb 720p', dimensionsText: '1280x720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
     { id: 'wide-1080p', title: 'Wide 1080p', dimensionsText: '1920x1080 px', width: 1920, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
     { id: '12-mpx-43', title: '12 mpx 4:3', dimensionsText: '4032x3024 px', width: 4032, height: 3024, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
@@ -100,7 +101,7 @@ interface CreateProjectModalProps {
   onCreate: (name: string, width: number, height: number, backgroundImage?: string) => void;
 }
 
-type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images';
+type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images' | 'sample-backgrounds';
 
 const tabs = [
   { id: 'recommended' as TabType, label: 'Recommended' },
@@ -109,7 +110,8 @@ const tabs = [
   { id: 'web' as TabType, label: 'Web' },
   { id: 'print' as TabType, label: 'Print' },
   { id: 'video' as TabType, label: 'Video' },
-  { id: 'sample-images' as TabType, label: 'Sample Images' },
+  { id: 'sample-images' as TabType, label: 'Sample Elements' },
+  { id: 'sample-backgrounds' as TabType, label: 'Sample Backgrounds' },
 ];
 
 interface PixabayImage {
@@ -131,13 +133,35 @@ interface PixabayResponse {
   hits: PixabayImage[];
 }
 
+interface UnsplashImage {
+  id: string;
+  urls: {
+    regular: string;
+    small: string;
+    thumb: string;
+  };
+  alt_description: string;
+  user: {
+    name: string;
+  };
+  likes: number;
+  width: number;
+  height: number;
+}
+
+interface UnsplashResponse {
+  total: number;
+  total_pages: number;
+  results: UnsplashImage[];
+}
+
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
   const [projectName, setProjectName] = useState<string>('');
   const [canvasWidth, setCanvasWidth] = useState<string>('');
   const [canvasHeight, setCanvasHeight] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('recommended');
-  
+
   // Pixabay API states
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [pixabayImages, setPixabayImages] = useState<PixabayImage[]>([]);
@@ -146,12 +170,114 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>('');
 
+  // Unsplash API states
+  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState<string>('');
+  const [unsplashImages, setUnsplashImages] = useState<UnsplashImage[]>([]);
+  const [selectedUnsplashImageId, setSelectedUnsplashImageId] = useState<string | null>(null);
+  const [setUnsplashAsBackground, setSetUnsplashAsBackground] = useState<boolean>(false);
+  const [isLoadingUnsplashImages, setIsLoadingUnsplashImages] = useState<boolean>(false);
+  const [unsplashSearchError, setUnsplashSearchError] = useState<string>('');
+
+  // Unsplash filters
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedOrientation, setSelectedOrientation] = useState<string>('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+
   const currentTemplates = allTemplates[activeTab] || [];
 
+  // Check if Unsplash API key is configured
+  const isUnsplashConfigured = () => {
+    const accessKey = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
+    return accessKey && accessKey !== 'your_unsplash_access_key_here';
+  };
+
+  // Set default values when modal opens
+  useEffect(() => {
+    if (isOpen && !projectName && !canvasWidth && !canvasHeight) {
+      setProjectName('New Project');
+      setCanvasWidth('1000');
+      setCanvasHeight('1000');
+    }
+  }, [isOpen, projectName, canvasWidth, canvasHeight]);
+
+  // Handle global Enter key press for creating project with default settings
+  useEffect(() => {
+    const handleGlobalKeyPress = (e: KeyboardEvent) => {
+      if (isOpen && e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Check if the target is not an input or textarea to avoid conflicts
+        const target = e.target as HTMLElement;
+        const isInputElement = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true';
+        
+        if (!isInputElement) {
+          e.preventDefault();
+          handleCreateWithDefaults();
+        }
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleGlobalKeyPress);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyPress);
+    };
+  }, [isOpen, projectName, canvasWidth, canvasHeight]);
+
+  // Function to create project with default settings
+  const handleCreateWithDefaults = () => {
+    const name = projectName.trim() || 'New Project';
+    const width = parseInt(canvasWidth, 10) || 1000;
+    const height = parseInt(canvasHeight, 10) || 1000;
+
+    onCreate(name, width, height);
+    onClose();
+  };
+
+  // Unsplash filter options
+  const colorOptions = [
+    { value: 'black_and_white', label: 'Black & White' },
+    { value: 'black', label: 'Black' },
+    { value: 'white', label: 'White' },
+    { value: 'yellow', label: 'Yellow' },
+    { value: 'orange', label: 'Orange' },
+    { value: 'red', label: 'Red' },
+    { value: 'purple', label: 'Purple' },
+    { value: 'magenta', label: 'Magenta' },
+    { value: 'green', label: 'Green' },
+    { value: 'teal', label: 'Teal' },
+    { value: 'blue', label: 'Blue' }
+  ];
+
+  const orientationOptions = [
+    { value: 'landscape', label: 'Landscape' },
+    { value: 'portrait', label: 'Portrait' },
+    { value: 'squarish', label: 'Square' }
+  ];
+
+  // Function to get color for text based on color value
+  const getColorStyle = (colorValue: string) => {
+    const colorMap: Record<string, string> = {
+      'black_and_white': 'text-gray-400',
+      'black': 'text-gray-900',
+      'white': 'text-gray-100',
+      'yellow': 'text-yellow-400',
+      'orange': 'text-orange-400',
+      'red': 'text-red-400',
+      'purple': 'text-purple-400',
+      'magenta': 'text-pink-400',
+      'green': 'text-green-400',
+      'teal': 'text-teal-400',
+      'blue': 'text-blue-400'
+    };
+    
+    return colorMap[colorValue] || 'text-gray-300';
+  };
+
   const resetFormStates = () => {
-    setProjectName('');
-    setCanvasWidth('');
-    setCanvasHeight('');
+    setProjectName('New Project');
+    setCanvasWidth('1000');
+    setCanvasHeight('1000');
     setSelectedTemplateId(null);
     setActiveTab('recommended');
     // Reset Pixabay states
@@ -160,6 +286,15 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setSelectedImageId(null);
     setSetAsBackground(false);
     setSearchError('');
+    // Reset Unsplash states
+    setUnsplashSearchQuery('');
+    setUnsplashImages([]);
+    setSelectedUnsplashImageId(null);
+    setSetUnsplashAsBackground(false);
+    setUnsplashSearchError('');
+    setSelectedColor('');
+    setSelectedOrientation('');
+    setShowAdvancedFilters(false);
   };
 
   // Function to search Pixabay images
@@ -171,19 +306,19 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
     setIsLoadingImages(true);
     setSearchError('');
-    
+
     try {
       // Use environment variable or fallback to provided API key
       const apiKey = import.meta.env.VITE_PIXABAY_API_KEY || '50744411-22fa88c98bef12cb7a788e3e6';
       const encodedQuery = encodeURIComponent(query.trim());
       const response = await fetch(
-        `https://pixabay.com/api/?key=${apiKey}&q=${encodedQuery}&image_type=photo&per_page=20&safesearch=true&order=popular`
+        `https://pixabay.com/api/?key=${apiKey}&q=${encodedQuery}&image_type=all&per_page=200&safesearch=true&order=popular`
       );
-      
+
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
-      
+
       const data: PixabayResponse = await response.json();
       setPixabayImages(data.hits);
     } catch (error) {
@@ -195,7 +330,70 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     }
   };
 
-  // Remove automatic debouncing - search only on button click
+  // Function to search Unsplash images
+  const searchUnsplashImages = async (query: string) => {
+    if (!query.trim()) {
+      setUnsplashImages([]);
+      return;
+    }
+
+    setIsLoadingUnsplashImages(true);
+    setUnsplashSearchError('');
+
+    try {
+      const accessKey = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
+      if (!accessKey || accessKey === 'your_unsplash_access_key_here') {
+        throw new Error('Unsplash API key not configured. Please add VITE_UNSPLASH_ACCESS_KEY to your .env.local file. Get your free API key from https://unsplash.com/developers');
+      }
+
+      const encodedQuery = encodeURIComponent(query.trim());
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('query', query.trim());
+      params.append('per_page', '30');
+      params.append('order_by', 'popular');
+
+            // Add color filter if selected
+      if (selectedColor) {
+        params.append('color', selectedColor);
+      }
+      
+      // Add orientation filter if selected
+      if (selectedOrientation) {
+        params.append('orientation', selectedOrientation);
+      }
+
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Client-ID ${accessKey}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid Unsplash API key. Please check your VITE_UNSPLASH_ACCESS_KEY in .env.local file.');
+        }
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data: UnsplashResponse = await response.json();
+      setUnsplashImages(data.results);
+    } catch (error) {
+      console.error('Error fetching Unsplash images:', error);
+      if (error instanceof Error) {
+        setUnsplashSearchError(error.message);
+      } else {
+        setUnsplashSearchError('Failed to fetch images. Please try again.');
+      }
+      setUnsplashImages([]);
+    } finally {
+      setIsLoadingUnsplashImages(false);
+    }
+  };
 
   // Auto-search for "UI elements" when opening Sample Images tab
   useEffect(() => {
@@ -205,15 +403,48 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     }
   }, [activeTab]);
 
+  // Auto-search for "nature landscape" when opening Sample Backgrounds tab
+  useEffect(() => {
+    if (activeTab === 'sample-backgrounds' && !unsplashSearchQuery && unsplashImages.length === 0) {
+      if (isUnsplashConfigured()) {
+        setUnsplashSearchQuery('nature landscape');
+        searchUnsplashImages('nature landscape');
+      }
+    }
+  }, [activeTab]);
+
+  // Auto-search when filters change (if there's already a search query)
+  useEffect(() => {
+    if (activeTab === 'sample-backgrounds' && unsplashSearchQuery && isUnsplashConfigured()) {
+      const timeoutId = setTimeout(() => {
+        searchUnsplashImages(unsplashSearchQuery);
+      }, 300); // Debounce for 300ms
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedColor, selectedOrientation]);
+
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       searchPixabayImages(searchQuery.trim());
     }
   };
 
+  const handleUnsplashSearchSubmit = () => {
+    if (unsplashSearchQuery.trim()) {
+      searchUnsplashImages(unsplashSearchQuery.trim());
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearchSubmit();
+    }
+  };
+
+  const handleUnsplashKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleUnsplashSearchSubmit();
     }
   };
 
@@ -235,6 +466,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const handleInputChange = () => {
     setSelectedTemplateId(null);
     setSelectedImageId(null); // Also clear Pixabay selection
+    setSelectedUnsplashImageId(null); // Also clear Unsplash selection
   };
 
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -252,13 +484,27 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     // Don't clear selections when user manually types project name
   }
 
+  const handleNameKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCreate();
+    }
+  };
+
+  const handleDimensionKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCreate();
+    }
+  };
+
   const handleCreate = () => {
     const widthNum = parseInt(canvasWidth, 10);
     const heightNum = parseInt(canvasHeight, 10);
 
     if (projectName.trim() && widthNum > 0 && heightNum > 0) {
       let backgroundImage: string | undefined;
-      
+
       // If user selected an image from Pixabay and wants it as background
       if (selectedImageId && setAsBackground) {
         const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
@@ -266,7 +512,15 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
           backgroundImage = selectedImage.webformatURL;
         }
       }
-      
+
+      // If user selected an image from Unsplash and wants it as background
+      if (selectedUnsplashImageId && setUnsplashAsBackground) {
+        const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
+        if (selectedImage) {
+          backgroundImage = selectedImage.urls.regular;
+        }
+      }
+
       onCreate(projectName.trim(), widthNum, heightNum, backgroundImage);
       onClose();
     } else {
@@ -277,18 +531,28 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const handleTabClick = (tabId: TabType) => {
     setActiveTab(tabId);
     setSelectedTemplateId(null); // Reset selected template when switching tabs
-    
+
     // Reset Pixabay selection when switching away from sample-images
     if (tabId !== 'sample-images') {
       setSelectedImageId(null);
       setSetAsBackground(false);
+    }
+
+    // Reset Unsplash selection when switching away from sample-backgrounds
+    if (tabId !== 'sample-backgrounds') {
+      setSelectedUnsplashImageId(null);
+      setSetUnsplashAsBackground(false);
+      setSelectedColor('');
+      setSelectedOrientation('');
+      setShowAdvancedFilters(false);
     }
   };
 
   const handleImageSelect = (imageId: number) => {
     setSelectedImageId(imageId);
     setSelectedTemplateId(null); // Clear template selection
-    
+    setSelectedUnsplashImageId(null); // Clear Unsplash selection
+
     // Auto-fill project name and dimensions based on selected image
     const selectedImage = pixabayImages.find(img => img.id === imageId);
     if (selectedImage) {
@@ -300,19 +564,64 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     }
   };
 
+  const handleUnsplashImageSelect = (imageId: string) => {
+    setSelectedUnsplashImageId(imageId);
+    setSelectedTemplateId(null); // Clear template selection
+    setSelectedImageId(null); // Clear Pixabay selection
+
+    // Auto-fill project name and dimensions based on selected image
+    const selectedImage = unsplashImages.find(img => img.id === imageId);
+    if (selectedImage) {
+      if (!projectName.trim()) {
+        const description = selectedImage.alt_description || 'Beautiful image';
+        setProjectName(`Project with ${description.split(' ').slice(0, 3).join(' ')}`);
+      }
+      setCanvasWidth(selectedImage.width.toString());
+      setCanvasHeight(selectedImage.height.toString());
+    }
+  };
+
   const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setSelectedImageId(null); // Clear selection when searching
+  };
+
+  const handleUnsplashSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUnsplashSearchQuery(e.target.value);
+    setSelectedUnsplashImageId(null); // Clear selection when searching
   };
 
   const handleBackgroundCheckboxChange = (checked: boolean) => {
     setSetAsBackground(checked);
   };
 
+  const handleUnsplashBackgroundCheckboxChange = (checked: boolean) => {
+    setSetUnsplashAsBackground(checked);
+  };
+
   const handleQuickSearch = (term: string) => {
     setSearchQuery(term);
     setSelectedImageId(null); // Clear selection when doing quick search
     searchPixabayImages(term); // Immediately search for the term
+  };
+
+  const handleUnsplashQuickSearch = (term: string) => {
+    setUnsplashSearchQuery(term);
+    setSelectedUnsplashImageId(null); // Clear selection when doing quick search
+    searchUnsplashImages(term); // Immediately search for the term
+  };
+
+    const handleColorToggle = (color: string) => {
+    setSelectedColor(prev => prev === color ? '' : color);
+  };
+
+  const handleOrientationToggle = (orientation: string) => {
+    setSelectedOrientation(prev => prev === orientation ? '' : orientation);
+  };
+
+  const handleClearFilters = () => {
+    setSelectedColor('');
+    setSelectedOrientation('');
   };
 
   const AspectRatioPreview: React.FC<{ width: number; height: number; iconUrl?: string; title?: string, className?: string }> = ({ width, height, iconUrl, title, className }) => {
@@ -383,7 +692,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
               >
                 <span className="flex items-center gap-2">
                   {tab.label}
-                  {tab.id === 'sample-images' && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>}
+                  {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>}
                 </span>
               </button>
             ))}
@@ -391,7 +700,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         </DialogHeader>
 
         {/* Template Content */}
-        {activeTab !== 'sample-images' && (
+        {activeTab !== 'sample-images' && activeTab !== 'sample-backgrounds' && (
           <div className="flex md:flex-row flex-col gap-6 p-6 flex-1 overflow-hidden">
             <div className="flex flex-col md:w-[700px]">
               <div className="flex flex-wrap gap-4 overflow-y-auto max-h-[calc(90vh-12rem)] pr-4 custom-scroll">
@@ -424,6 +733,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   type="text"
                   value={projectName}
                   onChange={handleNameChange}
+                  onKeyPress={handleNameKeyPress}
                   placeholder="My new design"
                   className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
                 />
@@ -436,6 +746,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     type="number"
                     value={canvasWidth}
                     onChange={handleWidthChange}
+                    onKeyPress={handleDimensionKeyPress}
                     placeholder="1920"
                     min="1"
                     className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
@@ -448,6 +759,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     type="number"
                     value={canvasHeight}
                     onChange={handleHeightChange}
+                    onKeyPress={handleDimensionKeyPress}
                     placeholder="1080"
                     min="1"
                     className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
@@ -458,15 +770,344 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
           </div>
         )}
 
-        {/* Sample Images */}
-        {activeTab === 'sample-images' && (
-          <div className="flex md:flex-row flex-col gap-6 p-6 flex-1 overflow-hidden">
+        {/* Sample Backgrounds */}
+        {activeTab === 'sample-backgrounds' && (
+          <div className="flex md:flex-row flex-col gap-6 p-6 pb-0 flex-1 overflow-hidden">
             <div className="flex flex-col md:w-[700px]">
               {/* Search Input */}
-              <div className="mb-4">
-                <Label htmlFor="pixabaySearch" className="text-gray-300 mb-2 block">
-                  Search for images
-                </Label>
+              <div className="mb-2">
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Input
+                      id="unsplashSearch"
+                      type="text"
+                      value={unsplashSearchQuery}
+                      onChange={handleUnsplashSearchQueryChange}
+                      onKeyPress={handleUnsplashKeyPress}
+                      placeholder="Enter keywords (e.g., nature, abstract, texture)"
+                      className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                      disabled={isLoadingUnsplashImages || !isUnsplashConfigured()}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleUnsplashSearchSubmit}
+                    disabled={isLoadingUnsplashImages || !unsplashSearchQuery.trim() || !isUnsplashConfigured()}
+                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2"
+                    aria-label="Search background images"
+                  >
+                    <>
+                      <SearchIcon className="w-4 h-4" />
+                    </>
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-400 text-end -mt-3 mr-14 -mb-0 p-0">
+                  Powered by{' '}
+                  <a
+                    href="https://unsplash.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Unsplash
+                  </a>
+                </div>
+
+                {/* Quick Search Buttons */}
+                <div className="space-y-0 flex items-center justify-between mb-0">
+                  <div className="flex flex-wrap gap-2">
+                    {['nature landscape', 'abstract', 'minimalist', 'texture', 'gradient', 'city', 'space'].map((term) => (
+                      <button
+                        key={term}
+                        onClick={() => handleUnsplashQuickSearch(term)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleUnsplashQuickSearch(term)}
+                        className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                          ${unsplashSearchQuery === term
+                            ? 'bg-blue-500/30 border-blue-500 text-blue-200 shadow-md'
+                            : 'bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200'
+                          }`}
+                        tabIndex={0}
+                        aria-label={`Quick search for ${term}`}
+                        disabled={isLoadingUnsplashImages || !isUnsplashConfigured()}
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Advanced Filters */}
+                  <div className="">
+                    <button
+                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                      className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200"
+                      disabled={!isUnsplashConfigured()}
+                    >
+                      <FunnelPlus className="w-4 h-4" />
+                      {showAdvancedFilters ? (
+                        <ChevronUpIcon className="w-4 h-4" />
+                      ) : (
+                        <ChevronDownIcon className="w-4 h-4" />
+                      )}
+                                          {(selectedColor || selectedOrientation) && (
+                      <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        {(selectedColor ? 1 : 0) + (selectedOrientation ? 1 : 0)}
+                      </span>
+                    )}
+                    </button>
+                  </div>
+                </div>
+                {showAdvancedFilters && (
+                  <div className="mt-3 p-4 bg-[#3A3D44FF] rounded-lg border border-2 border-[#4A4D54FF] space-y-4">
+                    {/* Color Filters */}
+                    <div>
+                                              <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm text-gray-300">Colors</label>
+                          {selectedColor && (
+                            <button
+                              onClick={() => setSelectedColor('')}
+                              className="px-2 py-0.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white text-xs rounded-md transition-colors duration-200"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {colorOptions.map((color) => {
+                            const isSelected = selectedColor === color.value;
+                            const colorClass = getColorStyle(color.value);
+                            
+                            return (
+                              <button
+                                key={color.value}
+                                onClick={() => handleColorToggle(color.value)}
+                                className={`px-2 py-0.5 text-xs ${colorClass} rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                  ${isSelected
+                                    ? 'bg-blue-500/30 border-blue-500 shadow-md'
+                                    : 'bg-[#3A3D44FF] border-[#4A4D54FF]'
+                                  }`}
+                                disabled={!isUnsplashConfigured()}
+                              >
+                                {color.label}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Orientation Filters */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm text-gray-300">Orientation</label>
+                        {selectedOrientation && (
+                          <button
+                            onClick={() => setSelectedOrientation('')}
+                            className="px-2 py-0.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white text-xs rounded-md transition-colors duration-200"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {orientationOptions.map((orientation) => (
+                          <button
+                            key={orientation.value}
+                            onClick={() => handleOrientationToggle(orientation.value)}
+                            className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                ${selectedOrientation === orientation.value
+                                  ? 'bg-blue-500/30 border-blue-500 text-blue-200 shadow-md'
+                                  : 'bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200'
+                                }`}
+                            disabled={!isUnsplashConfigured()}
+                          >
+                            {orientation.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Clear All Filters Button */}
+                    {(selectedColor || selectedOrientation) && (
+                      <div className="pt-2 border-t border-[#4A4D54FF]">
+                        <button
+                          onClick={handleClearFilters}
+                          className="text-sm text-red-400 hover:text-red-300 transition-colors duration-200"
+                        >
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Images Grid */}
+              <div className="flex-1 overflow-y-auto max-h-[calc(90vh-16rem)] pr-4 custom-scroll">
+                {isLoadingUnsplashImages && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-gray-400">Loading background images...</div>
+                  </div>
+                )}
+
+                {unsplashSearchError && (
+                  <div className="flex flex-col items-center justify-center py-8 px-4">
+                    <div className="text-red-400 text-center mb-4">{unsplashSearchError}</div>
+                  </div>
+                )}
+
+                {!isLoadingUnsplashImages && !unsplashSearchError && unsplashImages.length === 0 && unsplashSearchQuery && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-gray-400">No background images found. Try different keywords.</div>
+                  </div>
+                )}
+
+                {!isLoadingUnsplashImages && unsplashImages.length === 0 && !unsplashSearchQuery && !unsplashSearchError && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    {isUnsplashConfigured() ? (
+                      <>
+                        <div className="text-gray-400 mb-4">Ready to search</div>
+                        <div className="text-sm text-gray-500">Use quick search buttons or enter custom keywords and click Search</div>
+                      </>
+                    ) : (
+                      <div className="text-gray-400 text-center px-4">
+                        <div className="mb-4">Unsplash API key required</div>
+                        <div className="text-sm text-gray-500">Configure your API key to search for background images</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {unsplashImages.length > 0 && (
+                  <div className="text-sm text-gray-400 mb-2 text-center">
+                    Found {unsplashImages.length} background images for "{unsplashSearchQuery}"
+                    {(selectedColor || selectedOrientation) && (
+                      <span className="text-xs text-gray-500 block mt-1">
+                        with {(selectedColor ? 1 : 0) + (selectedOrientation ? 1 : 0)} filter{(selectedColor ? 1 : 0) + (selectedOrientation ? 1 : 0) !== 1 ? 's' : ''} applied
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {unsplashImages.map((image) => (
+                    <Card
+                      key={image.id}
+                      onClick={() => handleUnsplashImageSelect(image.id)}
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleUnsplashImageSelect(image.id)}
+                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0
+                                  ${selectedUnsplashImageId === image.id ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
+                    >
+                      <CardContent className="p-0">
+                        <div className="aspect-square overflow-hidden">
+                          <img
+                            src={image.urls.thumb}
+                            alt={image.alt_description || 'Background image'}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="p-2">
+                          <div className="text-xs text-gray-300 truncate" title={image.alt_description || 'Background image'}>
+                            {image.alt_description || 'Background image'}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1 truncate">
+                            by {image.user.name}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {image.width} × {image.height}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
+              <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
+
+              {/* Background Checkbox */}
+              {selectedUnsplashImageId && (
+                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="setUnsplashAsBackground"
+                      checked={setUnsplashAsBackground}
+                      onCheckedChange={handleUnsplashBackgroundCheckboxChange}
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                    <Label
+                      htmlFor="setUnsplashAsBackground"
+                      className="text-sm text-gray-300 cursor-pointer"
+                    >
+                      Set as background
+                    </Label>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    This image will be used as the background of your canvas
+                  </p>
+                </div>
+              )}
+
+              <div className="w-full">
+                <Label htmlFor="projectNameUnsplash" className="text-gray-300 mb-1.5 block">Project name</Label>
+                <Input
+                  id="projectNameUnsplash"
+                  type="text"
+                  value={projectName}
+                  onChange={handleNameChange}
+                  onKeyPress={handleNameKeyPress}
+                  placeholder="My new design"
+                  className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <div>
+                  <Label htmlFor="canvasWidthUnsplash" className="text-gray-300 mb-1.5 block">Width (px)</Label>
+                  <Input
+                    id="canvasWidthUnsplash"
+                    type="number"
+                    value={canvasWidth}
+                    onChange={handleWidthChange}
+                    onKeyPress={handleDimensionKeyPress}
+                    placeholder="1920"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="canvasHeightUnsplash" className="text-gray-300 mb-1.5 block">Height (px)</Label>
+                  <Input
+                    id="canvasHeightUnsplash"
+                    type="number"
+                    value={canvasHeight}
+                    onChange={handleHeightChange}
+                    onKeyPress={handleDimensionKeyPress}
+                    placeholder="1080"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+              </div>
+
+              {selectedUnsplashImageId && (
+                <div className="w-full p-3 bg-[#4A4D54FF] rounded-lg">
+                  <div className="text-sm text-gray-300 mb-2">Selected Background:</div>
+                  <div className="text-xs text-gray-400">
+                    {unsplashImages.find(img => img.id === selectedUnsplashImageId)?.alt_description || 'Background image'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sample Images */}
+        {activeTab === 'sample-images' && (
+          <div className="flex md:flex-row flex-col gap-6 p-6 pb-0 flex-1 overflow-hidden">
+            <div className="flex flex-col md:w-[700px]">
+              {/* Search Input */}
+              <div className="mb-2">
                 <div className="flex gap-2 mb-3">
                   <div className="relative flex-1">
                     <Input
@@ -483,50 +1124,36 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   <Button
                     onClick={handleSearchSubmit}
                     disabled={isLoadingImages || !searchQuery.trim()}
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2 min-w-[100px]"
+                    className="px-3 py-2 bg-[#3A3D44FF] hover:bg-[#4A4D54FF] border border-2 border-white/10 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2"
+                    aria-label="Advanced filters"
+                  >
+                    <>
+                      <Settings2 className="w-4 h-4" />
+                    </>
+                  </Button>
+                  <Button
+                    onClick={handleSearchSubmit}
+                    disabled={isLoadingImages || !searchQuery.trim()}
+                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2"
                     aria-label="Search images"
                   >
-                    {isLoadingImages ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        <span>Searching...</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <span>Search</span>
-                      </>
-                    )}
+                    <>
+                      <SearchIcon className="w-4 h-4" />
+                    </>
                   </Button>
                 </div>
-                
+
                 {/* Quick Search Buttons */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-gray-400">Quick searches:</div>
-                  <div className="text-xs text-gray-400">
-                    Powered by{' '}
-                    <a 
-                      href="https://pixabay.com/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 underline"
-                    >
-                      Pixabay
-                    </a>
-                  </div>
-                </div>
+                <div className="space-y-0 flex items-center justify-between mb-0">
                   <div className="flex flex-wrap gap-2">
                     {['social media', 'button', 'icon', 'keyboard', 'mobile', 'sticker', 'ui element'].map((term) => (
                       <button
                         key={term}
                         onClick={() => handleQuickSearch(term)}
                         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleQuickSearch(term)}
-                        className={`px-3 py-1.5 text-xs rounded-lg border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
-                          ${searchQuery === term 
-                            ? 'bg-blue-500/30 border-blue-500 text-blue-200 shadow-md' 
+                        className={`px-2 py-1 text-xs rounded-lg border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                          ${searchQuery === term
+                            ? 'bg-blue-500/30 border-blue-500 text-blue-200 shadow-md'
                             : 'bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200'
                           }`}
                         tabIndex={0}
@@ -536,6 +1163,17 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                         {term}
                       </button>
                     ))}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Powered by{' '}
+                    <a
+                      href="https://pixabay.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Pixabay
+                    </a>
                   </div>
                 </div>
               </div>
@@ -547,19 +1185,19 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     <div className="text-gray-400">Loading images...</div>
                   </div>
                 )}
-                
+
                 {searchError && (
                   <div className="flex items-center justify-center py-8">
                     <div className="text-red-400">{searchError}</div>
                   </div>
                 )}
-                
+
                 {!isLoadingImages && !searchError && pixabayImages.length === 0 && searchQuery && (
                   <div className="flex items-center justify-center py-8">
                     <div className="text-gray-400">No images found. Try different keywords.</div>
                   </div>
                 )}
-                
+
                 {!isLoadingImages && pixabayImages.length === 0 && !searchQuery && (
                   <div className="flex flex-col items-center justify-center py-8">
                     <div className="text-gray-400 mb-4">Ready to search</div>
@@ -568,19 +1206,19 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                 )}
 
                 {pixabayImages.length > 0 && (
-                  <div className="text-sm text-gray-400 mb-4">
+                  <div className="text-sm text-gray-400 mb-2 text-center">
                     Found {pixabayImages.length} images for "{searchQuery}"
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {pixabayImages.map((image) => (
                     <Card
                       key={image.id}
                       onClick={() => handleImageSelect(image.id)}
                       tabIndex={0}
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleImageSelect(image.id)}
-                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF]
+                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0
                                   ${selectedImageId === image.id ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
                     >
                       <CardContent className="p-0">
@@ -588,7 +1226,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                           <img
                             src={image.previewURL}
                             alt={image.tags}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                             loading="lazy"
                           />
                         </div>
@@ -597,7 +1235,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             {image.tags}
                           </div>
                           <div className="text-xs text-gray-400 mt-1">
-                            by {image.user} • {image.likes} likes
+                            by {image.user}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             {image.webformatWidth} × {image.webformatHeight}
@@ -612,7 +1250,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
             <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
               <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
-              
+
               {/* Background Checkbox */}
               {selectedImageId && (
                 <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
@@ -643,6 +1281,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   type="text"
                   value={projectName}
                   onChange={handleNameChange}
+                  onKeyPress={handleNameKeyPress}
                   placeholder="My new design"
                   className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
                 />
@@ -655,6 +1294,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     type="number"
                     value={canvasWidth}
                     onChange={handleWidthChange}
+                    onKeyPress={handleDimensionKeyPress}
                     placeholder="1920"
                     min="1"
                     className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
@@ -667,13 +1307,14 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     type="number"
                     value={canvasHeight}
                     onChange={handleHeightChange}
+                    onKeyPress={handleDimensionKeyPress}
                     placeholder="1080"
                     min="1"
                     className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
                   />
                 </div>
               </div>
-              
+
               {selectedImageId && (
                 <div className="w-full p-3 bg-[#4A4D54FF] rounded-lg">
                   <div className="text-sm text-gray-300 mb-2">Selected Image:</div>

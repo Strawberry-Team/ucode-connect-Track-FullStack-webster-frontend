@@ -8,6 +8,7 @@ interface BrushCursorProps {
   position: { x: number; y: number } | null;
   stageContainer?: HTMLDivElement | null;
   activeTool?: any;
+  isBrushTransformModeActive?: boolean;
 }
 
 const CURSOR_SIZE_THRESHOLD = 25;
@@ -19,15 +20,20 @@ const BrushCursor: React.FC<BrushCursorProps> = ({
   position,
   stageContainer,
   activeTool,
+  isBrushTransformModeActive,
 }) => {
-  // Hide system cursor when brush tool is active
+  // Hide system cursor when brush tool is active and not in transform mode
   useEffect(() => {
     if (stageContainer && activeTool?.type === 'brush') {
-      console.log('!!!!!!!!!!!!!!!!!!!!!!!!hiding cursor')
-      stageContainer.style.cursor = 'none';
+      if (!isBrushTransformModeActive) {
+        stageContainer.style.cursor = 'none';
+      } else {
+        // Reset cursor to default when in transform mode
+        stageContainer.style.cursor = 'default';
+      }
     }
-  }, [stageContainer, activeTool]);
-  if (!isVisible || !position) {
+  }, [stageContainer, activeTool, isBrushTransformModeActive]);
+  if (!isVisible || !position || isBrushTransformModeActive) {
     return null;
   }
 

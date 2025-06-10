@@ -489,10 +489,10 @@ const useElementsManagement = ({
     // Log the reordering operation
     const beforeOrder = renderableObjects
       .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
     const afterOrder = updatedObjects
       .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
     
     console.log('ElementsManagement: Sending element to back', {
       elementId: elementId.slice(-6),
@@ -534,10 +534,10 @@ const useElementsManagement = ({
     // Log the reordering operation
     const beforeOrder = renderableObjects
       .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
     const afterOrder = updatedObjects
       .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: obj.type, id: obj.id.slice(-6) }));
+      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
     
     console.log('ElementsManagement: Setting element as true background', {
       elementId: elementId.slice(-6),

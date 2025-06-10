@@ -257,10 +257,38 @@ const Canvas: React.FC = () => {
         }
     }, [activeTool, isAddModeActive, isBrushTransformModeActive, isHoveringInteractiveElement, isDragging, handManager]);
 
-    // Reset cursor when tool changes
+    // Reset cursor when tool changes, brush transform mode changes, or add mode changes
     useEffect(() => {
         setCursorBasedOnTool();
-    }, [activeTool, setCursorBasedOnTool]);
+        // Also hide brush cursor when in transform mode
+        if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+            setShowBrushCursor(false);
+        }
+    }, [activeTool, isBrushTransformModeActive, isAddModeActive, setCursorBasedOnTool]);
+
+    // Force cursor style for add mode on stage container
+    useEffect(() => {
+        if (stageRef.current) {
+            const stageContainer = stageRef.current.container();
+            if (stageContainer) {
+                if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text')) {
+                    stageContainer.style.cursor = 'crosshair';
+                    // Also set it on the canvas element inside stage
+                    const canvasElement = stageContainer.querySelector('canvas');
+                    if (canvasElement) {
+                        canvasElement.style.cursor = 'crosshair';
+                    }
+                } else {
+                    // Reset cursor when not in add mode
+                    stageContainer.style.cursor = '';
+                    const canvasElement = stageContainer.querySelector('canvas');
+                    if (canvasElement) {
+                        canvasElement.style.cursor = '';
+                    }
+                }
+            }
+        }
+    }, [isAddModeActive, activeTool, stageRef]);
 
     // Global cursor reset on window focus/blur
     useEffect(() => {
@@ -1000,6 +1028,26 @@ const Canvas: React.FC = () => {
 
         if (activeTool?.type === 'brush' || activeTool?.type === 'eraser') {
             if ((activeTool.type === 'brush' && !isBrushTransformModeActive) || activeTool.type === 'eraser') {
+                // Universal deselection logic for drawing tools - deselect all objects when starting to draw
+                let hasDeselectedSomething = false;
+                
+                // Deselect elements (shapes, text, images)
+                if (elementsManager.selectedElementId) {
+                    elementsManager.setSelectedElementId(null);
+                    hasDeselectedSomething = true;
+                }
+                
+                // Deselect brush lines when using eraser (brush lines should remain selected when drawing with brush)
+                if (selectedLineId && activeTool.type === 'eraser') {
+                    setSelectedLineId(null);
+                    hasDeselectedSomething = true;
+                }
+                
+                // Update cursor only if something was deselected
+                if (hasDeselectedSomething) {
+                    setCursorBasedOnTool();
+                }
+                
                 isDragging.current = true;
                 const isRightClick = evt.button === 2;
                 if (activeTool?.type === 'brush') {
@@ -1012,13 +1060,59 @@ const Canvas: React.FC = () => {
         }
 
         if (activeTool?.type === 'liquify') {
-                            if (evt.button === 0 && selectedLiquifyImageId) liquifyManager.startLiquify(e);
-            else if (evt.button === 0) console.warn("Liquify: No image");
+            if (evt.button === 0 && selectedLiquifyImageId) {
+                // Universal deselection logic for liquify tool
+                let hasDeselectedSomething = false;
+                
+                // Deselect elements (shapes, text, images)
+                if (elementsManager.selectedElementId) {
+                    elementsManager.setSelectedElementId(null);
+                    hasDeselectedSomething = true;
+                }
+                
+                // Deselect brush lines
+                if (selectedLineId) {
+                    setSelectedLineId(null);
+                    hasDeselectedSomething = true;
+                }
+                
+                // Update cursor only if something was deselected
+                if (hasDeselectedSomething) {
+                    setCursorBasedOnTool();
+                }
+                
+                liquifyManager.startLiquify(e);
+            } else if (evt.button === 0) {
+                console.warn("Liquify: No image");
+            }
         }
 
         if (activeTool?.type === 'blur') {
-                            if (evt.button === 0 && selectedBlurImageId) blurManager.startBlurring(e);
-            else if (evt.button === 0) console.warn("Blur: No image");
+            if (evt.button === 0 && selectedBlurImageId) {
+                // Universal deselection logic for blur tool
+                let hasDeselectedSomething = false;
+                
+                // Deselect elements (shapes, text, images)
+                if (elementsManager.selectedElementId) {
+                    elementsManager.setSelectedElementId(null);
+                    hasDeselectedSomething = true;
+                }
+                
+                // Deselect brush lines
+                if (selectedLineId) {
+                    setSelectedLineId(null);
+                    hasDeselectedSomething = true;
+                }
+                
+                // Update cursor only if something was deselected
+                if (hasDeselectedSomething) {
+                    setCursorBasedOnTool();
+                }
+                
+                blurManager.startBlurring(e);
+            } else if (evt.button === 0) {
+                console.warn("Blur: No image");
+            }
         }
 
         if (activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
@@ -1034,20 +1128,26 @@ const Canvas: React.FC = () => {
         const clickedOnStageBackground = target === stageRef.current || target.name() === "background";
 
         if (clickedOnStageBackground) {
-            // Only deselect elements when using appropriate tools
-            if (elementsManager.selectedElementId && activeTool) {
-                const shouldDeselect = 
-                    activeTool.type === "shape" || 
-                    activeTool.type === "text" || 
-                    activeTool.type === "cursor" || 
-                    activeTool.type === "image-transform";
-                
-                if (shouldDeselect) {
-                    elementsManager.setSelectedElementId(null);
-                    // Use centralized cursor function when deselecting element
-                    setCursorBasedOnTool();
-                }
+            // Universal deselection logic - deselect all types of objects when clicking on background
+            let hasDeselectedSomething = false;
+            
+            // Deselect elements (shapes, text, images)
+            if (elementsManager.selectedElementId) {
+                elementsManager.setSelectedElementId(null);
+                hasDeselectedSomething = true;
             }
+            
+            // Deselect brush lines
+            if (selectedLineId) {
+                setSelectedLineId(null);
+                hasDeselectedSomething = true;
+            }
+            
+            // Update cursor only if something was deselected
+            if (hasDeselectedSomething) {
+                setCursorBasedOnTool();
+            }
+            
             if (evt.button === 1) {
                 isDragging.current = true;
                 isManuallyDragging.current = true;
@@ -1070,6 +1170,18 @@ const Canvas: React.FC = () => {
             const stage = stageRef.current;
             const position = stage?.getPointerPosition();
             if (!position) return;
+
+            // Force crosshair cursor for add mode even in stage mouse move
+            if (isAddModeActive && (activeTool?.type === 'shape' || activeTool?.type === 'text') && stage) {
+                const stageContainer = stage.container();
+                if (stageContainer) {
+                    stageContainer.style.cursor = 'crosshair';
+                    const canvasElement = stageContainer.querySelector('canvas');
+                    if (canvasElement) {
+                        canvasElement.style.cursor = 'crosshair';
+                    }
+                }
+            }
 
             // Handle element creation dragging
             if (isCreatingElement && creationStartPoint && previewElement) {
@@ -1489,6 +1601,7 @@ const Canvas: React.FC = () => {
                     position={cursorPositionOnCanvas}
                     stageContainer={stageRef.current?.container()}
                     activeTool={activeTool}
+                    isBrushTransformModeActive={isBrushTransformModeActive}
                 />
                 <EraserCursor
                     size={eraserSize}
@@ -1583,6 +1696,21 @@ const Canvas: React.FC = () => {
                                                         if ((line as any).offsetX !== undefined && (line as any).offsetY !== undefined) {
                                                             drawingManager.updateLinePositionAndHistory(line.id, e.target.x(), e.target.y());
                                                         }
+                                                        // Reset cursor to default when dragging ends
+                                                        if (containerRef.current) {
+                                                            containerRef.current.style.cursor = 'default';
+                                                        }
+                                                        const stage = stageRef.current;
+                                                        if (stage) {
+                                                            const stageContainer = stage.container();
+                                                            if (stageContainer) {
+                                                                stageContainer.style.cursor = 'default';
+                                                                const canvasElement = stageContainer.querySelector('canvas');
+                                                                if (canvasElement) {
+                                                                    canvasElement.style.cursor = 'default';
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }}
                                                 onClick={(e) => {
@@ -1605,6 +1733,63 @@ const Canvas: React.FC = () => {
                                                         setSelectedLineId(line.id);
                                                         const node = stageRef.current?.findOne('.' + line.id);
                                                         if (node) setSelectedKonvaNode(node);
+                                                    }
+                                                }}
+                                                onMouseEnter={() => {
+                                                    if (isBrushTransformModeActive && activeTool?.type === 'brush' && selectedLineId === line.id) {
+                                                        // Set move cursor when hovering over selected brush object
+                                                        if (containerRef.current) {
+                                                            containerRef.current.style.cursor = 'move';
+                                                        }
+                                                        const stage = stageRef.current;
+                                                        if (stage) {
+                                                            const stageContainer = stage.container();
+                                                            if (stageContainer) {
+                                                                stageContainer.style.cursor = 'move';
+                                                                const canvasElement = stageContainer.querySelector('canvas');
+                                                                if (canvasElement) {
+                                                                    canvasElement.style.cursor = 'move';
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                                onMouseLeave={() => {
+                                                    if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                                                        // Reset to default cursor when leaving brush object
+                                                        if (containerRef.current) {
+                                                            containerRef.current.style.cursor = 'default';
+                                                        }
+                                                        const stage = stageRef.current;
+                                                        if (stage) {
+                                                            const stageContainer = stage.container();
+                                                            if (stageContainer) {
+                                                                stageContainer.style.cursor = 'default';
+                                                                const canvasElement = stageContainer.querySelector('canvas');
+                                                                if (canvasElement) {
+                                                                    canvasElement.style.cursor = 'default';
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                                onDragStart={() => {
+                                                    if (isBrushTransformModeActive && activeTool?.type === 'brush') {
+                                                        // Set grabbing cursor when dragging starts
+                                                        if (containerRef.current) {
+                                                            containerRef.current.style.cursor = 'grabbing';
+                                                        }
+                                                        const stage = stageRef.current;
+                                                        if (stage) {
+                                                            const stageContainer = stage.container();
+                                                            if (stageContainer) {
+                                                                stageContainer.style.cursor = 'grabbing';
+                                                                const canvasElement = stageContainer.querySelector('canvas');
+                                                                if (canvasElement) {
+                                                                    canvasElement.style.cursor = 'grabbing';
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }}
                                             />
