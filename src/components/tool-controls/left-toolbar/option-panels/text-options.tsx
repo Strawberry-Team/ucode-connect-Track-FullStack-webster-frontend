@@ -3,26 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  AlignJustify,
-  Bold,
-  Italic,
-  Underline,
-  Type,
-  PlusCircle,
-  Trash2,
-  Copy,
-  Strikethrough,
-  Baseline,
-  ChevronDown,
-  CaseSensitive,
-  CaseUpper,
-  CaseLower,
-  RotateCcw,
-} from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, AlignJustify, Bold, Italic, Underline, Type, PlusCircle, Trash2, Copy, Strikethrough, Baseline, ChevronDown, CaseSensitive, CaseUpper, CaseLower, RotateCcw } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -322,7 +303,11 @@ declare global {
 }
 
 const TextOptions: React.FC = () => {
+  const [hasUserChangedTextColor, setHasUserChangedTextColor] = useState(false);
+  const [hasUserChangedTextBgColor, setHasUserChangedTextBgColor] = useState(false);
   const {
+    color, 
+    secondaryColor,
     textColor: contextTextColor,
     setTextColor: contextSetTextColor,
     textBgColor: contextTextBgColor,
@@ -403,6 +388,33 @@ const TextOptions: React.FC = () => {
       }
     }
   }, [selectedElementId, getElementDataFromRenderables, contextSetTextColor, setTextColorOpacity, contextSetTextBgColor, contextSetTextBgOpacity, setFontSize, setLineHeight, setFontFamily, setTextAlignment, setFontStyles, setTextCase, contextSetBorderColor, contextSetBorderWidth, contextSetBorderStyle]);
+
+
+  useEffect(() => {
+
+    if (activeTool?.type === "text" && !selectedElementId && color && !hasUserChangedTextColor) {
+      contextSetTextColor(color);
+    }
+  }, [activeTool?.type, selectedElementId, color, contextSetTextColor, hasUserChangedTextColor]);
+
+
+  useEffect(() => {
+
+    if (activeTool?.type === "text" && !selectedElementId && secondaryColor && !hasUserChangedTextBgColor) {
+      contextSetTextBgColor(secondaryColor);
+
+      if (secondaryColor !== 'transparent') {
+        contextSetTextBgOpacity(0);
+        setTempTextBgOpacityInput("0");
+      }
+    }
+  }, [activeTool?.type, selectedElementId, secondaryColor, contextSetTextBgColor, contextSetTextBgOpacity, hasUserChangedTextBgColor]);
+
+
+  useEffect(() => {
+    setHasUserChangedTextColor(false);
+    setHasUserChangedTextBgColor(false);
+  }, [activeTool?.type, selectedElementId]);
 
   // Update selected element when text settings change
   useEffect(() => {
@@ -683,6 +695,7 @@ const TextOptions: React.FC = () => {
               color={contextTextColor}
               setColor={(newColor) => {
                 contextSetTextColor(newColor);
+                setHasUserChangedTextColor(true);
               }}
               onClose={() => setShowColorPicker(false)}
               additionalRefs={[textColorControlsRef]}
@@ -747,6 +760,7 @@ const TextOptions: React.FC = () => {
                   contextSetTextBgColor('#ffffff');
                   contextSetTextBgOpacity(0);
                   setTempTextBgOpacityInput("0");
+                  setHasUserChangedTextBgColor(true);
                 }}
               >
                 Transparent
@@ -756,6 +770,7 @@ const TextOptions: React.FC = () => {
               color={contextTextBgColor === 'transparent' ? '#ffffff' : contextTextBgColor}
               setColor={(newColor) => {
                 contextSetTextBgColor(newColor);
+                setHasUserChangedTextBgColor(true); 
                 if (newColor === 'transparent') {
                   contextSetTextBgOpacity(0);
                   setTempTextBgOpacityInput("0");

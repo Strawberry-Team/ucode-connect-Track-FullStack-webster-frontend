@@ -102,8 +102,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
     setActiveTool(null);
     setActiveElement(null);
 
-    setColor("#000000");
-    setSecondaryColor("#ffffff");
+    setColor("#ffffff");
+    setSecondaryColor("#000000");
     setBrushSize(20);
     setEraserSize(20);
     setOpacity(100);

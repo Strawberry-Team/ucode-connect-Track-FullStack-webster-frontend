@@ -253,7 +253,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [activeTool, setActiveToolInternal] = useState<Tool | null>(null)
     const [activeElement, setActiveElement] = useState<Element | null>(null)
     const [color, setColor] = useState("#000000")
-    const [secondaryColor, setSecondaryColor] = useState("#ffffff")
+    const [secondaryColor, setSecondaryColor] = useState("#000000")
     const [brushSize, setBrushSize] = useState(20)
 
     // Add text-specific states

@@ -3,28 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Square,
-  ChevronDown,
-  Circle,
-  Image as ImageIcon,
-  FileUp,
-  RectangleHorizontal,
-  Triangle as TriangleIcon,
-  Pentagon,
-  Hexagon,
-  Star,
-  Heart,
-  ArrowRight,
-  Minus,
-  FileImage,
-  SquareRoundCorner,
-  Squircle,
-  Trash2,
-  Copy,
-  PlusCircle,
-  RotateCcw,
-} from "lucide-react";
+import { Square, ChevronDown, Circle, ImageIcon, FileUp, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareUserRoundIcon as SquareRoundCorner, Squircle, Trash2, Copy, PlusCircle, RotateCcw } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -241,6 +220,8 @@ const ShapeOptions: React.FC = () => {
   const {
     setActiveElement: setContextActiveElement,
     activeTool,
+    color, 
+    secondaryColor,
     fillColor,
     setFillColor,
     fillColorOpacity,
@@ -288,6 +269,8 @@ const ShapeOptions: React.FC = () => {
   const fillControlsRef = useRef<HTMLDivElement>(null!);
   const borderControlsRef = useRef<HTMLDivElement>(null!);
 
+  const [hasUserChangedFillColor, setHasUserChangedFillColor] = useState(false);
+  const [hasUserChangedBorderColor, setHasUserChangedBorderColor] = useState(false);
 
   const selectedElementData = selectedElementId ? getElementDataFromRenderables().find(el => el.id === selectedElementId) : null;
 
@@ -340,6 +323,29 @@ const ShapeOptions: React.FC = () => {
       }
     }
   }, [selectedElementId, getElementDataFromRenderables, activeTool?.type, setFillColor, setFillColorOpacity, setBorderColor, setBorderColorOpacity, setBorderWidth, setBorderStyle, setCornerRadius, setShapeTransform, setShapeType]);
+
+
+  useEffect(() => {
+    if (activeTool?.type === "shape" && !selectedElementId && color && !hasUserChangedFillColor) {
+      setFillColor(color);
+    }
+  }, [activeTool?.type, selectedElementId, color, setFillColor, hasUserChangedFillColor]);
+
+  useEffect(() => {
+    if (activeTool?.type === "shape" && !selectedElementId && secondaryColor && !hasUserChangedBorderColor) {
+      setBorderColor(secondaryColor);
+      if (secondaryColor !== 'transparent') {
+        setBorderColorOpacity(100);
+        setTempBorderColorOpacityInput("100");
+      }
+    }
+  }, [activeTool?.type, selectedElementId, secondaryColor, setBorderColor, setBorderColorOpacity, hasUserChangedBorderColor]);
+
+
+  useEffect(() => {
+    setHasUserChangedFillColor(false);
+    setHasUserChangedBorderColor(false);
+  }, [activeTool?.type, selectedElementId]);
 
   // Update selected element when shape settings change
   useEffect(() => {
@@ -620,6 +626,7 @@ const ShapeOptions: React.FC = () => {
                   setFillColor('#ffffff');
                   setFillColorOpacity(0);
                   setTempFillColorOpacityInput("0");
+                  setHasUserChangedFillColor(true); 
                 }}
               >
                 Transparent
@@ -629,6 +636,7 @@ const ShapeOptions: React.FC = () => {
               color={fillColor === 'transparent' ? '#ffffff' : fillColor}
               setColor={(newColor) => {
                 setFillColor(newColor);
+                setHasUserChangedFillColor(true); 
                 if (newColor === 'transparent') {
                   setFillColorOpacity(0);
                   setTempFillColorOpacityInput("0");
@@ -700,6 +708,7 @@ const ShapeOptions: React.FC = () => {
                   setBorderColor('#ffffff');
                   setBorderColorOpacity(0);
                   setTempBorderColorOpacityInput("0");
+                  setHasUserChangedBorderColor(true); 
                 }}
               >
                 Transparent
@@ -709,6 +718,7 @@ const ShapeOptions: React.FC = () => {
               color={borderColor === 'transparent' ? '#ffffff' : borderColor}
               setColor={(newColor) => {
                 setBorderColor(newColor);
+                setHasUserChangedBorderColor(true); 
                 if (newColor === 'transparent') {
                   setBorderColorOpacity(0);
                   setTempBorderColorOpacityInput("0");
@@ -850,4 +860,4 @@ const ShapeOptions: React.FC = () => {
   );
 };
 
-export default ShapeOptions; 
+export default ShapeOptions;
