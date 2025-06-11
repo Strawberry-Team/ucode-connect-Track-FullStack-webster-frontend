@@ -27,6 +27,7 @@ import Header from "./file-options"
 import { useElementsManager } from "@/context/elements-manager-context"
 import SampleAssetsModal from "@/components/tool-controls/left-toolbar/sample-assets-modal"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { useUser } from "@/context/user-context"
 
 // Define known shape types for checking activeElement.type
 const knownShapeTypes: string[] = [
@@ -72,6 +73,7 @@ const Toolbar: React.FC = () => {
     const [isPrimaryPickerOpen, setIsPrimaryPickerOpen] = useState(false)
     const [isSecondaryPickerOpen, setIsSecondaryPickerOpen] = useState(false)
     const [showSampleAssetsModal, setShowSampleAssetsModal] = useState(false)
+    const { loggedInUser } = useUser()
 
     const tools = [
         {
@@ -304,16 +306,19 @@ const Toolbar: React.FC = () => {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
-                                onClick={() => setShowSampleAssetsModal(true)}
-                            >
-                                <SwatchBook className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
-                            </Button>
+                            <div className="w-10 h-10">
+                                <Button
+                                    variant="ghost"
+                                    className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
+                                    onClick={() => setShowSampleAssetsModal(true)}
+                                    disabled={!loggedInUser}
+                                >
+                                    <SwatchBook className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
+                                </Button>
+                            </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={12}>
-                            <p>Sample Assets</p>
+                            <p>{loggedInUser ? "Sample Assets" : "Please log in to access Sample Assets"}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

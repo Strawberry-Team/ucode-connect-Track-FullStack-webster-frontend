@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend, CirclePlay, CirclePlus, Plus, Play, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-
+import {  User } from 'lucide-react';
 import { Shield, FileText, Lock, Users, Database, Eye, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 
@@ -722,16 +722,194 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                         <p className="text-gray-300 leading-relaxed text-left">{feature.description}</p>
                                     </div>
                                 </div>
-
-
                             </motion.div>
                         ))}
                     </div>
                 </div>
             </section>
 
+            <section className="py-20 px-6">
+                <div className="max-w-7xl mx-auto">
+                    <motion.div
+                        className="text-center mb-16"
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        viewport={{ once: true }}
+                    >
+                        <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+                            <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Compare Possibilities</span>
+                        </h2>
+                        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+                            See what's available for everyone and what unlocks with an account
+                        </p>
+                    </motion.div>
 
-            <section id="team" className="py-20 px-6">
+                    <div className="max-w-5xl mx-auto">
+                        {/* Header */}
+                        <div className="grid grid-cols-3 gap-6 mb-8">
+                            <div className="text-center">
+                            </div>
+                            <motion.div
+                                className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.6, delay: 0.1 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="w-16 h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <User className="!h-8 !w-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">Guest User</h3>
+                                <p className="text-gray-300 text-sm">No account required</p>
+                            </motion.div>
+                            <motion.div
+                                className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.6, delay: 0.2 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
+                                <div className="relative z-10">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle className="w-8 h-8 " />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Registered User</h3>
+                                    <p className="text-blue-100 text-sm">Full access unlocked</p>
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        {/* Features comparison */}
+                        <div className="space-y-6">
+                            {/* Watermark feature */}
+                            <motion.div
+                                className="grid grid-cols-3 gap-6 items-center"
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: 0.3 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                                            <Image className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-white">Project Export</h4>
+                                            <p className="text-gray-300 text-sm">Save your creations</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <AlertCircle className="w-5 h-5 text-orange-400" />
+                                        <span className="text-orange-400 font-semibold">With Watermark</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">Flowy logo included</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
+                                    <div className="relative z-10">
+                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                            <CheckCircle className="w-5 h-5 text-green-400" />
+                                            <span className="text-green-400 font-semibold">Clean Export</span>
+                                        </div>
+                                        <p className="text-blue-100 text-sm">No watermark</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            {/* Export formats */}
+                            <motion.div
+                                className="grid grid-cols-3 gap-6 items-center"
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: 0.4 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                                            <FileText className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-white">Export Formats</h4>
+                                            <p className="text-gray-300 text-sm">Available file types</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
+                                    <div className="flex flex-wrap justify-center gap-2 mb-2">
+                                        <span className="px-3 py-1 bg-gray-600 text-white text-xs rounded-full">PNG</span>
+                                        <span className="px-3 py-1 bg-gray-600 text-white text-xs rounded-full">JPG</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">Basic formats</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
+                                    <div className="relative z-10">
+                                        <div className="flex flex-wrap justify-center gap-2 mb-2">
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">PDF</span>
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">JSON</span>
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">WEBP</span>
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">SVG</span>
+                                        </div>
+                                        <p className="text-blue-100 text-sm">Additional formats</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            {/* Image search */}
+                            <motion.div
+                                className="grid grid-cols-3 gap-6 items-center"
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: 0.5 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-white">Image Search</h4>
+                                            <p className="text-gray-300 text-sm">Pixabay & Unsplash integration</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        <span className="text-red-400 font-semibold">Not Available</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">Upload only</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
+                                    <div className="relative z-10">
+                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                            <CheckCircle className="w-5 h-5 text-green-400" />
+                                            <span className="text-green-400 font-semibold">Full Access</span>
+                                        </div>
+                                        <p className="text-blue-100 text-sm">Search millions of images</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        
+                    </div>
+                </div>
+            </section>
+
+            <section id="team" className="py-20 px-6 bg-[#25282C]">
                 <div className="max-w-7xl mx-auto">
                     <motion.div
                         className="text-center mb-16"
@@ -785,7 +963,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                 </div>
             </section>
 
-            <section className="py-20 px-6 bg-[#25282C]">
+            <section className="py-20 px-6">
                 <div className="max-w-4xl mx-auto text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}

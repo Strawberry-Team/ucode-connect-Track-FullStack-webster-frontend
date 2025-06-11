@@ -13,6 +13,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Template } from '@/types/dashboard';
 import { SearchIcon, ChevronDownIcon, ChevronUpIcon, Settings2, FunnelPlus, Square, RectangleHorizontal, RectangleVertical, X } from 'lucide-react';
+import { useUser } from "@/context/user-context"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const allTemplates: Record<string, Template[]> = {
   recommended: [
@@ -101,19 +108,6 @@ interface CreateProjectModalProps {
   onCreate: (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => void;
 }
 
-type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images' | 'sample-backgrounds';
-
-const tabs = [
-  { id: 'recommended' as TabType, label: 'Recommended' },
-  { id: 'photo' as TabType, label: 'Photo' },
-  { id: 'social' as TabType, label: 'Social' },
-  { id: 'web' as TabType, label: 'Web' },
-  { id: 'print' as TabType, label: 'Print' },
-  { id: 'video' as TabType, label: 'Video' },
-  { id: 'sample-images' as TabType, label: 'Sample Elements' },
-  { id: 'sample-backgrounds' as TabType, label: 'Sample Backgrounds' },
-];
-
 interface PixabayImage {
   id: number;
   webformatURL: string;
@@ -156,6 +150,21 @@ interface UnsplashResponse {
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
+  const { loggedInUser } = useUser()
+
+  type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images' | 'sample-backgrounds';
+
+  const tabs = [
+    { id: 'recommended' as TabType, label: 'Recommended' },
+    { id: 'photo' as TabType, label: 'Photo' },
+    { id: 'social' as TabType, label: 'Social' },
+    { id: 'web' as TabType, label: 'Web' },
+    { id: 'print' as TabType, label: 'Print' },
+    { id: 'video' as TabType, label: 'Video' },
+    { id: 'sample-images' as TabType, label: 'Sample Elements', disabled: !loggedInUser },
+    { id: 'sample-backgrounds' as TabType, label: 'Sample Backgrounds', disabled: !loggedInUser },
+  ];
+
   const [projectName, setProjectName] = useState<string>('');
   const [canvasWidth, setCanvasWidth] = useState<string>('');
   const [canvasHeight, setCanvasHeight] = useState<string>('');
@@ -193,6 +202,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const [hasSearchedUnsplash, setHasSearchedUnsplash] = useState<boolean>(false);
 
   const currentTemplates = allTemplates[activeTab] || [];
+
 
   // Check if Unsplash API key is configured
   const isUnsplashConfigured = () => {
@@ -911,24 +921,60 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
           {/* Tabs */}
           <div className="flex border-b border-[#4A4D54FF]">
             {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleTabClick(tab.id)}
-                className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
-                  ${activeTab === tab.id
-                    ? 'text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md'
-                    : 'text-gray-400 border-transparent hover:border-gray-500'
-                  }
-                  `}
-                tabIndex={0}
-                aria-label={`Switch to ${tab.label} tab`}
-              >
-                <span className="flex items-center gap-2">
-                  {tab.label}
-                  {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>}
-                </span>
-              </button>
+              <div key={tab.id} className="flex">
+                {tab.disabled ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex">
+                          <button
+                            onClick={() => !tab.disabled && handleTabClick(tab.id)}
+                            onKeyDown={(e) => !tab.disabled && (e.key === 'Enter' || e.key === ' ') && handleTabClick(tab.id)}
+                            className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
+                    ${activeTab === tab.id
+                                ? 'text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md'
+                                : 'text-gray-400 border-transparent hover:border-gray-500'
+                              }
+                    ${tab.disabled ? 'opacity-50  hover:text-gray-400 hover:border-transparent' : ''}`}
+                            tabIndex={tab.disabled ? -1 : 0}
+                            aria-label={`Switch to ${tab.label} tab`}
+                            disabled={tab.disabled}
+                          >
+                            <span className="flex items-center gap-2">
+                              {tab.label}
+                              {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
+                                <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+                              )}
+                            </span>
+                          </button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" align="center" >
+                        <p>Sign in to access {tab.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <button
+                    onClick={() => handleTabClick(tab.id)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleTabClick(tab.id)}
+                    className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
+            ${activeTab === tab.id
+                        ? 'text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md'
+                        : 'text-gray-400 border-transparent hover:border-gray-500'
+                      }`}
+                    tabIndex={0}
+                    aria-label={`Switch to ${tab.label} tab`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {tab.label}
+                      {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
+                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </DialogHeader>
