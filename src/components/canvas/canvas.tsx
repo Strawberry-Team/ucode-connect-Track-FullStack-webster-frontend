@@ -399,29 +399,29 @@ const Canvas: React.FC = () => {
 
             setIsExporting(true)
 
-            const stage = stageRef.current
-
             try {
-                // Hide background pattern during export to get transparent background
-                const backgroundNode = stage.findOne(".background-pattern") as Konva.Rect | null
-                const wasBackgroundVisible = backgroundNode?.visible()
-                if (backgroundNode) {
-                    backgroundNode.visible(false)
+                let dataURL: string
+
+                if (format === "png") {
+                    // For PNG - create export with transparent background
+                    dataURL = await createExportDataURL("png")
+                } else if (format === "jpg") {
+                    // For JPG - create export with white background
+                    dataURL = await createExportDataURL("jpg")
+                } else if (format === "pdf") {
+                    // For PDF - create export with transparent background for now
+                    dataURL = await createExportDataURL("png")
                 }
 
-                await new Promise((resolve) => setTimeout(resolve, 50))
+                // Add watermark if user is not logged in
+                if (!loggedInUser && (format === "png" || format === "jpg")) {
+                    dataURL = await addWatermark(dataURL!, contextStageSize.width, contextStageSize.height, format)
+                }
 
                 switch (format) {
                     case "png":
-                        let pngDataURL = stage.toDataURL({ mimeType: "image/png", quality: 1 })
-
-                        // Add watermark if user is not logged in
-                        if (!loggedInUser) {
-                            pngDataURL = await addWatermark(pngDataURL, contextStageSize.width, contextStageSize.height, "png")
-                        }
-
                         const pngFileName = `project_${Date.now()}.png`
-                        downloadDataURL(pngDataURL, pngFileName)
+                        downloadDataURL(dataURL!, pngFileName)
                         toast.success("Success", {
                             description: `Project saved as "${pngFileName}"`,
                             duration: 5000,
@@ -429,21 +429,8 @@ const Canvas: React.FC = () => {
                         break
 
                     case "jpg":
-                        // JPG doesn't support transparency, so we add white background for JPG
-                        if (backgroundNode) {
-                            backgroundNode.visible(true)
-                            backgroundNode.fillPatternImage(null)
-                            backgroundNode.fill("white")
-                        }
-                        let jpgDataURL = stage.toDataURL({ mimeType: "image/jpeg", quality: 0.9 })
-
-                        // Add watermark if user is not logged in
-                        if (!loggedInUser) {
-                            jpgDataURL = await addWatermark(jpgDataURL, contextStageSize.width, contextStageSize.height, "jpg")
-                        }
-
                         const jpgFileName = `project_${Date.now()}.jpg`
-                        downloadDataURL(jpgDataURL, jpgFileName)
+                        downloadDataURL(dataURL!, jpgFileName)
                         toast.success("Success", {
                             description: `Project saved as "${jpgFileName}"`,
                             duration: 5000,
@@ -451,14 +438,29 @@ const Canvas: React.FC = () => {
                         break
 
                     case "pdf":
-                        const pdfCanvas = stage.toCanvas()
+                        const canvas = document.createElement('canvas')
+                        const ctx = canvas.getContext('2d')
+                        const img = new Image()
+                        
+                        await new Promise<void>((resolve) => {
+                            img.onload = () => {
+                                canvas.width = contextStageSize.width
+                                canvas.height = contextStageSize.height
+                                ctx!.fillStyle = 'white'
+                                ctx!.fillRect(0, 0, canvas.width, canvas.height)
+                                ctx!.drawImage(img, 0, 0)
+                                resolve()
+                            }
+                            img.src = dataURL!
+                        })
+
                         const pdf = new jsPDF({
                             orientation: contextStageSize.width > contextStageSize.height ? "landscape" : "portrait",
                             unit: "px",
                             format: [contextStageSize.width, contextStageSize.height],
                         })
 
-                        pdf.addImage(pdfCanvas.toDataURL("image/png"), "PNG", 0, 0, contextStageSize.width, contextStageSize.height)
+                        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, contextStageSize.width, contextStageSize.height)
 
                         const pdfFileName = `project_${Date.now()}.pdf`
                         pdf.save(pdfFileName)
@@ -471,22 +473,8 @@ const Canvas: React.FC = () => {
                     default:
                         throw new Error(`Unsupported export format: ${format}`)
                 }
-
-                // Restore background pattern after export
-                if (backgroundNode && wasBackgroundVisible) {
-                    backgroundNode.visible(true)
-                    backgroundNode.fill(null)
-                    backgroundNode.fillPatternImage(createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF"))
-                }
             } catch (error) {
                 console.error("Error exporting canvas:", error)
-                // Restore background even if export failed
-                const backgroundNode = stage.findOne(".background-pattern") as Konva.Rect | null
-                if (backgroundNode) {
-                    backgroundNode.visible(true)
-                    backgroundNode.fill(null)
-                    backgroundNode.fillPatternImage(createCheckerboardPattern(7, "#1D2023FF", "#2D2F34FF"))
-                }
                 throw error
             } finally {
                 setIsExporting(false)
@@ -494,6 +482,70 @@ const Canvas: React.FC = () => {
         },
         [contextStageSize, loggedInUser],
     )
+
+    // Helper function to create export data URL without affecting visible canvas
+    const createExportDataURL = useCallback(async (format: "png" | "jpg"): Promise<string> => {
+        if (!stageRef.current || !contextStageSize) {
+            throw new Error("Canvas not ready for export")
+        }
+
+        const stage = stageRef.current
+
+        // Temporarily hide background pattern to get clean export without affecting visible canvas
+        const backgroundNode = stage.findOne(".background-pattern") as Konva.Rect | null
+        const wasBackgroundVisible = backgroundNode?.visible()
+        
+        let cleanDataURL: string
+        
+        try {
+            // Hide background pattern very briefly (won't be visible to user due to RAF timing)
+            if (backgroundNode) {
+                backgroundNode.visible(false)
+                stage.batchDraw() // Force immediate redraw
+            }
+
+            // Get clean stage content without background pattern
+            cleanDataURL = stage.toDataURL({ 
+                mimeType: "image/png",
+                quality: 1
+            })
+        } finally {
+            // Immediately restore background pattern
+            if (backgroundNode && wasBackgroundVisible) {
+                backgroundNode.visible(true)
+                stage.batchDraw() // Force immediate redraw
+            }
+        }
+
+        // Create final export canvas
+        return new Promise((resolve, reject) => {
+            const stageImage = new Image()
+            
+            stageImage.onload = () => {
+                const exportCanvas = document.createElement('canvas')
+                exportCanvas.width = contextStageSize.width
+                exportCanvas.height = contextStageSize.height
+                const exportCtx = exportCanvas.getContext('2d')!
+
+                // Set background based on format
+                if (format === "jpg") {
+                    exportCtx.fillStyle = 'white'
+                    exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height)
+                }
+
+                // Draw the clean stage content
+                exportCtx.drawImage(stageImage, 0, 0)
+                
+                resolve(exportCanvas.toDataURL(format === "jpg" ? "image/jpeg" : "image/png", format === "jpg" ? 0.9 : 1))
+            }
+            
+            stageImage.onerror = () => {
+                reject(new Error("Failed to load stage image for export"))
+            }
+            
+            stageImage.src = cleanDataURL
+        })
+    }, [contextStageSize])
 
     // Helper function to download data URL
     const downloadDataURL = (dataURL: string, filename: string) => {
@@ -2059,17 +2111,6 @@ const Canvas: React.FC = () => {
                     onScroll={(newPos) => handleScroll("vertical", newPos)}
                 />
             </div>
-            {/* Export loading overlay */}
-            {isExporting && (
-                <div className="absolute inset-0 bg-[#292C31FF]/80 flex items-center justify-center z-[9999]">
-                    <div className="bg-[#25282CFF] border-2 border-gray-600 rounded-lg p-8 flex flex-col items-center gap-4 shadow-xl">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                        <span className="text-lg font-medium text-gray-200">
-                            {!loggedInUser ? "Preparing export with watermark..." : "Preparing export..."}
-                        </span>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
