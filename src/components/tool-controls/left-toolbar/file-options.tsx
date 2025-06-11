@@ -24,7 +24,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip" // Import Tooltip components
 
-const Header: React.FC = () => {
+const FileOptions: React.FC = () => {
     const [isFileMenuOpen, setIsFileMenuOpen] = useState(false)
     const { loggedInUser } = useUser()
     const { importFile, exportFile } = useTool()
@@ -61,14 +61,21 @@ const Header: React.FC = () => {
 
     return (
         <TooltipProvider>
-            <div className="flex flex-col items-center space-y-1">
+            <div className="flex flex-col items-center justify-center space-y-1">
                 {menus.map((menu) => (
                     <DropdownMenu key={menu.id} open={isFileMenuOpen} onOpenChange={setIsFileMenuOpen}>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className={`h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] ${isFileMenuOpen ? "bg-[#414448FF]" : ""}`}>
-                                <FolderOpen className={`!w-4.5 !h-4.5 ${isFileMenuOpen ? "text-white" : "text-[#A8AAACFF] group-hover:text-white"}`} />
-                            </Button>
-                        </DropdownMenuTrigger>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className={`h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] ${isFileMenuOpen ? "bg-[#414448FF]" : ""}`}>
+                                        <FolderOpen className={`!w-4.5 !h-4.5 ${isFileMenuOpen ? "text-white" : "text-[#A8AAACFF] group-hover:text-white"}`} />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" align="center">
+                                <p>Import/Export File</p>
+                            </TooltipContent>
+                        </Tooltip>
                         <DropdownMenuContent
                             side="right"
                             align="end"
@@ -185,4 +192,4 @@ const Header: React.FC = () => {
     )
 }
 
-export default Header
+export default FileOptions

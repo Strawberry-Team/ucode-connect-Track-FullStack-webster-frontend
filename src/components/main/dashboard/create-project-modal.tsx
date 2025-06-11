@@ -98,7 +98,7 @@ const allTemplates: Record<string, Template[]> = {
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, width: number, height: number, backgroundImage?: string) => void;
+  onCreate: (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => void;
 }
 
 type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images' | 'sample-backgrounds';
@@ -239,7 +239,46 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     const width = parseInt(canvasWidth, 10) || 1000;
     const height = parseInt(canvasHeight, 10) || 1000;
 
-    onCreate(name, width, height);
+    let backgroundImage: string | undefined;
+    let shouldSetAsBackground = false;
+
+    // If user selected an image from Pixabay and wants it as background
+    if (selectedImageId && setAsBackground) {
+      const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
+      if (selectedImage) {
+        backgroundImage = selectedImage.webformatURL;
+        shouldSetAsBackground = true;
+      }
+    }
+
+    // If user selected an image from Unsplash and wants it as background
+    if (selectedUnsplashImageId && setUnsplashAsBackground) {
+      const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
+      if (selectedImage) {
+        backgroundImage = selectedImage.urls.regular;
+        shouldSetAsBackground = true;
+      }
+    }
+
+    // If user selected an image from Pixabay but doesn't want it as background
+    if (selectedImageId && !setAsBackground) {
+      const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
+      if (selectedImage) {
+        backgroundImage = selectedImage.webformatURL;
+        shouldSetAsBackground = false;
+      }
+    }
+
+    // If user selected an image from Unsplash but doesn't want it as background
+    if (selectedUnsplashImageId && !setUnsplashAsBackground) {
+      const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
+      if (selectedImage) {
+        backgroundImage = selectedImage.urls.regular;
+        shouldSetAsBackground = false;
+      }
+    }
+
+    onCreate(name, width, height, backgroundImage, shouldSetAsBackground);
     onClose();
   };
 
@@ -410,7 +449,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       // Use environment variable or fallback to provided API key
       const apiKey = import.meta.env.VITE_PIXABAY_API_KEY || '50744411-22fa88c98bef12cb7a788e3e6';
       const encodedQuery = encodeURIComponent(query.trim());
-      
+
       // Build query parameters
       const params = new URLSearchParams();
       params.append('key', apiKey);
@@ -521,12 +560,12 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     }
   }, [activeTab]);
 
-  // Auto-search for "background" when opening Sample Backgrounds tab (only if no search was done before)
+  // Auto-search for "simple" when opening Sample Backgrounds tab (only if no search was done before)
   useEffect(() => {
     if (activeTab === 'sample-backgrounds' && !hasSearchedUnsplash && !unsplashSearchQuery && unsplashImages.length === 0) {
       if (isUnsplashConfigured()) {
-        setUnsplashSearchQuery('background');
-        searchUnsplashImages('background');
+        setUnsplashSearchQuery('simple');
+        searchUnsplashImages('simple');
         setHasSearchedUnsplash(true);
       }
     }
@@ -638,12 +677,14 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
     if (projectName.trim() && widthNum > 0 && heightNum > 0) {
       let backgroundImage: string | undefined;
+      let shouldSetAsBackground = false;
 
       // If user selected an image from Pixabay and wants it as background
       if (selectedImageId && setAsBackground) {
         const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
         if (selectedImage) {
           backgroundImage = selectedImage.webformatURL;
+          shouldSetAsBackground = true;
         }
       }
 
@@ -652,10 +693,29 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
         if (selectedImage) {
           backgroundImage = selectedImage.urls.regular;
+          shouldSetAsBackground = true;
         }
       }
 
-      onCreate(projectName.trim(), widthNum, heightNum, backgroundImage);
+      // If user selected an image from Pixabay but doesn't want it as background
+      if (selectedImageId && !setAsBackground) {
+        const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
+        if (selectedImage) {
+          backgroundImage = selectedImage.webformatURL;
+          shouldSetAsBackground = false;
+        }
+      }
+
+      // If user selected an image from Unsplash but doesn't want it as background
+      if (selectedUnsplashImageId && !setUnsplashAsBackground) {
+        const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
+        if (selectedImage) {
+          backgroundImage = selectedImage.urls.regular;
+          shouldSetAsBackground = false;
+        }
+      }
+
+      onCreate(projectName.trim(), widthNum, heightNum, backgroundImage, shouldSetAsBackground);
       onClose();
     } else {
       alert('Please fill in all fields correctly.');
@@ -901,7 +961,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
             <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
               <h3 className="text-lg font-medium text-gray-300">Or specify your parameters</h3>
               <div className="w-full">
-                <Label htmlFor="projectName" className="text-gray-300 mb-1.5 block">Project name</Label>
+                <Label htmlFor="projectName" className="text-gray-400 mb-1.5 block">Project name</Label>
                 <Input
                   id="projectName"
                   type="text"
@@ -914,7 +974,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
               </div>
               <div className="grid grid-cols-2 gap-4 w-full">
                 <div>
-                  <Label htmlFor="canvasWidth" className="text-gray-300 mb-1.5 block">Width (px)</Label>
+                  <Label htmlFor="canvasWidth" className="text-gray-400 mb-1.5 block">Width (px)</Label>
                   <Input
                     id="canvasWidth"
                     type="number"
@@ -927,7 +987,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   />
                 </div>
                 <div>
-                  <Label htmlFor="canvasHeight" className="text-gray-300 mb-1.5 block">Height (px)</Label>
+                  <Label htmlFor="canvasHeight" className="text-gray-400 mb-1.5 block">Height (px)</Label>
                   <Input
                     id="canvasHeight"
                     type="number"
@@ -948,18 +1008,18 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         {activeTab === 'sample-backgrounds' && (
           <div className="flex md:flex-row flex-col gap-6 p-6 pb-0 flex-1 overflow-hidden">
             <div className="flex flex-col md:w-[700px]">
-            <div className="text-xs text-gray-400 text-end -mt-4.5 mb-0.5 mr-12.5 p-0">
-                  Powered by{' '}
-                  <a
-                    href="https://unsplash.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    Unsplash
-                  </a>
-                </div>
-                
+              <div className="text-xs text-gray-400 text-end -mt-4.5 mb-0.5 mr-12.5 p-0">
+                Powered by{' '}
+                <a
+                  href="https://unsplash.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Unsplash
+                </a>
+              </div>
+
               {/* Search Input */}
               <div className="mb-2">
                 <div className="flex gap-2 mb-3">
@@ -989,8 +1049,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
                 {/* Quick Search Buttons */}
                 <div className="space-y-0 flex items-center justify-between mb-0">
-                  <div className="flex flex-wrap gap-2">
-                    {['background', 'abstract', 'texture', 'gradient', 'blur', 'colorful', 'aesthetic', 'pastel',].map((term) => (
+                  <div className="flex flex-wrap gap-1">
+                    {['minimalist', 'abstract', 'texture', 'gradient', 'blur', 'aesthetic', 'pastel', 'colorful', 'neutral'].map((term) => (
                       <button
                         key={term}
                         onClick={() => handleUnsplashQuickSearch(term)}
@@ -1241,32 +1301,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
             <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
               <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
-
-              {/* Background Checkbox */}
-              {selectedUnsplashImageId && (
-                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="setUnsplashAsBackground"
-                      checked={setUnsplashAsBackground}
-                      onCheckedChange={handleUnsplashBackgroundCheckboxChange}
-                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                    />
-                    <Label
-                      htmlFor="setUnsplashAsBackground"
-                      className="text-sm text-gray-300 cursor-pointer"
-                    >
-                      Set as background
-                    </Label>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    This image will be used as the background of your canvas
-                  </p>
-                </div>
-              )}
-
               <div className="w-full">
-                <Label htmlFor="projectNameUnsplash" className="text-gray-300 mb-1.5 block">Project name</Label>
+                <Label htmlFor="projectNameUnsplash" className="text-gray-400 mb-1.5 block">Project name</Label>
                 <Input
                   id="projectNameUnsplash"
                   type="text"
@@ -1279,7 +1315,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
               </div>
               <div className="grid grid-cols-2 gap-4 w-full">
                 <div>
-                  <Label htmlFor="canvasWidthUnsplash" className="text-gray-300 mb-1.5 block">Width (px)</Label>
+                  <Label htmlFor="canvasWidthUnsplash" className="text-gray-400 mb-1.5 block">Width (px)</Label>
                   <Input
                     id="canvasWidthUnsplash"
                     type="number"
@@ -1292,7 +1328,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   />
                 </div>
                 <div>
-                  <Label htmlFor="canvasHeightUnsplash" className="text-gray-300 mb-1.5 block">Height (px)</Label>
+                  <Label htmlFor="canvasHeightUnsplash" className="text-gray-400 mb-1.5 block">Height (px)</Label>
                   <Input
                     id="canvasHeightUnsplash"
                     type="number"
@@ -1306,11 +1342,34 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                 </div>
               </div>
 
+              {/* Background Checkbox */}
               {selectedUnsplashImageId && (
-                <div className="w-full p-3 bg-[#4A4D54FF] rounded-lg">
-                  <div className="text-sm text-gray-300 mb-2">Selected Background:</div>
-                  <div className="text-xs text-gray-400">
+                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="setUnsplashAsBackground"
+                      checked={setUnsplashAsBackground}
+                      onCheckedChange={handleUnsplashBackgroundCheckboxChange}
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                    <Label
+                      htmlFor="setUnsplashAsBackground"
+                      className="text-sm text-gray-400 cursor-pointer"
+                    >
+                      Set as background
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {selectedUnsplashImageId && (
+                <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
+                  <div className="text-sm text-gray-400 mb-2">Selected Image:</div>
+                  <div className="text-sm text-white-100 mb-1 break-words">
                     {unsplashImages.find(img => img.id === selectedUnsplashImageId)?.alt_description || 'Background image'}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    by {unsplashImages.find(img => img.id === selectedUnsplashImageId)?.user.name || 'Unsplash'}
                   </div>
                 </div>
               )}
@@ -1333,6 +1392,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   Pixabay
                 </a>
               </div>
+
               {/* Search Input */}
               <div className="mb-2">
                 <div className="flex gap-2 mb-3">
@@ -1362,8 +1422,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
                 {/* Quick Search Buttons */}
                 <div className="space-y-0 flex items-center justify-between mb-0">
-                  <div className="flex flex-wrap gap-2">
-                    {['ui element', 'button', 'icon', 'social media', 'mobile', 'sticker', 'interface', 'design'].map((term) => (
+                  <div className="flex flex-wrap gap-1">
+                    {['button', 'icon', 'mockup', 'social media', 'mobile', 'sticker', 'interface', 'design', '2d', '3d'].map((term) => (
                       <button
                         key={term}
                         onClick={() => handleQuickSearch(term)}
@@ -1404,6 +1464,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                 </div>
                 {showPixabayAdvancedFilters && (
                   <div className="mt-3 p-2 bg-[#3A3D44FF] rounded-lg border border-2 border-[#4A4D54FF] space-y-4">
+
                     {/* Color Filters */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -1603,31 +1664,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
             <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
               <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
 
-              {/* Background Checkbox */}
-              {selectedImageId && (
-                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="setAsBackground"
-                      checked={setAsBackground}
-                      onCheckedChange={handleBackgroundCheckboxChange}
-                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                    />
-                    <Label
-                      htmlFor="setAsBackground"
-                      className="text-sm text-gray-300 cursor-pointer"
-                    >
-                      Set as background
-                    </Label>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    This image will be used as the background of your canvas
-                  </p>
-                </div>
-              )}
-
               <div className="w-full">
-                <Label htmlFor="projectNameSample" className="text-gray-300 mb-1.5 block">Project name</Label>
+                <Label htmlFor="projectNameSample" className="text-gray-400 mb-1.5 block">Project name</Label>
                 <Input
                   id="projectNameSample"
                   type="text"
@@ -1640,7 +1678,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
               </div>
               <div className="grid grid-cols-2 gap-4 w-full">
                 <div>
-                  <Label htmlFor="canvasWidthSample" className="text-gray-300 mb-1.5 block">Width (px)</Label>
+                  <Label htmlFor="canvasWidthSample" className="text-gray-400 mb-1.5 block">Width (px)</Label>
                   <Input
                     id="canvasWidthSample"
                     type="number"
@@ -1653,7 +1691,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   />
                 </div>
                 <div>
-                  <Label htmlFor="canvasHeightSample" className="text-gray-300 mb-1.5 block">Height (px)</Label>
+                  <Label htmlFor="canvasHeightSample" className="text-gray-400 mb-1.5 block">Height (px)</Label>
                   <Input
                     id="canvasHeightSample"
                     type="number"
@@ -1667,11 +1705,34 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                 </div>
               </div>
 
+              {/* Background Checkbox */}
               {selectedImageId && (
-                <div className="w-full p-3 bg-[#4A4D54FF] rounded-lg">
-                  <div className="text-sm text-gray-300 mb-2">Selected Image:</div>
-                  <div className="text-xs text-gray-400">
-                    {pixabayImages.find(img => img.id === selectedImageId)?.tags}
+                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="setAsBackground"
+                      checked={setAsBackground}
+                      onCheckedChange={handleBackgroundCheckboxChange}
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                    <Label
+                      htmlFor="setAsBackground"
+                      className="text-sm text-gray-400 cursor-pointer"
+                    >
+                      Set as background
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {selectedImageId && (
+                <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
+                  <div className="text-sm text-gray-400 mb-2">Selected Image:</div>
+                  <div className="text-sm text-white-100 mb-1 break-words">
+                    {pixabayImages.find(img => img.id === selectedImageId)?.tags || 'Background image'}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    by {pixabayImages.find(img => img.id === selectedImageId)?.user || 'Pixabay'}
                   </div>
                 </div>
               )}

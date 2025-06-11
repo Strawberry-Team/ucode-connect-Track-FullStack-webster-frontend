@@ -7,7 +7,7 @@ import type Konva from "konva";
 
 // Define the type for the context value
 interface ElementsManagerContextValue {
-  addElement: (type: ShapeType | "text" | "custom-image", pos: { x: number; y: number }, text?: string, settings?: Partial<ElementData>) => void;
+  addElement: (type: ShapeType | "text" | "custom-image", pos: { x: number; y: number }, text?: string, settings?: Partial<ElementData>, onAdded?: (elementId: string) => void) => void;
   updateElement: (id: string, newData: Partial<ElementData>) => void;
   updateTextElement: (id: string, newText: string) => void;
   updateSelectedElementStyle: (styleUpdate: Partial<ElementData>) => void;
@@ -28,6 +28,9 @@ interface ElementsManagerContextValue {
   bringElementToFront: (elementId: string) => void;
   sendElementToBack: (elementId: string) => void;
   sendElementToBackground: (elementId: string) => void;
+  adjustImageToCanvas: (imageId: string) => void;
+  fitImageToCanvas: (imageId: string) => void;
+  setImageAsBackground: (imageId: string) => void;
 }
 
 // Create the context with a default value of undefined

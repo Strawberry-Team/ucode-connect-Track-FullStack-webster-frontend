@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTool } from "@/context/tool-context";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ import {
   ChevronDown,
   Image as ImageIcon,
   MousePointerClick,
-  Layers
+  Layers,
+  Maximize2,
+  Crop,
+  Repeat
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -36,7 +39,7 @@ const scrollbarStyles = `
 
 const ImageTransformOptions: React.FC = () => {
   const { renderableObjects } = useTool();
-  const { selectedElementId, updateElement, getElementById, setSelectedElementId, sendElementToBackground, setHoveredElementId } = useElementsManager();
+  const { selectedElementId, updateElement, getElementById, setSelectedElementId, sendElementToBackground, setHoveredElementId, adjustImageToCanvas, fitImageToCanvas } = useElementsManager();
 
   const [selectedImageId, setSelectedImageId] = useState<string | null>(selectedElementId);
 
@@ -49,6 +52,30 @@ const ImageTransformOptions: React.FC = () => {
   const availableImages = renderableObjects.filter(obj =>
     !('tool' in obj) && obj.type === 'custom-image'
   ) as ElementData[];
+
+  // Calculate dynamic width for dropdown menu based on longest filename
+  const dropdownWidth = useMemo(() => {
+    // Calculate minimum width based on "Select Image" button
+    // Button content: Icon (14px) + "Select Image" text + ChevronDown (12px) + gaps (2*2px) + padding (2*12px = 24px)
+    const selectImageButtonText = "Select Image";
+    const selectImageButtonWidth = 14 + selectImageButtonText.length * 7 + 12 + 4 + 24; // Approximate calculation
+    
+    if (availableImages.length === 0) return Math.max(150, selectImageButtonWidth);
+
+    const longestFileName = availableImages.reduce((longest, image) => {
+      const fileName = image.fileName || `Image ${image.id.slice(-6)}`;
+      return fileName.length > longest.length ? fileName : longest;
+    }, "");
+
+    // Calculate width based on longest filename: icon (14px) + text + padding + safe margin
+    const fileNameWidth = 14 + longestFileName.length * 8 + 40; // Icon + text + padding
+    
+    // Use the larger of: select button width, filename width, or absolute minimum (150px)
+    const minWidth = Math.max(150, selectImageButtonWidth, fileNameWidth);
+    const maxWidth = 400; // Increased maximum width to accommodate longer filenames
+    
+    return Math.min(minWidth, maxWidth);
+  }, [availableImages]);
 
   // Get the currently selected image element
   const currentSelectedImageId = selectedImageId || selectedElementId;
@@ -103,21 +130,24 @@ const ImageTransformOptions: React.FC = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="bg-[#292C31FF] border-2 border-[#44474AFF] text-white text-xs p-0 relative m-0"
+            style={{ width: `${dropdownWidth}px` }}
           >
             <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
-            <ScrollArea className="h-[150px] w-[150px]">
+            <ScrollArea className="h-[150px]" style={{ width: `${dropdownWidth}px` }}>
               <div className="p-1">
                 {availableImages.map((image) => (
                   <DropdownMenuItem
                     key={image.id}
-                    className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-2 !text-white focus:bg-[#3F434AFF] cursor-pointer whitespace-nowrap overflow-hidden"
                     onClick={() => handleSelectImage(image.id)}
                     onMouseEnter={() => setHoveredElementId(image.id)}
                     onMouseLeave={() => setHoveredElementId(null)}
                   >
-                    <ImageIcon size={14} />
-                    <div className="flex flex-col items-start">
-                      <span className="text-xs">{image.fileName || `Image ${image.id.slice(-6)}`}</span>
+                    <ImageIcon size={14} className="flex-shrink-0" />
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                      <span className="text-xs truncate w-full" title={image.fileName || `Image ${image.id.slice(-6)}`}>
+                        {image.fileName || `Image ${image.id.slice(-6)}`}
+                      </span>
                     </div>
                   </DropdownMenuItem>
                 ))}
@@ -220,6 +250,30 @@ const ImageTransformOptions: React.FC = () => {
     }
   };
 
+  const handleAdjustToCanvas = () => {
+    if (currentSelectedImageId) {
+      console.log('ImageTransform: Adjusting image to canvas', {
+        imageId: currentSelectedImageId.slice(-6),
+        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
+      });
+      adjustImageToCanvas(currentSelectedImageId);
+    } else {
+      console.warn('ImageTransform: No image selected for adjust operation');
+    }
+  };
+
+  const handleFitToCanvas = () => {
+    if (currentSelectedImageId) {
+      console.log('ImageTransform: Fitting image to canvas', {
+        imageId: currentSelectedImageId.slice(-6),
+        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
+      });
+      fitImageToCanvas(currentSelectedImageId);
+    } else {
+      console.warn('ImageTransform: No image selected for fit operation');
+    }
+  };
+
   return (
     <div className="flex items-center space-x-2 bg-[#292C31FF] text-white h-full">
       {/* Selected Image Indicator */}
@@ -239,7 +293,7 @@ const ImageTransformOptions: React.FC = () => {
                 className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
                 onClick={handleSelectDifferentImage}
               >
-                <MousePointerClick size={14} />
+                <Repeat size={14} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -258,7 +312,7 @@ const ImageTransformOptions: React.FC = () => {
             <Button
               onClick={handleSetAsBackground}
               variant="ghost"
-              className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              className="flex items-center justify-center mr-4 px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
             >
               <Layers size={14} />
             </Button>
@@ -268,6 +322,44 @@ const ImageTransformOptions: React.FC = () => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+
+      {/* Resize Controls */}
+      <div className="flex items-center space-x-4">
+        <Label className="text-xs text-[#D4D4D5FF]">Resize:</Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleAdjustToCanvas}
+                variant="ghost"
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              >
+                <Crop size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Adjust to canvas (fit within)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleFitToCanvas}
+                variant="ghost"
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              >
+                <Maximize2 size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Fit to canvas (cover entire)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {/* Flip Controls */}
       <div className="flex items-center space-x-4 ml-3">

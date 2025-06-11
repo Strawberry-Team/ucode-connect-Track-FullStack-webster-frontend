@@ -10,6 +10,12 @@ import {
     Waves,
     Droplet,
     Image,
+    MousePointer,
+    RotateCcw,
+    SquareRoundCorner,
+    Droplets,
+    RotateCw,
+    SwatchBook
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
@@ -17,7 +23,10 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import ColorPicker from "@/components/color-picker/color-picker"
 import { useState } from "react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import Header from "./option-panels/file-options"
+import Header from "./file-options"
+import { useElementsManager } from "@/context/elements-manager-context"
+import SampleAssetsModal from "@/components/tool-controls/left-toolbar/sample-assets-modal"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 // Define known shape types for checking activeElement.type
 const knownShapeTypes: string[] = [
@@ -59,8 +68,10 @@ const Toolbar: React.FC = () => {
         stageSize
     } = useTool()
 
+    const { addElement } = useElementsManager()
     const [isPrimaryPickerOpen, setIsPrimaryPickerOpen] = useState(false)
     const [isSecondaryPickerOpen, setIsSecondaryPickerOpen] = useState(false)
+    const [showSampleAssetsModal, setShowSampleAssetsModal] = useState(false)
 
     const tools = [
         {
@@ -287,9 +298,38 @@ const Toolbar: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col items-end mt-auto mb-2">
+
+            <div className="flex flex-col items-center justify-center mt-auto mb-2">
+                {/* Sample Assets Button */}
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
+                                onClick={() => setShowSampleAssetsModal(true)}
+                            >
+                                <SwatchBook className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center" sideOffset={12}>
+                            <p>Sample Assets</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
+                {/* File Options */}
                 <Header />
             </div>
+
+            {/* Sample Assets Modal */}
+            {showSampleAssetsModal && (
+                <SampleAssetsModal
+                    isOpen={showSampleAssetsModal}
+                    onClose={() => setShowSampleAssetsModal(false)}
+                    onAddToCanvas={addElement}
+                />
+            )}
         </div>
     )
 }

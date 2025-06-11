@@ -82,6 +82,7 @@ const useElementsManagement = ({
     shapeTransform: toolShapeTransform,
     activeTool,
     addHistoryEntry,
+    stageSize: contextStageSize,
   } = useTool();
 
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -139,7 +140,8 @@ const useElementsManagement = ({
     type: ShapeType | "text" | "custom-image",
     pos: { x: number; y: number },
     text?: string,
-    settings?: Partial<ElementData>
+    settings?: Partial<ElementData>,
+    onAdded?: (elementId: string) => void
   ) => {
     const id = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const currentOpacity = (settings?.opacity !== undefined ? settings.opacity : (toolOpacity ?? defaultPropOpacity)) / 100;
@@ -185,11 +187,17 @@ const useElementsManagement = ({
             ...baseElement,
             type: "custom-image",
             src: settings?.src,
-            borderColor: settings?.borderColor ?? toolShapeBorderColor,
+            fileName: settings?.fileName,
+            borderColor: settings?.borderColor ?? toolShapeBorderColor ?? "#000000",
             borderColorOpacity: settings?.borderColorOpacity ?? toolBorderColorOpacity ?? defaultBorderColorOpacity,
             borderWidth: settings?.borderWidth ?? 0,
             borderStyle: settings?.borderStyle ?? "hidden",
             color: settings?.color ?? defaultPropColor,
+            // Image transform properties
+            flipHorizontal: settings?.flipHorizontal ?? false,
+            flipVertical: settings?.flipVertical ?? false,
+            brightness: settings?.brightness ?? 0,
+            contrast: settings?.contrast ?? 0,
         };
     } else {
       const shapeFillColor = settings?.fillColor ?? (toolFillColor === 'transparent' ? undefined : toolFillColor) ?? defaultFillColor;
@@ -221,6 +229,11 @@ const useElementsManagement = ({
             elementType: type
         }
     });
+
+    // Call the onAdded callback if provided
+    if (onAdded) {
+      onAdded(newElementToAdd.id);
+    }
   },
   [
     addRenderableObjectToContext, 
@@ -591,31 +604,164 @@ const useElementsManagement = ({
     updateElement(selectedElementId, { x: newX, y: newY });
   }, [selectedElementId, getElementById, updateElement]);
 
-      return {
-      addElement,
-      updateElement,
-      updateTextElement,
-      updateSelectedElementStyle,
-      removeElement: removeSelectedElement,
-      selectedElementId,
-      setSelectedElementId,
-      hoveredElementId,
-      setHoveredElementId,
-      handleDragEnd,
-      handleElementClick,
-      removeSelectedElement,
-      flipSelectedElementHorizontal,
-      flipSelectedElementVertical,
-      rotateSelectedElement,
-      duplicateSelectedElement,
-      clearElements,
-      getElementById,
-      getElementDataFromRenderables,
-      bringElementToFront,
-      sendElementToBack,
-      sendElementToBackground,
-      moveSelectedElement,
-    };
+  const adjustImageToCanvas = useCallback((imageId: string) => {
+    if (!contextStageSize) {
+      console.warn('ElementsManagement: No canvas size available for adjust operation');
+      return;
+    }
+
+    const elementResult = getElementById(imageId);
+    if (!elementResult || elementResult.element.type !== 'custom-image') {
+      console.warn('ElementsManagement: Element not found or not an image for adjust operation');
+      return;
+    }
+
+    const image = elementResult.element;
+    const canvasWidth = contextStageSize.width;
+    const canvasHeight = contextStageSize.height;
+    const imageWidth = image.width || 100;
+    const imageHeight = image.height || 100;
+
+    // Calculate scale to fit image within canvas (adjust - scale by longest side to fit completely)
+    const scaleX = canvasWidth / imageWidth;
+    const scaleY = canvasHeight / imageHeight;
+    const scale = Math.min(scaleX, scaleY); // Use minimum to ensure image fits completely within canvas
+
+    const newWidth = imageWidth * scale;
+    const newHeight = imageHeight * scale;
+
+    // Center the image on canvas - for center-based coordinate system, x,y should be the canvas center
+    const canvasCenterX = canvasWidth / 2;
+    const canvasCenterY = canvasHeight / 2;
+    const newX = canvasCenterX; // Image x,y represents the center, not top-left
+    const newY = canvasCenterY; // Image x,y represents the center, not top-left
+
+    console.log('ElementsManagement: Adjusting image to canvas', {
+      imageId: imageId.slice(-6),
+      originalSize: { width: imageWidth, height: imageHeight },
+      canvasSize: { width: canvasWidth, height: canvasHeight },
+      canvasCenter: { x: canvasCenterX, y: canvasCenterY },
+      scale,
+      newSize: { width: newWidth, height: newHeight },
+      newPosition: { x: newX, y: newY },
+      imageCenter: { x: newX, y: newY } // x,y IS the center for center-based coordinates
+    });
+
+    updateElement(imageId, {
+      x: newX,
+      y: newY,
+      width: newWidth,
+      height: newHeight,
+      scaleX: 1, // Reset any existing scale transformations
+      scaleY: 1,
+      rotation: 0, // Reset rotation for clean adjustment
+    });
+  }, [contextStageSize, getElementById, updateElement]);
+
+  const fitImageToCanvas = useCallback((imageId: string) => {
+    if (!contextStageSize) {
+      console.warn('ElementsManagement: No canvas size available for fit operation');
+      return;
+    }
+
+    const elementResult = getElementById(imageId);
+    if (!elementResult || elementResult.element.type !== 'custom-image') {
+      console.warn('ElementsManagement: Element not found or not an image for fit operation');
+      return;
+    }
+
+    const image = elementResult.element;
+    const canvasWidth = contextStageSize.width;
+    const canvasHeight = contextStageSize.height;
+    const imageWidth = image.width || 100;
+    const imageHeight = image.height || 100;
+
+    // Calculate scale to cover entire canvas (fit - scale by shortest side to cover canvas completely)
+    const scaleX = canvasWidth / imageWidth;
+    const scaleY = canvasHeight / imageHeight;
+    const scale = Math.max(scaleX, scaleY); // Use maximum to ensure image covers entire canvas
+
+    const newWidth = imageWidth * scale;
+    const newHeight = imageHeight * scale;
+
+    // Center the image on canvas - for center-based coordinate system, x,y should be the canvas center
+    const canvasCenterX = canvasWidth / 2;
+    const canvasCenterY = canvasHeight / 2;
+    const newX = canvasCenterX; // Image x,y represents the center, not top-left
+    const newY = canvasCenterY; // Image x,y represents the center, not top-left
+
+    console.log('ElementsManagement: Fitting image to canvas', {
+      imageId: imageId.slice(-6),
+      originalSize: { width: imageWidth, height: imageHeight },
+      canvasSize: { width: canvasWidth, height: canvasHeight },
+      canvasCenter: { x: canvasCenterX, y: canvasCenterY },
+      scale,
+      newSize: { width: newWidth, height: newHeight },
+      newPosition: { x: newX, y: newY },
+      imageCenter: { x: newX, y: newY }, // x,y IS the center for center-based coordinates
+      extendsCanvas: { 
+        right: (newX + newWidth / 2) > canvasWidth, 
+        bottom: (newY + newHeight / 2) > canvasHeight,
+        left: (newX - newWidth / 2) < 0,
+        top: (newY - newHeight / 2) < 0
+      }
+    });
+
+    updateElement(imageId, {
+      x: newX,
+      y: newY,
+      width: newWidth,
+      height: newHeight,
+      scaleX: 1, // Reset any existing scale transformations
+      scaleY: 1,
+      rotation: 0, // Reset rotation for clean fit
+    });
+  }, [contextStageSize, getElementById, updateElement]);
+
+  const setImageAsBackground = useCallback((imageId: string) => {
+    console.log('ElementsManagement: Setting image as background', {
+      imageId: imageId.slice(-6)
+    });
+
+    // Send element to background using existing functionality
+    sendElementToBackground(imageId);
+
+    // Optionally adjust image to fit canvas as background
+    if (contextStageSize) {
+      fitImageToCanvas(imageId);
+    }
+
+    console.log('ElementsManagement: Image successfully set as background');
+  }, [sendElementToBackground, fitImageToCanvas, contextStageSize]);
+
+  return {
+    addElement,
+    updateElement,
+    updateTextElement,
+    updateSelectedElementStyle,
+    removeElement: removeSelectedElement,
+    selectedElementId,
+    setSelectedElementId,
+    hoveredElementId,
+    setHoveredElementId,
+    handleDragEnd,
+    handleElementClick,
+    removeSelectedElement,
+    flipSelectedElementHorizontal,
+    flipSelectedElementVertical,
+    rotateSelectedElement,
+    duplicateSelectedElement,
+    clearElements,
+    getElementById,
+    getElementDataFromRenderables,
+    bringElementToFront,
+    sendElementToBack,
+    sendElementToBackground,
+    moveSelectedElement,
+    adjustImageToCanvas,
+    fitImageToCanvas,
+    setImageAsBackground,
+  };
 };
 
 const getElementTypeName = (type: string): string => {

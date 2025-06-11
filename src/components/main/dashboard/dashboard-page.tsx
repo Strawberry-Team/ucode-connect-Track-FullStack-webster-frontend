@@ -182,11 +182,99 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
     }
   };
 
-  const handleCreateNewProject = (name: string, width: number, height: number) => {
+  const handleCreateNewProject = (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => {
     resetAllToolSettings();
     setInitialImage(null);
     setStageSize({ width, height });
     setIsCanvasManuallyResized(true);
+
+    // Якщо є backgroundImage, створюємо custom-image елемент
+    if (backgroundImage) {
+      const img = new window.Image();
+      img.onload = () => {
+        // Вираховуємо розміри зображення для canvas
+        let imageWidth, imageHeight;
+        
+        if (setAsBackground) {
+          // Якщо встановлено як фон, розтягуємо на весь canvas
+          imageWidth = width;
+          imageHeight = height;
+        } else {
+          // Якщо не фон, зберігаємо пропорції та масштабуємо при потребі
+          imageWidth = img.naturalWidth;
+          imageHeight = img.naturalHeight;
+          
+          // Масштабуємо зображення, якщо воно більше за canvas
+          const maxSize = Math.min(width * 0.9, height * 0.9); // 90% від розміру canvas
+          if (img.naturalWidth > maxSize || img.naturalHeight > maxSize) {
+            const scaleX = maxSize / img.naturalWidth;
+            const scaleY = maxSize / img.naturalHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            imageWidth = img.naturalWidth * scale;
+            imageHeight = img.naturalHeight * scale;
+          }
+        }
+        
+        // Центруємо зображення на canvas
+        const imageCenterX = width / 2;
+        const imageCenterY = height / 2;
+        
+        // Створюємо елемент зображення
+        const imageElement = {
+          id: `background-image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          type: "custom-image",
+          x: imageCenterX,
+          y: imageCenterY,
+          width: imageWidth,
+          height: imageHeight,
+          src: backgroundImage,
+          borderColor: "#000000",
+          borderColorOpacity: 100,
+          borderWidth: 0,
+          borderStyle: "hidden",
+          color: "#000000",
+          opacity: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          draggable: true,
+          preserveAspectRatio: true,
+        } as ElementData;
+        
+        // Додаємо зображення в renderable objects
+        // Завжди додаємо зображення спочатку
+        setRenderableObjects([imageElement]);
+        
+        // Якщо користувач хоче встановити як фон, то зображення вже на першому шарі
+        // Якщо ні - то воно буде як звичайний елемент, але все одно буде першим доданим
+        
+        // Додаємо в історію
+        clearHistory();
+        addHistoryEntry({
+          type: 'elementAdded',
+          description: setAsBackground ? `Added background image` : `Added image`,
+          linesSnapshot: [imageElement]
+        });
+
+        // Показуємо повідомлення про успіх
+        toast.success("Success", {
+          description: setAsBackground ? `Background image added to project` : `Image added to project`,
+          duration: 3000,
+        });
+      };
+      
+      img.onerror = () => {
+        console.error("Error loading background image");
+        toast.error("Image Error", {
+          description: "Could not load the background image",
+          duration: 3000,
+        });
+      };
+      
+      img.src = backgroundImage;
+    }
+
     navigate(`/canvas?name=${encodeURIComponent(name)}`);
   };
 

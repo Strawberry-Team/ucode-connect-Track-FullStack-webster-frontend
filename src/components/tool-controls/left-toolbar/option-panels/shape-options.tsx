@@ -3,7 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Square, ChevronDown, Circle, ImageIcon, FileUp, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareUserRoundIcon as SquareRoundCorner, Squircle, Trash2, Copy, PlusCircle, RotateCcw } from 'lucide-react';
+import { Square, ChevronDown, Circle, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareRoundCorner, Squircle, Trash2, Copy, PlusCircle, RotateCcw } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -315,9 +315,13 @@ const ShapeOptions: React.FC = () => {
         });
 
         // Check if selectedElement.type is a valid ShapeType before casting
-        const knownShapeTypes: readonly ShapeType[] = ["rectangle", "square", "rounded-rectangle", "squircle", "circle", "line", "triangle", "pentagon", "hexagon", "star", "heart", "arrow", "custom-image"];
+        // Exclude custom-image from being set as shapeType to prevent it appearing in shape selector
+        const knownShapeTypes: readonly ShapeType[] = ["rectangle", "square", "rounded-rectangle", "squircle", "circle", "line", "triangle", "pentagon", "hexagon", "star", "heart", "arrow"];
         if (knownShapeTypes.includes(selectedElement.type as ShapeType)) {
           setShapeType(selectedElement.type as ShapeType);
+        } else if (selectedElement.type === "custom-image") {
+          // Don't set shapeType for custom-image elements, keep current shape selection
+          console.log('ImageTransform: Custom image selected, keeping current shape type:', shapeType);
         }
 
       }
@@ -345,7 +349,13 @@ const ShapeOptions: React.FC = () => {
   useEffect(() => {
     setHasUserChangedFillColor(false);
     setHasUserChangedBorderColor(false);
-  }, [activeTool?.type, selectedElementId]);
+    
+    // Reset shapeType to rectangle if it's set to custom-image (which shouldn't be selectable)
+    if (shapeType === "custom-image") {
+      setShapeType("rectangle");
+      console.log('ShapeOptions: Reset shapeType from custom-image to rectangle');
+    }
+  }, [activeTool?.type, selectedElementId, shapeType, setShapeType]);
 
   // Update selected element when shape settings change
   useEffect(() => {
