@@ -793,7 +793,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             >
                                 <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                                        <div className="p-3 bg-gradient-to-br from-orange-500 to-blue-800 rounded-xl">
                                             <Image className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
@@ -832,7 +832,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             >
                                 <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+                                        <div className="p-3 bg-gradient-to-br from-yellow-500 to-emerald-800 rounded-xl">
                                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                             </svg>
@@ -845,10 +845,10 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 </div>
                                 <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
                                     <div className="flex items-center justify-center gap-2 mb-2">
-                                        <CircleX className="w-5 h-5 text-red-400" />
-                                        <span className="text-red-400 font-semibold">Not Available</span>
+                                        <Lock className="w-5 h-5 text-red-400" />
+                                        <span className="text-red-400 font-semibold">Locked</span>
                                     </div>
-                                    <p className="text-gray-300 text-sm">Upload only</p>
+                                    <p className="text-gray-300 text-sm">Image import only</p>
                                 </div>
                                 <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
@@ -872,22 +872,20 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             >
                                 <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl">
+                                        <div className="p-3 bg-gradient-to-br from-pink-500 to-purple-800 rounded-xl">
                                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <h4 className="text-lg font-bold text-white">AI Image Generator</h4>
+                                            <h4 className="text-lg font-bold text-white">AI-Generated Images</h4>
                                             <p className="text-gray-300 text-sm">Pollinations.ai integration</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
                                     <div className="flex items-center justify-center gap-2 mb-2">
-                                        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
+                                        <Lock className="w-5 h-5 text-red-400" />
                                         <span className="text-red-400 font-semibold">Locked</span>
                                     </div>
                                     <p className="text-gray-300 text-sm">Registration required</p>
@@ -897,7 +895,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     <div className="relative z-10">
                                         <div className="flex items-center justify-center gap-2 mb-2">
                                             <CheckCircle className="w-5 h-5 text-green-400" />
-                                            <span className="text-green-400 font-semibold">Generate AI Images</span>
+                                            <span className="text-green-400 font-semibold">Full Access</span>
                                         </div>
                                         <p className="text-blue-100 text-sm">Create images from text prompts</p>
                                     </div>
@@ -914,7 +912,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             >
                                 <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                                        <div className="p-3 bg-gradient-to-br from-orange-500 to-brown-800 rounded-xl">
                                             <FileText className="w-6 h-6 text-white" />
                                         </div>
                                         <div>

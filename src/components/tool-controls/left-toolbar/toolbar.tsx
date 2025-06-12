@@ -12,7 +12,9 @@ import {
     Image,
     SwatchBook,
     Wand2,
-    Zap
+    Zap,
+    Share,
+    Share2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
@@ -24,6 +26,7 @@ import FileOptions from "./file-options"
 import { useElementsManager } from "@/context/elements-manager-context"
 import SampleAssetsModal from "@/components/tool-controls/left-toolbar/sample-assets-modal"
 import AIImageGeneratorModal from "@/components/tool-controls/left-toolbar/ai-image-generator-modal"
+import ShareModal from "./share-modal"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useUser } from "@/context/user-context"
 
@@ -72,6 +75,7 @@ const Toolbar: React.FC = () => {
     const [isSecondaryPickerOpen, setIsSecondaryPickerOpen] = useState(false)
     const [showSampleAssetsModal, setShowSampleAssetsModal] = useState(false)
     const [showAIAssetsModal, setShowAIAssetsModal] = useState(false)
+    const [showShareModal, setShowShareModal] = useState(false)
     const { loggedInUser } = useUser()
 
     const tools = [
@@ -345,6 +349,26 @@ const Toolbar: React.FC = () => {
                     </Tooltip>
                 </TooltipProvider>
 
+                {/* Share Button */}
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="w-10 h-10 relative">
+                                <Button
+                                    variant="ghost"
+                                    className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
+                                    onClick={() => setShowShareModal(true)}
+                                >
+                                    <Share2 className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
+                                </Button>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center" sideOffset={12}>
+                            <p>Share your project worldwide</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
                 {/* File Options */}
                 <FileOptions />
             </div>
@@ -361,6 +385,14 @@ const Toolbar: React.FC = () => {
                 <AIImageGeneratorModal
                     isOpen={showAIAssetsModal}
                     onClose={() => setShowAIAssetsModal(false)}
+                />
+            )}
+            
+            {/* Share Modal */}
+            {showShareModal && (
+                <ShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
                 />
             )}
         </div>

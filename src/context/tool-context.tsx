@@ -258,6 +258,10 @@ interface ToolContextValue {
     hasUnsavedChanges: boolean;
     setHasUnsavedChanges: (hasChanges: boolean) => void;
     registerProjectSaver: (saver: () => Promise<string | null>) => void;
+
+    // Stage reference for sharing functionality
+    stageRef: React.MutableRefObject<any> | null;
+    registerStageRef: (ref: React.MutableRefObject<any>) => void;
 }
 
 const ToolContext = createContext<ToolContextValue | undefined>(undefined)
@@ -446,6 +450,13 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
 
     const registerProjectSaver = useCallback((saver: () => Promise<string | null>) => {
         projectSaverRef.current = saver;
+    }, []);
+
+    // Stage reference for sharing functionality
+    const [stageRef, setStageRef] = useState<React.MutableRefObject<any> | null>(null);
+
+    const registerStageRef = useCallback((ref: React.MutableRefObject<any>) => {
+        setStageRef(ref);
     }, []);
 
     const addHistoryEntry = useCallback((entryData: Omit<HistoryEntry, 'id' | 'timestamp' | 'isActive'>) => {
@@ -1133,6 +1144,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setHasEverSelectedTool,
                 projectName,
                 setProjectName,
+
+                // Stage reference for sharing functionality
+                stageRef,
+                registerStageRef,
             }}
         >
             {children}

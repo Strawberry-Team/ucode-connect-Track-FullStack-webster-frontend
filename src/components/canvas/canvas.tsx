@@ -110,6 +110,7 @@ const Canvas: React.FC = () => {
         borderStyle,
         cornerRadius,
         registerCanvasExporter,
+        registerStageRef,
     } = toolContext
 
     const drawingManager = useDrawing({
@@ -1062,6 +1063,13 @@ const Canvas: React.FC = () => {
     useEffect(() => {
         registerCanvasExporter(exportCanvas)
     }, [registerCanvasExporter, exportCanvas])
+
+    // Register stage reference for sharing functionality
+    useEffect(() => {
+        if (registerStageRef) {
+            registerStageRef(stageRef);
+        }
+    }, [registerStageRef]);
 
     useEffect(() => {
         const checkAndUpdateImageStatus = () => {
