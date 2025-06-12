@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Template } from '@/types/dashboard';
-import { SearchIcon, ChevronDownIcon, ChevronUpIcon, Settings2, FunnelPlus, Square, RectangleHorizontal, RectangleVertical, X } from 'lucide-react';
+import { SearchIcon, ChevronDownIcon, ChevronUpIcon, Settings2, FunnelPlus, Square, RectangleHorizontal, RectangleVertical, X, Loader2, Sparkles, ImageIcon, Zap } from 'lucide-react';
 import { useUser } from "@/context/user-context"
 import {
   Tooltip,
@@ -149,27 +149,50 @@ interface UnsplashResponse {
   results: UnsplashImage[];
 }
 
+// AI Image Generation interfaces
+interface GenerateImageOptions {
+  prompt: string;
+  backgroundType?: "none" | "white" | "black" | "gradient";
+  width?: number;
+  height?: number;
+  noLogo?: boolean;
+}
+
+interface GeneratedImage {
+  url: string;
+  prompt: string;
+  timestamp: number;
+  id: string;
+}
+
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
   const { loggedInUser } = useUser()
 
-  type TabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video' | 'sample-images' | 'sample-backgrounds';
+  type TabType = 'canvas-resolutions' | 'sample-images' | 'sample-backgrounds' | 'ai-images';
+  type SubTabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video';
 
   const tabs = [
-    { id: 'recommended' as TabType, label: 'Recommended' },
-    { id: 'photo' as TabType, label: 'Photo' },
-    { id: 'social' as TabType, label: 'Social' },
-    { id: 'web' as TabType, label: 'Web' },
-    { id: 'print' as TabType, label: 'Print' },
-    { id: 'video' as TabType, label: 'Video' },
+    { id: 'canvas-resolutions' as TabType, label: 'Canvas Resolutions' },
     { id: 'sample-images' as TabType, label: 'Sample Elements', disabled: !loggedInUser },
     { id: 'sample-backgrounds' as TabType, label: 'Sample Backgrounds', disabled: !loggedInUser },
+    { id: 'ai-images' as TabType, label: 'AI-Generated Images', disabled: !loggedInUser },
+  ];
+
+  const templateTabs = [
+    { id: 'recommended' as SubTabType, label: 'Recommended' },
+    { id: 'photo' as SubTabType, label: 'Photo' },
+    { id: 'social' as SubTabType, label: 'Social Media' },
+    { id: 'web' as SubTabType, label: 'Web' },
+    { id: 'print' as SubTabType, label: 'Print' },
+    { id: 'video' as SubTabType, label: 'Video' },
   ];
 
   const [projectName, setProjectName] = useState<string>('');
   const [canvasWidth, setCanvasWidth] = useState<string>('');
   const [canvasHeight, setCanvasHeight] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('recommended');
+  const [activeTab, setActiveTab] = useState<TabType>('canvas-resolutions');
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>('recommended');
 
   // Pixabay API states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -201,8 +224,136 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const [hasSearchedPixabay, setHasSearchedPixabay] = useState<boolean>(false);
   const [hasSearchedUnsplash, setHasSearchedUnsplash] = useState<boolean>(false);
 
-  const currentTemplates = allTemplates[activeTab] || [];
+  // AI Image Generation states
+  const [aiPrompt, setAIPrompt] = useState<string>('');
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [selectedAIImageId, setSelectedAIImageId] = useState<string | null>(null);
+  const [setAIAsBackground, setSetAIAsBackground] = useState<boolean>(false);
+  const [isLoadingAIImages, setIsLoadingAIImages] = useState<boolean>(false);
+  const [aiError, setAIError] = useState<string>('');
+  const [generatingCount, setGeneratingCount] = useState<number>(0);
 
+  // AI generation settings
+  const [aiBackgroundType, setAIBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none");
+  const [aiImageSize, setAIImageSize] = useState<string>("1024x1024");
+
+  // States for displaying current settings (used only after generation)
+  const [generatedAIBackgroundType, setGeneratedAIBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none");
+  const [generatedAIImageSize, setGeneratedAIImageSize] = useState<string>("1024x1024");
+
+  const currentTemplates = allTemplates[activeSubTab] || [];
+
+  // AI Image Generation options - matching ai-image-generator-modal.tsx
+  const aiBackgroundOptions = [
+    { value: "none", label: "Standard", textColor: "text-gray-300" },
+    { value: "white", label: "White", textColor: "text-white" },
+    { value: "black", label: "Black", textColor: "text-gray-900" },
+    { value: "gradient", label: "Gradient", textColor: "bg-gradient-to-r from-yellow-400 to-blue-400 bg-clip-text text-transparent" },
+  ];
+
+  // AI Image size options
+  const aiImageSizes = [
+    { value: "512x512", label: "512×512", icon: Square },
+    { value: "768x768", label: "768×768", icon: Square },
+    { value: "1024x1024", label: "1024×1024", icon: Square },
+    { value: "768x1024", label: "768×1024", icon: RectangleVertical },
+    { value: "1024x1536", label: "1024×1536", icon: RectangleVertical },
+  ];
+
+
+  // AI Image generation function - copied from ai-image-generator-modal.tsx
+  const generateImage = async (options: GenerateImageOptions): Promise<GeneratedImage> => {
+    const { prompt, backgroundType = "none", width = 1024, height = 1024, noLogo = true } = options;
+
+    if (!prompt.trim()) {
+      throw new Error("Please enter an image description");
+    }
+
+    let finalPrompt = prompt;
+
+    // Add background specification if selected
+    if (backgroundType !== "none") {
+      if (backgroundType === "white") {
+        finalPrompt += ", on pure white background";
+      } else if (backgroundType === "black") {
+        finalPrompt += ", on pure black background";
+      } else if (backgroundType === "gradient") {
+        finalPrompt += ", on colorful gradient background";
+      }
+    }
+
+    const timestamp = Date.now();
+    const randomSeed = Math.floor(Math.random() * 1000000);
+
+    // Fixed URL with correct size parameters
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=${width}&height=${height}&seed=${timestamp + randomSeed}&nologo=true`;
+
+    return {
+      url: imageUrl,
+      prompt: finalPrompt,
+      timestamp: Date.now(),
+      id: `ai-image-${timestamp}-${randomSeed}`,
+    };
+  };
+
+  // AI Image generation - multiple images
+  const generateMultipleImages = async (count = 3) => {
+    if (!aiPrompt.trim()) {
+      setAIError("Please enter an image description");
+      return;
+    }
+
+    setIsLoadingAIImages(true);
+    setAIError("");
+    setGeneratedImages([]);
+    setSelectedAIImageId(null);
+    setGeneratingCount(0);
+
+    // Save settings for display
+    setGeneratedAIBackgroundType(aiBackgroundType);
+    setGeneratedAIImageSize(aiImageSize);
+
+    try {
+      const [width, height] = aiImageSize.split("x").map(Number);
+
+      const options: GenerateImageOptions = {
+        prompt: aiPrompt,
+        backgroundType: aiBackgroundType,
+        width,
+        height,
+        noLogo: true,
+      };
+
+      // Generate images simultaneously
+      const imagePromises = Array.from({ length: count }, async (_, index) => {
+        try {
+          const result = await generateImage(options);
+          // Add image as soon as it is ready
+          setGeneratedImages((prev) => [...prev, result]);
+          setGeneratingCount((prev) => prev + 1);
+          return result;
+        } catch (error) {
+          console.error(`Error generating image ${index + 1}:`, error);
+          setGeneratingCount((prev) => prev + 1);
+          return null;
+        }
+      });
+
+      // Wait for all generations to complete
+      const results = await Promise.allSettled(imagePromises);
+      const successCount = results.filter((result) => result.status === "fulfilled" && result.value !== null).length;
+
+      if (successCount === 0) {
+        throw new Error("Failed to generate any images");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An error occurred while generating images";
+      setAIError(errorMessage);
+    } finally {
+      setIsLoadingAIImages(false);
+      setGeneratingCount(0);
+    }
+  };
 
   // Check if Unsplash API key is configured
   const isUnsplashConfigured = () => {
@@ -284,6 +435,24 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
       if (selectedImage) {
         backgroundImage = selectedImage.urls.regular;
+        shouldSetAsBackground = false;
+      }
+    }
+
+    // If user selected an AI image and wants it as background
+    if (selectedAIImageId && setAIAsBackground) {
+      const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
+      if (selectedImage) {
+        backgroundImage = selectedImage.url;
+        shouldSetAsBackground = true;
+      }
+    }
+
+    // If user selected an AI image but doesn't want it as background
+    if (selectedAIImageId && !setAIAsBackground) {
+      const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
+      if (selectedImage) {
+        backgroundImage = selectedImage.url;
         shouldSetAsBackground = false;
       }
     }
@@ -422,7 +591,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setCanvasWidth('1000');
     setCanvasHeight('1000');
     setSelectedTemplateId(null);
-    setActiveTab('recommended');
+    setActiveTab('canvas-resolutions');
+    setActiveSubTab('recommended');
     // Reset Pixabay states
     setSearchQuery('');
     setPixabayImages([]);
@@ -443,6 +613,16 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setSelectedOrientation('');
     setShowAdvancedFilters(false);
     setHasSearchedUnsplash(false);
+    // Reset AI states
+    setAIPrompt('');
+    setGeneratedImages([]);
+    setSelectedAIImageId(null);
+    setSetAIAsBackground(false);
+    setAIError('');
+    setAIBackgroundType('none');
+    setAIImageSize('1024x1024');
+    setGeneratedAIBackgroundType('none');
+    setGeneratedAIImageSize('1024x1024');
   };
 
   // Function to search Pixabay images
@@ -725,6 +905,24 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         }
       }
 
+      // If user selected an AI image and wants it as background
+      if (selectedAIImageId && setAIAsBackground) {
+        const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
+        if (selectedImage) {
+          backgroundImage = selectedImage.url;
+          shouldSetAsBackground = true;
+        }
+      }
+
+      // If user selected an AI image but doesn't want it as background
+      if (selectedAIImageId && !setAIAsBackground) {
+        const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
+        if (selectedImage) {
+          backgroundImage = selectedImage.url;
+          shouldSetAsBackground = false;
+        }
+      }
+
       onCreate(projectName.trim(), widthNum, heightNum, backgroundImage, shouldSetAsBackground);
       onClose();
     } else {
@@ -741,7 +939,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       setSelectedImageId(null);
       setSetAsBackground(false);
       // Only reset filters and close advanced menu when switching to non-sample tabs
-      if (tabId !== 'sample-backgrounds') {
+      if (tabId !== 'sample-backgrounds' && tabId !== 'ai-images') {
         setSelectedPixabayColor('');
         setSelectedPixabayOrientation('');
         setShowPixabayAdvancedFilters(false);
@@ -753,12 +951,23 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       setSelectedUnsplashImageId(null);
       setSetUnsplashAsBackground(false);
       // Only reset filters and close advanced menu when switching to non-sample tabs
-      if (tabId !== 'sample-images') {
+      if (tabId !== 'sample-images' && tabId !== 'ai-images') {
         setSelectedColor('');
         setSelectedOrientation('');
         setShowAdvancedFilters(false);
       }
     }
+
+    // Reset AI selection when switching away from ai-images (but keep generated images)
+    if (tabId !== 'ai-images') {
+      setSelectedAIImageId(null);
+      setSetAIAsBackground(false);
+    }
+  };
+
+  const handleSubTabClick = (subTabId: SubTabType) => {
+    setActiveSubTab(subTabId);
+    setSelectedTemplateId(null); // Reset selected template when switching sub-tabs
   };
 
   const handleImageSelect = (imageId: number) => {
@@ -868,6 +1077,55 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setSelectedPixabayOrientation('');
   };
 
+  // AI Image handlers
+  const handleAIGenerate = () => {
+    generateMultipleImages(3);
+  };
+
+  const handleAIBackgroundTypeSelect = (type: "none" | "white" | "black" | "gradient") => {
+    setAIBackgroundType(type);
+    setSelectedAIImageId(null); // Reset selection when changing background
+    setSetAIAsBackground(false); // Reset background setting
+  };
+
+  const handleAIImageSizeSelect = (size: string) => {
+    setAIImageSize(size);
+    setSelectedAIImageId(null); // Reset selection when changing size
+    setSetAIAsBackground(false); // Reset background setting
+  };
+
+  const handleAIImageSelect = (imageId: string) => {
+    setSelectedAIImageId(imageId);
+    setSelectedTemplateId(null); // Clear template selection
+    setSelectedImageId(null); // Clear Pixabay selection
+    setSelectedUnsplashImageId(null); // Clear Unsplash selection
+
+    // Auto-fill project name and dimensions based on selected image
+    const selectedImage = generatedImages.find(img => img.id === imageId);
+    if (selectedImage) {
+      if (!projectName.trim()) {
+        setProjectName(`AI Generated: ${selectedImage.prompt.slice(0, 30)}...`);
+      }
+      setCanvasWidth(aiImageSize.split('x')[0]);
+      setCanvasHeight(aiImageSize.split('x')[1]);
+    }
+  };
+
+  const handleAIBackgroundCheckboxChange = (checked: boolean) => {
+    setSetAIAsBackground(checked);
+  };
+
+  const handleAIPromptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAIPrompt(e.target.value);
+    setSelectedAIImageId(null); // Clear selection when changing prompt
+  };
+
+  const handleAIKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAIGenerate();
+    }
+  };
+
   const AspectRatioPreview: React.FC<{ width: number; height: number; iconUrl?: string; title?: string, className?: string }> = ({ width, height, iconUrl, title, className }) => {
     const containerHeight = 128;
     const containerPadding = 16;
@@ -926,31 +1184,33 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex">
+                        <div className="flex relative">
                           <button
                             onClick={() => !tab.disabled && handleTabClick(tab.id)}
                             onKeyDown={(e) => !tab.disabled && (e.key === 'Enter' || e.key === ' ') && handleTabClick(tab.id)}
                             className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
-                    ${activeTab === tab.id
+                              ${activeTab === tab.id
                                 ? 'text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md'
                                 : 'text-gray-400 border-transparent hover:border-gray-500'
                               }
-                    ${tab.disabled ? 'opacity-50  hover:text-gray-400 hover:border-transparent' : ''}`}
+                            ${tab.disabled ? 'opacity-50  hover:text-gray-400 hover:border-transparent' : ''}`}
                             tabIndex={tab.disabled ? -1 : 0}
                             aria-label={`Switch to ${tab.label} tab`}
                             disabled={tab.disabled}
                           >
                             <span className="flex items-center gap-2">
                               {tab.label}
-                              {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
-                              )}
                             </span>
                           </button>
+                          {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds' || tab.id === 'ai-images') && (
+                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 m-auto">
+                              <Zap className="w-4 h-4 !text-white" />
+                            </span>
+                          )}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" align="center" >
-                        <p>Sign in to access {tab.label}</p>
+                        <p>Sign in to access {tab.label} tool</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -968,8 +1228,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   >
                     <span className="flex items-center gap-2">
                       {tab.label}
-                      {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                      {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds' || tab.id === 'ai-images') && (
+                        <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
+                          <Zap className="w-4 h-4 !text-white" />
+                        </span>
                       )}
                     </span>
                   </button>
@@ -980,10 +1242,30 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         </DialogHeader>
 
         {/* Template Content */}
-        {activeTab !== 'sample-images' && activeTab !== 'sample-backgrounds' && (
-          <div className="flex md:flex-row flex-col gap-6 p-6 pb-0 flex-1 overflow-hidden">
+        {activeTab === 'canvas-resolutions' && (
+          <div className="flex md:flex-row flex-col gap-6 p-6 py-0 -mt-4 flex-1 overflow-hidden">
             <div className="flex flex-col md:w-[700px]">
-              <div className="flex flex-wrap gap-4 overflow-y-auto max-h-[calc(90vh-12rem)] pr-4 custom-scroll">
+              {/* Sub-tabs for templates */}
+              <div className="flex border-none border-[#4A4D54FF] mb-4">
+                {templateTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleSubTabClick(tab.id)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSubTabClick(tab.id)}
+                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 border-t-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-t-2 focus:bg-[#3A3D44FF] focus:rounded-b-md
+                      ${activeSubTab === tab.id
+                        ? 'text-white border-white border-t-2 bg-[#3A3D44FF] rounded-b-md'
+                        : 'text-gray-400 border-transparent hover:border-gray-500'
+                      }`}
+                    tabIndex={0}
+                    aria-label={`Switch to ${tab.label} sub-tab`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-4 overflow-y-auto max-h-[calc(90vh-16rem)] pr-4 custom-scroll">
                 {currentTemplates.map((template) => (
                   <Card
                     key={template.id}
@@ -1004,7 +1286,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
               </div>
             </div>
 
-            <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
+            <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px] pt-10">
               <h3 className="text-lg font-medium text-gray-300">Or specify your parameters</h3>
               <div className="w-full">
                 <Label htmlFor="projectName" className="text-gray-400 mb-1.5 block">Project name</Label>
@@ -1779,6 +2061,242 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                   </div>
                   <div className="text-sm text-gray-400">
                     by {pixabayImages.find(img => img.id === selectedImageId)?.user || 'Pixabay'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* AI Images */}
+        {activeTab === 'ai-images' && (
+          <div className="flex md:flex-row flex-col gap-6 p-6 pb-0 flex-1 overflow-hidden">
+            <div className="flex flex-col md:w-[700px]">
+              <div className="text-xs text-gray-400 text-end -mt-4.5 mb-0.5 mr-12.5 p-0">
+                Powered by{' '}
+                <a
+                  href="https://pollinations.ai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Pollinations.ai
+                </a>
+              </div>
+
+              {/* Input field for prompt */}
+              <div>
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Input
+                      type="text"
+                      value={aiPrompt}
+                      onChange={handleAIPromptChange}
+                      onKeyPress={handleAIKeyPress}
+                      placeholder="simple aesthetic background, digital art, ui elements"
+                      className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                      disabled={isLoadingAIImages}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleAIGenerate}
+                    disabled={isLoadingAIImages || !aiPrompt.trim()}
+                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2"
+                  >
+                    {isLoadingAIImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  </Button>
+                </div>
+
+                {/* Background options */}
+                <div className="space-y-2 mt-2 flex flex-row items-start justify-start">
+                  <div className="text-gray-400 text-sm flex items-center justify-center mr-2">Background color:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {aiBackgroundOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleAIBackgroundTypeSelect(option.value as any)}
+                        className={`px-1 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                            ${aiBackgroundType === option.value
+                            ? `bg-blue-500/30 border-blue-500 ${option.textColor} shadow-md`
+                            : `bg-[#3A3D44FF] border-[#4A4D54FF] ${option.textColor}`
+                          }`}
+                        disabled={isLoadingAIImages}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Size options */}
+                <div className="space-y-2 mt-2 flex flex-row items-start justify-start">
+                  <div className="text-gray-400 text-sm flex items-center justify-center mr-2">Canvas resolution:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {aiImageSizes.map((size) => {
+                      const Icon = size.icon;
+                      return (
+                        <button
+                          key={size.value}
+                          onClick={() => handleAIImageSizeSelect(size.value)}
+                          className={`flex items-center gap-1 px-1 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                                ${aiImageSize === size.value
+                              ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                              : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                            }`}
+                          disabled={isLoadingAIImages}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {size.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Error */}
+              {aiError && (
+                <div className="text-red-400 text-sm bg-red-500/10 px-3 rounded-md border border-red-500/20 mb-2">
+                  {aiError}
+                </div>
+              )}
+
+              {/* Results - grid of images */}
+              <div className="flex-1 pr-4 mt-2">
+                {generatedImages.length > 0 && (
+                  <div className="text-xs text-gray-400 mb-3 text-center">
+                    Generated {generatedImages.length} images with {" "}
+                    <span className={aiBackgroundOptions.find((opt) => opt.value === generatedAIBackgroundType)?.textColor}>
+                      {aiBackgroundOptions.find((opt) => opt.value === generatedAIBackgroundType)?.label}
+                    </span>{" "}
+                    background color. <br />
+                    <span className="text-yellow-600">Please wait a few seconds</span> for the images to be rendered.
+                  </div>
+                )}
+                {generatedImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {generatedImages.map((image) => (
+                      <Card
+                        key={image.id}
+                        onClick={() => handleAIImageSelect(image.id)}
+                        className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0 
+                                   ${selectedAIImageId === image.id ? "border-blue-500" : "border-[#4A4D54FF] hover:border-gray-600"}`}
+                      >
+                        <CardContent className="p-0">
+                          <div className="aspect-square overflow-hidden">
+                            <img
+                              src={image.url}
+                              alt="Generated AI image"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              loading="lazy"
+                              crossOrigin="anonymous"
+                            />
+                          </div>
+                          <div className="p-2">
+                            <div className="text-xs text-gray-300 truncate" title={image.prompt}>
+                              AI-Generated Image
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {`${generatedAIImageSize} • ${aiBackgroundOptions.find((opt) => opt.value === generatedAIBackgroundType)?.label}`}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {!generatedImages.length && !isLoadingAIImages && (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <ImageIcon className="w-16 h-16 text-gray-500 mb-4" />
+                    <div className="text-gray-400 mb-2">Ready to generate</div>
+                    <div className="text-sm text-gray-500">Enter image description and click generate</div>
+                  </div>
+                )}
+
+                {isLoadingAIImages && (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-4" />
+                    <div className="text-gray-400">Generating images...</div>
+                    <div className="text-sm text-gray-500 mt-2">
+                      {generatingCount > 0 ? `${generatingCount}/3 images ready` : "Starting generation..."}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
+              <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
+              <div className="w-full">
+                <Label htmlFor="projectNameAI" className="text-gray-400 mb-1.5 block">Project name</Label>
+                <Input
+                  id="projectNameAI"
+                  type="text"
+                  value={projectName}
+                  onChange={handleNameChange}
+                  onKeyPress={handleNameKeyPress}
+                  placeholder="My new design"
+                  className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <div>
+                  <Label htmlFor="canvasWidthAI" className="text-gray-400 mb-1.5 block">Width (px)</Label>
+                  <Input
+                    id="canvasWidthAI"
+                    type="number"
+                    value={canvasWidth}
+                    onChange={handleWidthChange}
+                    onKeyPress={handleDimensionKeyPress}
+                    placeholder="1920"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="canvasHeightAI" className="text-gray-400 mb-1.5 block">Height (px)</Label>
+                  <Input
+                    id="canvasHeightAI"
+                    type="number"
+                    value={canvasHeight}
+                    onChange={handleHeightChange}
+                    onKeyPress={handleDimensionKeyPress}
+                    placeholder="1080"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+              </div>
+
+              {/* Background Checkbox */}
+              {selectedAIImageId && (
+                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="setAIAsBackground"
+                      checked={setAIAsBackground}
+                      onCheckedChange={handleAIBackgroundCheckboxChange}
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                    <Label
+                      htmlFor="setAIAsBackground"
+                      className="text-sm text-gray-400 cursor-pointer"
+                    >
+                      Set as background
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {selectedAIImageId && (
+                <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
+                  <div className="text-sm text-gray-400 mb-2">Selected Image:</div>
+                  <div className="text-sm text-white-100 mb-1 break-words">
+                    {generatedImages.find(img => img.id === selectedAIImageId)?.prompt || 'AI-Generated Image'}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    by Pollinations.AI
                   </div>
                 </div>
               )}

@@ -8,6 +8,7 @@ import {
     FileImage,
     Image,
     FolderOpen,
+    Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -160,7 +161,9 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <Image className="mr-2 h-4 w-4" />
                                                             <span>WEBP</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
                                                     </div>
                                                 </TooltipTrigger>
@@ -180,7 +183,9 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <FileImage className="mr-2 h-4 w-4" />
                                                             <span>SVG</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
                                                     </div>
                                                 </TooltipTrigger>
@@ -200,7 +205,9 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <FileImage className="mr-2 h-4 w-4" />
                                                             <span>PDF</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
                                                     </div>
                                                 </TooltipTrigger>
@@ -220,7 +227,9 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <FileJson className="mr-2 h-4 w-4" />
                                                             <span>JSON</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
                                                     </div>
                                                 </TooltipTrigger>

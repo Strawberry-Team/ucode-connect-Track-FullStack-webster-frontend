@@ -11,7 +11,8 @@ import {
     Droplet,
     Image,
     SwatchBook,
-    Wand2
+    Wand2,
+    Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
@@ -304,7 +305,7 @@ const Toolbar: React.FC = () => {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="w-10 h-10">
+                            <div className="w-10 h-10 relative">
                                 <Button
                                     variant="ghost"
                                     className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
@@ -313,10 +314,11 @@ const Toolbar: React.FC = () => {
                                 >
                                     <Wand2 className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
                                 </Button>
+                                <span className="absolute -top-0 -right-0 flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20"></span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={12}>
-                            <p>{loggedInUser ? "AI Image Generator" : "Please log in to access AI Image Generator"}</p>
+                            <p>{loggedInUser ? "AI-Generated Images" : "Sign in to access AI-Generated Images tool"}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -325,7 +327,7 @@ const Toolbar: React.FC = () => {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="w-10 h-10">
+                            <div className="w-10 h-10 relative">
                                 <Button
                                     variant="ghost"
                                     className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
@@ -334,10 +336,11 @@ const Toolbar: React.FC = () => {
                                 >
                                     <SwatchBook className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
                                 </Button>
+                                <span className="absolute -top-0 -right-0 flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20"></span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={12}>
-                            <p>{loggedInUser ? "Sample Assets" : "Sign in to access Sample Assets"}</p>
+                            <p>{loggedInUser ? "Sample Assets" : "Sign in to access Sample Assets tool"}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -358,7 +361,6 @@ const Toolbar: React.FC = () => {
                 <AIImageGeneratorModal
                     isOpen={showAIAssetsModal}
                     onClose={() => setShowAIAssetsModal(false)}
-                    // onAddToCanvas={addElement}
                 />
             )}
         </div>
