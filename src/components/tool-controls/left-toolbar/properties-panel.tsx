@@ -26,6 +26,7 @@ const PropertiesPanel: React.FC = () => {
 
 
   const renderToolOptions = () => {
+    
     switch (activeTool?.id) {
       case "brush":
         return <BrushOptions />

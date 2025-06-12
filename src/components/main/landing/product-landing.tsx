@@ -902,6 +902,48 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     </div>
                                 </div>
                             </motion.div>
+
+                            {/* AI Image Generator */}
+                            <motion.div
+                                className="grid grid-cols-3 gap-6 items-center"
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: 0.6 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-white">AI Image Generator</h4>
+                                            <p className="text-gray-300 text-sm">Pollinations.ai integration</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        <span className="text-red-400 font-semibold">Locked</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">Registration required</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
+                                    <div className="relative z-10">
+                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                            <CheckCircle className="w-5 h-5 text-green-400" />
+                                            <span className="text-green-400 font-semibold">Generate AI Images</span>
+                                        </div>
+                                        <p className="text-blue-100 text-sm">Create images from text prompts</p>
+                                    </div>
+                                </div>
+                            </motion.div>
                         </div>
 
                         

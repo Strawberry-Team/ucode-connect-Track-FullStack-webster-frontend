@@ -10,12 +10,8 @@ import {
     Waves,
     Droplet,
     Image,
-    MousePointer,
-    RotateCcw,
-    SquareRoundCorner,
-    Droplets,
-    RotateCw,
-    SwatchBook
+    SwatchBook,
+    Wand2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
@@ -26,6 +22,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import Header from "./file-options"
 import { useElementsManager } from "@/context/elements-manager-context"
 import SampleAssetsModal from "@/components/tool-controls/left-toolbar/sample-assets-modal"
+import AIImageGeneratorModal from "@/components/tool-controls/left-toolbar/ai-image-generator-modal"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useUser } from "@/context/user-context"
 
@@ -73,6 +70,7 @@ const Toolbar: React.FC = () => {
     const [isPrimaryPickerOpen, setIsPrimaryPickerOpen] = useState(false)
     const [isSecondaryPickerOpen, setIsSecondaryPickerOpen] = useState(false)
     const [showSampleAssetsModal, setShowSampleAssetsModal] = useState(false)
+    const [showAIAssetsModal, setShowAIAssetsModal] = useState(false)
     const { loggedInUser } = useUser()
 
     const tools = [
@@ -302,6 +300,26 @@ const Toolbar: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-center justify-center mt-auto mb-2">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="w-10 h-10">
+                                <Button
+                                    variant="ghost"
+                                    className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
+                                    onClick={() => setShowAIAssetsModal(true)}
+                                    disabled={!loggedInUser}
+                                >
+                                    <Wand2 className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
+                                </Button>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center" sideOffset={12}>
+                            <p>{loggedInUser ? "AI Image Generator" : "Please log in to access AI Image Generator"}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
                 {/* Sample Assets Button */}
                 <TooltipProvider>
                     <Tooltip>
@@ -333,6 +351,13 @@ const Toolbar: React.FC = () => {
                     isOpen={showSampleAssetsModal}
                     onClose={() => setShowSampleAssetsModal(false)}
                     onAddToCanvas={addElement}
+                />
+            )}
+            {showAIAssetsModal && (
+                <AIImageGeneratorModal
+                    isOpen={showAIAssetsModal}
+                    onClose={() => setShowAIAssetsModal(false)}
+                    // onAddToCanvas={addElement}
                 />
             )}
         </div>
