@@ -19,7 +19,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import ColorPicker from "@/components/color-picker/color-picker"
 import { useState } from "react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import Header from "./file-options"
+import FileOptions from "./file-options"
 import { useElementsManager } from "@/context/elements-manager-context"
 import SampleAssetsModal from "@/components/tool-controls/left-toolbar/sample-assets-modal"
 import AIImageGeneratorModal from "@/components/tool-controls/left-toolbar/ai-image-generator-modal"
@@ -183,7 +183,7 @@ const Toolbar: React.FC = () => {
     return (
         <div className="w-15 h-full bg-[#292C31FF] border-t-2 border-t-[#44474AFF] border-r-1 border-r-[#171719FF] flex flex-col items-center py-2">
             <div className="flex flex-col items-start m-0 p-0">
-                <div className="space-y-1 items-center">
+                <div className="space-y-2 items-center">
                     {tools.map((tool) => {
                         const Icon = tool.icon
                         const isActive = activeTool?.id === tool.id
@@ -300,7 +300,7 @@ const Toolbar: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center mt-auto mb-2">
+            <div className="flex flex-col items-center justify-center mt-auto mb-2 space-y-2">
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -343,7 +343,7 @@ const Toolbar: React.FC = () => {
                 </TooltipProvider>
 
                 {/* File Options */}
-                <Header />
+                <FileOptions />
             </div>
 
             {/* Sample Assets Modal */}

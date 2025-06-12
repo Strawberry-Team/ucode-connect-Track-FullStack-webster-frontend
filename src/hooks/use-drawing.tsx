@@ -367,6 +367,86 @@ const useDrawing = ({
 
     }, [setRenderableObjects, renderableObjects, addHistoryEntry]);
 
+    const duplicateSelectedLine = useCallback((lineId: string) => {
+        const lineToDuplicate = renderableObjects.find(obj => obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser')) as LineData | undefined;
+        if (!lineToDuplicate) return null;
+
+        // Create new line with unique ID and offset position
+        const newLine: LineData = {
+            ...lineToDuplicate,
+            id: crypto.randomUUID(),
+        };
+
+        // Handle offset positioning for duplicated lines
+        if ('x' in lineToDuplicate && 'y' in lineToDuplicate && 
+            lineToDuplicate.x !== undefined && lineToDuplicate.y !== undefined) {
+            // If line is prepared for transform (has x, y coordinates), offset the duplicate
+            (newLine as any).x = lineToDuplicate.x + 20;
+            (newLine as any).y = lineToDuplicate.y + 20;
+        } else {
+            // If line is not prepared for transform, offset the raw points
+            newLine.points = lineToDuplicate.points.map((point, index) => {
+                return index % 2 === 0 ? point + 20 : point + 20; // Offset both x and y coordinates
+            });
+        }
+
+        // Add the duplicated line to renderable objects
+        const updatedObjects = [...renderableObjects, newLine];
+        setRenderableObjects(updatedObjects);
+
+        // Create descriptive message for history
+        const toolName = lineToDuplicate.tool === 'brush' ? 'brush stroke' : 'eraser stroke';
+        addHistoryEntry({
+            type: 'elementDuplicated',
+            description: `Duplicated ${toolName}`,
+            linesSnapshot: updatedObjects,
+        });
+
+        return newLine.id; // Return new line ID for selection
+    }, [renderableObjects, setRenderableObjects, addHistoryEntry]);
+
+    const rotateSelectedLine = useCallback((lineId: string, degrees: number = 15) => {
+        (setRenderableObjects as Dispatch<SetStateAction<RenderableObject[]>>)((prev: RenderableObject[]) => {
+            const lineIndex = prev.findIndex(obj => obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser'));
+            if (lineIndex === -1) return prev;
+
+            const lineToRotate = prev[lineIndex] as LineData & { x?: number, y?: number, rotation?: number, offsetX?: number, offsetY?: number };
+            
+            // Check if line is prepared for transform (has rotation property)
+            if (lineToRotate.rotation === undefined) {
+                console.warn("Cannot rotate line that hasn't been prepared for transform");
+                return prev;
+            }
+            
+            const newRotation = (lineToRotate.rotation || 0) + degrees;
+            
+            const updatedLine = {
+                ...lineToRotate,
+                rotation: newRotation,
+            };
+            
+            const newRenderableObjects = [...prev];
+            newRenderableObjects[lineIndex] = updatedLine;
+            return newRenderableObjects;
+        });
+
+        // Add history entry for the rotation
+        const currentSnapshot = renderableObjects.map(obj => {
+            if ('points' in obj) {
+                return { ...obj, points: [...obj.points] };
+            }
+            return { ...obj };
+        });
+
+        const toolName = renderableObjects.find(obj => obj.id === lineId && 'tool' in obj)?.tool === 'brush' ? 'brush stroke' : 'eraser stroke';
+        addHistoryEntry({
+            type: 'elementModified',
+            description: `Rotated ${toolName} ${degrees > 0 ? '+' : ''}${degrees}°`,
+            linesSnapshot: currentSnapshot,
+        });
+
+    }, [setRenderableObjects, renderableObjects, addHistoryEntry]);
+
     return {
         getIsDrawing,
         startDrawing,
@@ -377,6 +457,8 @@ const useDrawing = ({
         updateLineTransform,
         updateLinePositionAndHistory,
         moveSelectedLine,
+        duplicateSelectedLine,
+        rotateSelectedLine,
     };
 };
 

@@ -1139,17 +1139,60 @@ const Canvas: React.FC = () => {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Check if we're in an input field or textarea
+            const activeElement = document.activeElement
+            const isInTextInput = activeElement && (
+                activeElement.tagName === "INPUT" ||
+                activeElement.tagName === "TEXTAREA" ||
+                (activeElement as HTMLElement).isContentEditable
+            )
+
             if (e.key === "Delete" || e.key === "Backspace") {
                 elementsManager.removeSelectedElement()
+            } else if ((e.metaKey || e.ctrlKey) && e.key === "d") {
+                // Handle Command+D (or Ctrl+D on Windows/Linux) for duplication
+                e.preventDefault() // Prevent browser's bookmark dialog
+                
+                // Check if we have a selected brush line to duplicate
+                if (selectedLineId && isBrushTransformModeActive && activeTool?.type === "brush") {
+                    const newLineId = drawingManager.duplicateSelectedLine(selectedLineId)
+                    if (newLineId) {
+                        setSelectedLineId(newLineId) // Select the newly duplicated line
+                    }
+                } else {
+                    // Otherwise duplicate selected element (shape, text, image)
+                    elementsManager.duplicateSelectedElement()
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+                // Handle Ctrl+Alt+Arrow (or Cmd+Alt+Arrow on Mac) for rotation
+                if (isInTextInput) {
+                    return 
+                }
+
+                e.preventDefault() // Prevent browser shortcuts
+
+                // Determine rotation degrees based on arrow key direction
+                let rotationDegrees = 0
+                switch (e.key) {
+                    case "ArrowUp":
+                    case "ArrowRight":
+                        rotationDegrees = e.shiftKey ? 45 : 15 // Shift for larger rotation
+                        break
+                    case "ArrowDown":
+                    case "ArrowLeft":
+                        rotationDegrees = e.shiftKey ? -45 : -15 // Shift for larger rotation
+                        break
+                }
+
+                // Handle rotation for brush lines or elements
+                if (selectedLineId && isBrushTransformModeActive && activeTool?.type === "brush") {
+                    drawingManager.rotateSelectedLine(selectedLineId, rotationDegrees)
+                } else if (elementsManager.selectedElementId) {
+                    elementsManager.rotateSelectedElement(rotationDegrees)
+                }
             } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
                 
-                const activeElement = document.activeElement
-                if (
-                    activeElement &&
-                    (activeElement.tagName === "INPUT" ||
-                        activeElement.tagName === "TEXTAREA" ||
-                        (activeElement as HTMLElement).isContentEditable)
-                ) {
+                if (isInTextInput) {
                     return 
                 }
 

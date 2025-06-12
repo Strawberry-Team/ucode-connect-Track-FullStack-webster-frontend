@@ -228,9 +228,21 @@ const useElementsManagement = ({
     addRenderableObjectToContext(newElementToAdd);
     setSelectedElementId(newElementToAdd.id);
 
+    // Create a descriptive message for adding elements
+    const elementTypeName = getElementTypeName(type);
+    let addDescription = `Added ${elementTypeName}`;
+    
+    // Add specific information for text elements
+    if (type === 'text' && text) {
+        const truncatedText = text.length > 20 
+            ? `${text.substring(0, 20)}...` 
+            : text;
+        addDescription = `Added text: "${truncatedText}"`;
+    }
+
     addHistoryEntry({
         type: 'elementAdded',
-        description: `Add element: ${type}`,
+        description: addDescription,
         linesSnapshot: [...renderableObjects, newElementToAdd],
         metadata: {
             elementId: newElementToAdd.id,
@@ -342,9 +354,15 @@ const useElementsManagement = ({
 
     const element = renderableObjects.find(obj => !('tool' in obj) && obj.id === id) as ElementData;
     if (element && element.text !== newText && newText.trim() !== "") {
+      // Create a descriptive message for text updates
+      const truncatedNewText = newText.length > 20 
+          ? `${newText.substring(0, 20)}...` 
+          : newText;
+      const textUpdateDescription = `Updated text: "${truncatedNewText}"`;
+      
       addHistoryEntry({
         type: 'elementModified',
-        description: 'Text modified',
+        description: textUpdateDescription,
         linesSnapshot: updatedObjects,
         metadata: {
           elementId: id,
@@ -384,9 +402,25 @@ const useElementsManagement = ({
 
     if (elementToRemove) {
         const elementTypeName = getElementTypeName(elementToRemove.type);
+        
+        // Create a more descriptive removal message
+        let removeDescription = `Removed ${elementTypeName}`;
+        
+        // Add specific information for text elements
+        if (elementToRemove.type === 'text' && elementToRemove.text) {
+            const truncatedText = elementToRemove.text.length > 20 
+                ? `${elementToRemove.text.substring(0, 20)}...` 
+                : elementToRemove.text;
+            removeDescription = `Removed text: "${truncatedText}"`;
+        }
+        // Add specific information for images
+        else if (elementToRemove.type === 'custom-image' && elementToRemove.fileName) {
+            removeDescription = `Removed image: ${elementToRemove.fileName}`;
+        }
+        
         addHistoryEntry({
             type: 'elementRemoved',
-            description: `Removed ${elementTypeName}`,
+            description: removeDescription,
             linesSnapshot: updatedObjects,
             metadata: {
                 elementId: selectedElementId,
@@ -415,8 +449,50 @@ const useElementsManagement = ({
   }, [transformSelectedElement]);
 
   const rotateSelectedElement = useCallback((degrees = 15) => {
-    transformSelectedElement(el => ({ rotation: (el.rotation ?? 0) + degrees }));
-  }, [transformSelectedElement]);
+    if (!selectedElementId) return;
+    
+    const elementResult = getElementById(selectedElementId);
+    if (!elementResult) return;
+    
+    const element = elementResult.element;
+    const newRotation = (element.rotation ?? 0) + degrees;
+    
+    // Update element with new rotation
+    const updatedObjects = renderableObjects.map(obj => {
+      if (!('tool' in obj) && obj.id === selectedElementId) {
+        return { ...obj, rotation: newRotation };
+      }
+      return obj;
+    });
+    
+    setRenderableObjects(updatedObjects);
+    
+    // Create descriptive rotation message for history
+    const elementTypeName = getElementTypeName(element.type);
+    let rotationDescription = `Rotated ${elementTypeName} ${degrees > 0 ? '+' : ''}${degrees}°`;
+    
+    // Add specific information for text elements
+    if (element.type === 'text' && element.text) {
+        const truncatedText = element.text.length > 15 
+            ? `${element.text.substring(0, 15)}...` 
+            : element.text;
+        rotationDescription = `Rotated text "${truncatedText}" ${degrees > 0 ? '+' : ''}${degrees}°`;
+    }
+    // Add specific information for images
+    else if (element.type === 'custom-image' && element.fileName) {
+        rotationDescription = `Rotated image ${element.fileName} ${degrees > 0 ? '+' : ''}${degrees}°`;
+    }
+    
+    addHistoryEntry({
+      type: 'elementModified',
+      description: rotationDescription,
+      linesSnapshot: updatedObjects,
+      metadata: {
+        elementId: selectedElementId,
+        elementType: element.type
+      }
+    });
+  }, [selectedElementId, getElementById, renderableObjects, setRenderableObjects, addHistoryEntry]);
 
   const duplicateSelectedElement = useCallback(() => {
     if (!selectedElementId) return;
@@ -436,9 +512,25 @@ const useElementsManagement = ({
     setSelectedElementId(newElement.id);
 
     const elementTypeName = getElementTypeName(elementToDuplicate.type);
+    
+    // Create a more descriptive duplication message
+    let duplicateDescription = `Duplicated ${elementTypeName}`;
+    
+    // Add specific information for text elements
+    if (elementToDuplicate.type === 'text' && elementToDuplicate.text) {
+        const truncatedText = elementToDuplicate.text.length > 20 
+            ? `${elementToDuplicate.text.substring(0, 20)}...` 
+            : elementToDuplicate.text;
+        duplicateDescription = `Duplicated text: "${truncatedText}"`;
+    }
+    // Add specific information for images
+    else if (elementToDuplicate.type === 'custom-image' && elementToDuplicate.fileName) {
+        duplicateDescription = `Duplicated image: ${elementToDuplicate.fileName}`;
+    }
+    
     addHistoryEntry({
         type: 'elementDuplicated',
-        description: `Duplicated ${elementTypeName}`,
+        description: duplicateDescription,
         linesSnapshot: updatedObjects,
         metadata: {
             elementId: newElement.id,
@@ -886,10 +978,10 @@ const useElementsManagement = ({
 
 const getElementTypeName = (type: string): string => {
   const typeNames: Record<string, string> = {
-    'text': 'text',
+    'text': 'text element',
     'rectangle': 'rectangle',
     'square': 'square', 
-    'rounded-rectangle': 'rounded-rectangle',
+    'rounded-rectangle': 'rounded rectangle',
     'squircle': 'squircle',
     'circle': 'circle',
     'triangle': 'triangle',
@@ -899,7 +991,7 @@ const getElementTypeName = (type: string): string => {
     'heart': 'heart',
     'arrow': 'arrow',
     'line': 'line',
-    'custom-image': 'custom-image'
+    'custom-image': 'image'
   };
   return typeNames[type] || 'element';
 };

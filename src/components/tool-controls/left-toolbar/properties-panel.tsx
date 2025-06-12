@@ -90,7 +90,7 @@ const PropertiesPanel: React.FC = () => {
 
         {showProjectName && (
           <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center text-white/80 text-sm">
-            Project "<span className="font-bold text-white">{currentProjectName}</span>"
+            Project "<span>{currentProjectName}</span>"
           </div>
         )}
       </div>

@@ -1316,7 +1316,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                       tabIndex={0}
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleUnsplashImageSelect(image.id)}
                       className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0
-                                  ${selectedUnsplashImageId === image.id ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
+                                  ${selectedUnsplashImageId === image.id ? 'border-blue-500' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
                     >
                       <CardContent className="p-0">
                         <div className="aspect-square overflow-hidden">
@@ -1678,7 +1678,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                       tabIndex={0}
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleImageSelect(image.id)}
                       className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0
-                                  ${selectedImageId === image.id ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
+                                  ${selectedImageId === image.id ? 'border-blue-500' : 'border-[#4A4D54FF] hover:border-gray-600'}`}
                     >
                       <CardContent className="p-0">
                         <div className="aspect-square overflow-hidden">

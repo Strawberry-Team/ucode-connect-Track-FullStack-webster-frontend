@@ -918,8 +918,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x}
-                        y={element.y}
+                        x={element.x + (element.width ?? 0) / 2}
+                        y={element.y + (element.height ?? 0) / 2}
+                        offsetX={(element.width ?? 0) / 2}
+                        offsetY={(element.height ?? 0) / 2}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -932,8 +934,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x}
-                        y={element.y}
+                        x={element.x + (element.width ?? 0) / 2}
+                        y={element.y + (element.height ?? 0) / 2}
+                        offsetX={(element.width ?? 0) / 2}
+                        offsetY={(element.height ?? 0) / 2}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -945,8 +949,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x}
-                        y={element.y}
+                        x={element.x + (element.width ?? 0) / 2}
+                        y={element.y + (element.height ?? 0) / 2}
+                        offsetX={(element.width ?? 0) / 2}
+                        offsetY={(element.height ?? 0) / 2}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -959,8 +965,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x}
-                        y={element.y}
+                        x={element.x + (element.width ?? 0) / 2}
+                        y={element.y + (element.height ?? 0) / 2}
+                        offsetX={(element.width ?? 0) / 2}
+                        offsetY={(element.height ?? 0) / 2}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -985,9 +993,11 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Line
                         ref={nodeRef as React.Ref<Konva.Line>}
-                        x={element.x}
-                        y={element.y}
-                        points={[0, 0, element.width ?? 0, 0]}
+                        x={element.x + (element.width ?? 0) / 2}
+                        y={element.y + (element.height ?? 0) / 2}
+                        offsetX={0}
+                        offsetY={0}
+                        points={[-(element.width ?? 0) / 2, 0, (element.width ?? 0) / 2, 0]}
                         closed={false}
                         {...commonProps}
                         {...strokeStyleProps}
@@ -1051,22 +1061,25 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             case "heart":
                 const heartW = element.width ?? 0;
                 const heartH = element.height ?? 0;
+                // Adjust path points to center-based coordinates
                 const heartPath = [
-                    heartW / 2, heartH / 5,
-                    heartW / 4, 0,
-                    0, heartH / 4,
-                    0, heartH / 2,
-                    heartW / 2, heartH,
-                    heartW, heartH / 2,
-                    heartW, heartH / 4,
-                    heartW * 3 / 4, 0,
-                    heartW / 2, heartH / 5
+                    0, -heartH * 2 / 5,         // Start point
+                    -heartW / 4, -heartH / 2,    // Left top
+                    -heartW / 2, -heartH / 4,    // Left mid
+                    -heartW / 2, 0,              // Left bottom 
+                    0, heartH / 2,               // Bottom point
+                    heartW / 2, 0,               // Right bottom
+                    heartW / 2, -heartH / 4,     // Right mid
+                    heartW / 4, -heartH / 2,     // Right top
+                    0, -heartH * 2 / 5           // Close path
                 ];
                 return (
                     <Group
                         ref={nodeRef as React.RefObject<Konva.Group>}
-                        x={element.x}
-                        y={element.y}
+                        x={element.x + heartW / 2}
+                        y={element.y + heartH / 2}
+                        offsetX={0}
+                        offsetY={0}
                         width={heartW} // Set group width/height for transformer
                         height={heartH}
                         {...commonProps} // Includes draggable, rotation, scale, events
@@ -1083,19 +1096,21 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             case "arrow":
                 const arrowW = element.width ?? 0;
                 const arrowH = element.height ?? 0;
-                // Arrow body (line)
-                const arrowBodyPoints = [0, arrowH / 2, arrowW * 0.8, arrowH / 2];
-                // Arrow head (filled triangle)
+                // Arrow body (line) - adjusted to center-based coordinates
+                const arrowBodyPoints = [-arrowW / 2, 0, arrowW * 0.3, 0];
+                // Arrow head (filled triangle) - adjusted to center-based coordinates
                 const arrowHeadPoints = [
-                    arrowW * 0.8, arrowH * 0.2,
-                    arrowW, arrowH / 2,
-                    arrowW * 0.8, arrowH * 0.8
+                    arrowW * 0.3, -arrowH * 0.3,
+                    arrowW / 2, 0,
+                    arrowW * 0.3, arrowH * 0.3
                 ];
                 return (
                     <Group
                         ref={nodeRef as React.RefObject<Konva.Group>}
-                        x={element.x}
-                        y={element.y}
+                        x={element.x + arrowW / 2}
+                        y={element.y + arrowH / 2}
+                        offsetX={0}
+                        offsetY={0}
                         width={arrowW}
                         height={arrowH}
                         {...commonProps}

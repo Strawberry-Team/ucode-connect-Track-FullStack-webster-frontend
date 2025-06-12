@@ -951,7 +951,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                     <div className="flex flex-row items-center justify-center gap-2">
                       <span className="text-xs">with filters:</span>
                       {selectedPixabayColor && (
-                        <div className="flex items-center gap-0.5 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-full px-1 py-0.5 group bg-blue-500/30 border-blue-500 text-blue-200 shadow-md transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105">
+                        <div className="flex items-center gap-0.5 border rounded-full px-1 py-0.5 group bg-blue-500/30 border-blue-500 text-blue-200 shadow-md transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105">
                           <span className={`text-xs font-medium ${getPixabayColorStyle(selectedPixabayColor)}`}>
                             {pixabayColorOptions.find((c) => c.value === selectedPixabayColor)?.label}
                           </span>
@@ -998,8 +998,8 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                     <Card
                       key={image.id}
                       onClick={() => handlePixabayImageSelect(image.id)}
-                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0 
-                        ${selectedPixabayImageId === image.id ? "border-blue-500 ring-2 ring-blue-500/50" : "border-[#4A4D54FF] hover:border-gray-600"}`}
+                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0
+                        ${selectedPixabayImageId === image.id ? "border-blue-500" : "border-[#4A4D54FF] hover:border-gray-600"}`}
                     >
                       <CardContent className="p-0">
                         <div className="aspect-square overflow-hidden">
@@ -1356,6 +1356,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
 
           <div className="flex gap-4">
             <Button
+              variant="ghost"
               onClick={handleAddSelectedImage}
               disabled={!selectedPixabayImageId && !selectedUnsplashImageId}
               className={`px-3 py-2 ${

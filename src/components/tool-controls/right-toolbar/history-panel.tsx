@@ -10,7 +10,9 @@ import {
   Copy,
   Droplet,
   Waves,
-  RotateCcw
+  RotateCcw,
+  Undo,
+  Redo
 } from 'lucide-react';
 
 interface HistoryPanelProps {
@@ -20,7 +22,7 @@ interface HistoryPanelProps {
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) => {
   const heightClass = isSharedHeight ? 'h-2/3' : 'h-full';
-  const { history, revertToHistoryState, currentHistoryIndex } = useTool();
+  const { history, revertToHistoryState, currentHistoryIndex, undo, redo, canUndo, canRedo } = useTool();
 
   const handleHistoryItemClick = (id: string, index: number) => {
     revertToHistoryState(id);
@@ -62,7 +64,32 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
     <div className={`w-full ${heightClass} border-t-1 border-[#171719FF] bg-[#292C31FF] text-[#A8AAACFF] flex flex-col`}>
       
       <div className="flex items-center bg-[#24262BFF] p-1">
-        <div className="flex-1"></div>
+        <div className="flex-1 flex items-center gap-1">
+          <button 
+            onClick={undo} 
+            disabled={!canUndo}
+            className={`p-1 rounded transition-colors ${
+              canUndo 
+                ? 'text-[#E8E8E8FF] hover:bg-[#414448FF] cursor-pointer' 
+                : 'text-gray-600 cursor-not-allowed'
+            }`}
+            title={`Undo ${canUndo ? '(⌘Z)' : '- нет доступных действий'}`}
+          >
+            <Undo size={14} />
+          </button>
+          <button 
+            onClick={redo} 
+            disabled={!canRedo}
+            className={`p-1 rounded transition-colors ${
+              canRedo 
+                ? 'text-[#E8E8E8FF] hover:bg-[#414448FF] cursor-pointer' 
+                : 'text-gray-600 cursor-not-allowed'
+            }`}
+            title={`Redo ${canRedo ? '(⌘⇧Z)' : '- нет доступных действий'}`}
+          >
+            <Redo size={14} />
+          </button>
+        </div>
         <h3 className="text-xs font-semibold text-[#E8E8E8FF] text-center">History</h3>
         <div className="flex-1 flex justify-end">
           <button onClick={onClose} className="cursor-pointer text-gray-400 hover:text-white text-2xl mr-1 leading-none">×</button>

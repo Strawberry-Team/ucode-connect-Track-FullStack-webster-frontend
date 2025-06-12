@@ -28,6 +28,7 @@ interface ElementsManagerContextValue {
   bringElementToFront: (elementId: string) => void;
   sendElementToBack: (elementId: string) => void;
   sendElementToBackground: (elementId: string) => void;
+  moveSelectedElement: (direction: 'up' | 'down' | 'left' | 'right', distance?: number) => void;
   adjustImageToCanvas: (imageId: string) => void;
   fitImageToCanvas: (imageId: string) => void;
   setImageAsBackground: (imageId: string) => void;

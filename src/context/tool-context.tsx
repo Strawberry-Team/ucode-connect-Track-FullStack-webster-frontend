@@ -183,6 +183,10 @@ interface ToolContextValue {
     revertToHistoryState: (historyId: string) => void;
     registerRenderableObjectsRestorer: (restorer: (objects: RenderableObject[]) => void) => void;
     clearHistory: () => void; // New function for clearing history
+    undo: () => void; // Undo function for hotkeys
+    redo: () => void; // Redo function for hotkeys
+    canUndo: boolean; // Whether undo is available
+    canRedo: boolean; // Whether redo is available
 
     // New state for all renderable objects
     renderableObjects: RenderableObject[];
@@ -546,6 +550,32 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         }
     }, [history]);
 
+    // Undo function - go to previous history state
+    const undo = useCallback(() => {
+        if (currentHistoryIndex > 0) {
+            const targetIndex = currentHistoryIndex - 1;
+            const targetEntry = history[targetIndex];
+            if (targetEntry) {
+                revertToHistoryState(targetEntry.id);
+            }
+        }
+    }, [currentHistoryIndex, history, revertToHistoryState]);
+
+    // Redo function - go to next history state
+    const redo = useCallback(() => {
+        if (currentHistoryIndex < history.length - 1) {
+            const targetIndex = currentHistoryIndex + 1;
+            const targetEntry = history[targetIndex];
+            if (targetEntry) {
+                revertToHistoryState(targetEntry.id);
+            }
+        }
+    }, [currentHistoryIndex, history, revertToHistoryState]);
+
+    // Compute whether undo/redo is available
+    const canUndo = currentHistoryIndex > 0;
+    const canRedo = currentHistoryIndex < history.length - 1;
+
     // Function that MiniMap will call
     const setStagePositionFromMiniMap = useCallback((coords: { x: number; y: number }, type: 'center' | 'drag') => {
         requestAnimationFrame(() => {
@@ -852,6 +882,66 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         }
     }, [renderableObjects.length, stageSize, projectName]);
 
+    // Hotkeys handling for undo/redo
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Skip if user is typing in an input field
+            const target = e.target as HTMLElement | null;
+            if (target && (
+                target.tagName === 'INPUT' || 
+                target.tagName === 'TEXTAREA' || 
+                target.isContentEditable ||
+                target.closest('input') ||
+                target.closest('textarea')
+            )) {
+                return;
+            }
+
+            // Check for Command key on Mac or Ctrl key on Windows/Linux
+            const isModifierPressed = e.metaKey || e.ctrlKey;
+            
+            if (!isModifierPressed) return;
+
+            // Handle undo/redo shortcuts
+            if (e.key === 'z' || e.key === 'Z') {
+                if (e.shiftKey) {
+                    // Command/Ctrl + Shift + Z = Redo
+                    if (canRedo) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Hotkey: Redo triggered via Command+Shift+Z');
+                        redo();
+                    }
+                } else {
+                    // Command/Ctrl + Z = Undo
+                    if (canUndo) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Hotkey: Undo triggered via Command+Z');
+                        undo();
+                    }
+                }
+            }
+            // Alternative redo shortcut: Command/Ctrl + Y
+            else if ((e.key === 'y' || e.key === 'Y') && !e.shiftKey) {
+                if (canRedo) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Hotkey: Redo triggered via Command+Y');
+                    redo();
+                }
+            }
+        };
+
+        // Add event listener to the document with capture phase for better priority
+        document.addEventListener('keydown', handleKeyDown, { capture: true });
+
+        // Cleanup
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown, { capture: true });
+        };
+    }, [undo, redo, canUndo, canRedo]);
+
     return (
         <ToolContext.Provider
             value={{
@@ -968,6 +1058,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 revertToHistoryState,
                 registerRenderableObjectsRestorer,
                 clearHistory,
+                undo,
+                redo,
+                canUndo,
+                canRedo,
                 // New context values
                 renderableObjects,
                 addRenderableObject,

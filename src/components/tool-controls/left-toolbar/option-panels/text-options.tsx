@@ -1107,47 +1107,7 @@ const TextOptions: React.FC = () => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
-                ${!isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'}`}
-              onClick={handleDuplicate}
-              disabled={!isTextElementSelected}
-            >
-              <Copy size={14} strokeWidth={2} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Duplicate text</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
-                ${!isTextElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'}`}
-              onClick={handleDelete}
-              disabled={!isTextElementSelected}
-            >
-              <Trash2 size={14} strokeWidth={2} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Delete text</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <div className="h-6 border-l border-[#44474AFF]"></div>
-
+      
       <FontSelector value={fontFamily} onChange={setFontFamily} fonts={fonts} onMenuWillOpen={closeOtherPickers} />
 
       <NumberInputWithPopover
