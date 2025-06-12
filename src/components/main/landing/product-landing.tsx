@@ -821,45 +821,6 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 </div>
                             </motion.div>
 
-                            {/* Export formats */}
-                            <motion.div
-                                className="grid grid-cols-3 gap-6 items-center"
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.6, delay: 0.4 }}
-                                viewport={{ once: true }}
-                            >
-                                <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-                                            <FileText className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-lg font-bold text-white">Export Formats</h4>
-                                            <p className="text-gray-300 text-sm">Available file types</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
-                                    <div className="flex flex-wrap justify-center gap-2 mb-2">
-                                        <span className="px-3 py-1 bg-gray-600 text-white text-xs rounded-full">PNG</span>
-                                        <span className="px-3 py-1 bg-gray-600 text-white text-xs rounded-full">JPG</span>
-                                    </div>
-                                    <p className="text-gray-300 text-sm">Basic formats</p>
-                                </div>
-                                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
-                                    <div className="relative z-10">
-                                        <div className="flex flex-wrap justify-center gap-2 mb-2">
-                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">PDF</span>
-                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">JSON</span>
-                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">WEBP</span>
-                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">SVG</span>
-                                        </div>
-                                        <p className="text-blue-100 text-sm">Additional formats</p>
-                                    </div>
-                                </div>
-                            </motion.div>
 
                             {/* Image search */}
                             <motion.div
@@ -939,6 +900,46 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                             <span className="text-green-400 font-semibold">Generate AI Images</span>
                                         </div>
                                         <p className="text-blue-100 text-sm">Create images from text prompts</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            {/* Export formats */}
+                            <motion.div
+                                className="grid grid-cols-3 gap-6 items-center"
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: 0.4 }}
+                                viewport={{ once: true }}
+                            >
+                                <div className="bg-gradient-to-br from-[#292C31] to-[#1F2125] rounded-2xl p-6 border border-gray-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                                            <FileText className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-white">Export Formats</h4>
+                                            <p className="text-gray-300 text-sm">Available file types</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
+                                    <div className="flex flex-wrap justify-center gap-2 mb-2">
+                                        <span className="px-3 py-1 bg-gray-600 text-white text-xs rounded-full">PNG</span>
+                                        <span className="px-3 py-1 bg-gray-600 text-white text-xs rounded-full">JPG</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">Basic formats</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-center border border-blue-500 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-800/30"></div>
+                                    <div className="relative z-10">
+                                        <div className="flex flex-wrap justify-center gap-2 mb-2">
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">PDF</span>
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">JSON</span>
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">WEBP</span>
+                                            <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">SVG</span>
+                                        </div>
+                                        <p className="text-blue-100 text-sm">Additional formats</p>
                                     </div>
                                 </div>
                             </motion.div>

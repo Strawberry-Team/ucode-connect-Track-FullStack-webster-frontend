@@ -33,17 +33,7 @@ const PropertiesPanel: React.FC = () => {
     navigate('/', { state: { showDashboard: true } });
   };
 
-
   const renderToolOptions = () => {
-    // Show project name if no tool is selected and no tool has ever been selected
-    if (!activeTool && !hasEverSelectedTool && currentProjectName) {
-      return (
-        <div className="flex items-center text-white/80 text-sm">
-          Project "<span className="font-bold text-white ml-1">{currentProjectName}</span>"
-        </div>
-      )
-    }
-
     switch (activeTool?.id) {
       case "brush":
         return <BrushOptions />
@@ -68,15 +58,18 @@ const PropertiesPanel: React.FC = () => {
     }
   };
 
+  const showProjectName = !activeTool && !hasEverSelectedTool && currentProjectName;
+  const showToolOptions = activeTool;
+
   return (
-    <div className="h-12 w-full bg-[#292C31FF] p-2 ">
-      <div className="flex justify-between items-center">
+    <div className="h-12 w-full bg-[#292C31FF] p-2">
+      <div className="flex justify-between items-center h-full">
         <div className="flex items-center">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <House
-                  className="cursor-pointer !w-5 !h-5 ml-2.5 text-[#A8AAACFF] hover:text-white "
+                  className="cursor-pointer !w-5 !h-5 ml-2.5 text-[#A8AAACFF] hover:text-white"
                   onClick={handleNavigateHome}
                 />
               </TooltipTrigger>
@@ -86,8 +79,20 @@ const PropertiesPanel: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
           <div className="border-l-2 border-[#44474AFF] h-8 mx-5"></div>
-          <div className="flex-1 min-w-0 flex justify-center">{renderToolOptions()}</div>
+          
+        
+          {showToolOptions && (
+            <div className="flex items-center">
+              {renderToolOptions()}
+            </div>
+          )}
         </div>
+
+        {showProjectName && (
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center text-white/80 text-sm">
+            Project "<span className="font-bold text-white">{currentProjectName}</span>"
+          </div>
+        )}
       </div>
     </div>
   )

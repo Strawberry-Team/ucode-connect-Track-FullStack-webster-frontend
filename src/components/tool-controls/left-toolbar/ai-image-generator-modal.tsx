@@ -5,9 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Download, Sparkles, Wand2, ImageIcon } from "lucide-react"
+import { Loader2, Download, Sparkles, ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 
 interface AIImageGeneratorModalProps {
@@ -19,7 +18,7 @@ interface AIImageGeneratorModalProps {
 // API функции для генерации изображений
 export interface GenerateImageOptions {
     prompt: string
-    backgroundType?: "none" | "white" | "black" | "transparent" | "gradient"
+    backgroundType?: "none" | "white" | "black" | "gradient"
     width?: number
     height?: number
     noLogo?: boolean
@@ -47,8 +46,6 @@ export const generateImage = async (options: GenerateImageOptions): Promise<Gene
             finalPrompt += ", on pure white background"
         } else if (backgroundType === "black") {
             finalPrompt += ", on pure black background"
-        } else if (backgroundType === "transparent") {
-            finalPrompt += ", isolated object, no background, transparent background"
         } else if (backgroundType === "gradient") {
             finalPrompt += ", on colorful gradient background"
         }
@@ -112,26 +109,29 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
     const [generatingCount, setGeneratingCount] = useState(0)
 
     // Настройки генерации
-    const [backgroundType, setBackgroundType] = useState<"none" | "white" | "black" | "transparent" | "gradient">("none")
+    const [backgroundType, setBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none")
     const [imageSize, setImageSize] = useState("1024x1024")
     const [setAsBackground, setSetAsBackground] = useState(false)
+    
+    // Состояния для отображения текущих настроек (используются только после генерации)
+    const [generatedBackgroundType, setGeneratedBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none")
+    const [generatedImageSize, setGeneratedImageSize] = useState("1024x1024")
 
-    // Размеры изображений
-    const imageSizes = [
-        { value: "512x512", label: "512×512 (Квадрат)" },
-        { value: "768x768", label: "768×768 (Квадрат)" },
-        { value: "1024x1024", label: "1024×1024 (Квадрат)" },
-        { value: "1024x768", label: "1024×768 (Альбом)" },
-        { value: "768x1024", label: "768×1024 (Портрет)" },
-    ]
-
-    // Опции фона - стилизованы как в Sample Assets
+    // Опции фона - убрали transparent
     const backgroundOptions = [
         { value: "none", label: "Standard" },
         { value: "white", label: "White" },
         { value: "black", label: "Black" },
-        { value: "transparent", label: "Transparent" },
         { value: "gradient", label: "Gradient" },
+    ]
+
+    // Опции размера - стилизованы как в Sample Assets
+    const imageSizes = [
+        { value: "512x512", label: "512×512 (Square)" },
+        { value: "768x768", label: "768×768 (Square)" },
+        { value: "1024x1024", label: "1024×1024 (Square)" },
+        { value: "1024x768", label: "1024×768 (Album)" },
+        { value: "768x1024", label: "768×1024 (Portrait)" },
     ]
 
     const generateMultipleImages = async (count = 3) => {
@@ -145,6 +145,10 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
         setGeneratedImages([])
         setSelectedImageId(null)
         setGeneratingCount(0)
+        
+        // Запоминаем настройки для отображения
+        setGeneratedBackgroundType(backgroundType)
+        setGeneratedImageSize(imageSize)
 
         try {
             const [width, height] = imageSize.split("x").map(Number)
@@ -191,23 +195,19 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
         }
     }
 
-    // Автоматическая перегенерация при смене фона
-    useEffect(() => {
-        if (prompt.trim() && generatedImages.length > 0) {
-            const timeoutId = setTimeout(() => {
-                generateMultipleImages(3)
-            }, 300)
-            return () => clearTimeout(timeoutId)
-        }
-    }, [backgroundType])
-
     const handleGenerate = () => {
         generateMultipleImages(3)
     }
 
-    const handleBackgroundTypeSelect = (type: "none" | "white" | "black" | "transparent" | "gradient") => {
+    const handleBackgroundTypeSelect = (type: "none" | "white" | "black" | "gradient") => {
         setBackgroundType(type)
         setSelectedImageId(null) // Сбрасываем выбор при смене фона
+        setSetAsBackground(false) // Сбрасываем настройку фона
+    }
+
+    const handleImageSizeSelect = (size: string) => {
+        setImageSize(size)
+        setSelectedImageId(null) // Сбрасываем выбор при смене размера
         setSetAsBackground(false) // Сбрасываем настройку фона
     }
 
@@ -244,6 +244,8 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
         setBackgroundType("none")
         setImageSize("1024x1024")
         setSetAsBackground(false)
+        setGeneratedBackgroundType("none")
+        setGeneratedImageSize("1024x1024")
     }
 
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -267,10 +269,8 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
             <DialogContent className="sm:max-w-[800px] sm:max-h-[80vh] h-full bg-[#2D2F34FF] text-gray-300 border-none p-0 flex flex-col">
                 <DialogHeader className="px-6 pt-6 pb-0 w-full">
                     <DialogTitle className="m-0 text-base font-normal text-center text-gray-300 flex items-center justify-center gap-2">
-                        <Wand2 className="w-5 h-5 text-purple-400" />
                         AI Image Generator
                     </DialogTitle>
-
                 </DialogHeader>
 
                 <div className="flex flex-col p-6 pb-0 flex-1 overflow-hidden">
@@ -280,7 +280,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                             href="https://pollinations.ai/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-purple-400 hover:text-purple-300 underline"
+                            className="text-blue-400 hover:text-blue-300 underline"
                         >
                             Pollinations.ai
                         </a>
@@ -295,31 +295,29 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                                     onChange={(e) => setPrompt(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     placeholder="beautiful sunset over mountains, digital art, high quality"
-                                    className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-purple-500 focus:border-purple-500 w-full"
+                                    className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
                                     disabled={isLoading}
                                 />
                             </div>
                             <Button
                                 onClick={handleGenerate}
                                 disabled={isLoading || !prompt.trim()}
-                                className="px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2"
+                                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200 flex items-center gap-2"
                             >
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                             </Button>
                         </div>
 
-
                         {/* Опции фона - стилизованы как в Sample Assets */}
                         <div className="space-y-2 mb-4">
-
                             <div className="flex flex-wrap gap-2">
                                 {backgroundOptions.map((option) => (
                                     <button
                                         key={option.value}
                                         onClick={() => handleBackgroundTypeSelect(option.value as any)}
-                                        className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-purple-500/20 hover:border-purple-500/50 hover:scale-105 focus:bg-purple-500/20 focus:border-purple-500 focus:outline-none focus:scale-105
-                      ${backgroundType === option.value
-                                                ? "bg-purple-500/30 border-purple-500 text-purple-200 shadow-md"
+                                        className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                            ${backgroundType === option.value
+                                                ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
                                                 : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
                                             }`}
                                         disabled={isLoading}
@@ -330,25 +328,25 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                             </div>
                         </div>
 
-                        {/* Настройки размера */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div className="space-y-2">
-                                
-                                <Select value={imageSize} onValueChange={setImageSize}>
-                                    <SelectTrigger className="bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-100">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-[#3A3D44FF] border-[#4A4D54FF]">
-                                        {imageSizes.map((size) => (
-                                            <SelectItem key={size.value} value={size.value} className="text-gray-100">
-                                                {size.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        {/* Опции размера - стилизованы как в Sample Assets */}
+                        <div className="space-y-2 mb-4">
+                            <div className="flex flex-wrap gap-2">
+                                {imageSizes.map((size) => (
+                                    <button
+                                        key={size.value}
+                                        onClick={() => handleImageSizeSelect(size.value)}
+                                        className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                            ${imageSize === size.value
+                                                ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                                                : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                                            }`}
+                                        disabled={isLoading}
+                                    >
+                                        {size.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
-
                     </div>
 
                     {/* Ошибка */}
@@ -358,9 +356,16 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                         </div>
                     )}
 
-                    {/* Результаты - сетка изображений */}
-                    <div className="flex-1 overflow-y-auto pr-4 custom-scroll">
 
+
+                    {/* Результаты - сетка изображений */}
+                    <div className="flex-1 pr-4">
+                        {generatedImages.length > 0 && (
+                            <div className="text-xs text-gray-400 mb-2 text-center">
+                                Generated {generatedImages.length} images with{" "}
+                                {backgroundOptions.find((opt) => opt.value === generatedBackgroundType)?.label} background
+                            </div>
+                        )}
                         {generatedImages.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-4">
                                 {generatedImages.map((image) => (
@@ -368,7 +373,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                                         key={image.id}
                                         onClick={() => handleImageSelect(image.id)}
                                         className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0 
-                      ${selectedImageId === image.id ? "border-purple-500 ring-2 ring-purple-500/50" : "border-[#4A4D54FF] hover:border-gray-600"}`}
+                                            ${selectedImageId === image.id ? "border-blue-500" : "border-[#4A4D54FF] hover:border-gray-600"}`}
                                     >
                                         <CardContent className="p-0">
                                             <div className="aspect-square overflow-hidden">
@@ -384,7 +389,9 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                                                 <div className="text-xs text-gray-300 truncate" title={image.prompt}>
                                                     AI Generated
                                                 </div>
-                                                <div className="text-xs text-gray-400 mt-1">{imageSize}</div>
+                                                <div className="text-xs text-gray-400 mt-1">
+                                                    {`${generatedImageSize} • ${backgroundOptions.find((opt) => opt.value === generatedBackgroundType)?.label}`}
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -393,7 +400,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                         )}
 
                         {!generatedImages.length && !isLoading && (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="flex flex-col items-center justify-center h-full text-center">
                                 <ImageIcon className="w-16 h-16 text-gray-500 mb-4" />
                                 <div className="text-gray-400 mb-2">Ready to generate</div>
                                 <div className="text-sm text-gray-500">Enter image description and click generate</div>
@@ -415,30 +422,28 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                 {/* Footer */}
                 <div className="flex justify-end items-center gap-4 px-6 py-4 bg-[#2D2F34FF] rounded-b-lg border-t border-[#4A4D54FF]">
                     {/* Set as background checkbox */}
-                    {selectedImageId && (
+                    
                         <div className="flex items-center space-x-3">
                             <Checkbox
                                 id="setAsBackground"
                                 checked={setAsBackground}
-                                onCheckedChange={setSetAsBackground}
-                                className="data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
-                            />
+                                className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                                />
                             <Label htmlFor="setAsBackground" className="text-sm text-gray-400 cursor-pointer">
                                 Set as background
                             </Label>
                         </div>
-                    )}
-
-                    <div className="flex gap-3">
-
-                        {selectedImageId && onAddToCanvas && (
+                
+                    <div className="flex gap-4">
+                        
                             <Button
                                 onClick={handleAddToCanvas}
-                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                                variant="secondary"
+                                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white"
                             >
                                 Add to Canvas
                             </Button>
-                        )}
+                        
                     </div>
                 </div>
 
