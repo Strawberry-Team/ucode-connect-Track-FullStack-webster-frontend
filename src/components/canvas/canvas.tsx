@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useTool } from "@/context/tool-context"
 import { useRef, useState, useEffect, useCallback } from "react"

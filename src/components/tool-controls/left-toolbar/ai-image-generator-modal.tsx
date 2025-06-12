@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Download, Sparkles, ImageIcon } from "lucide-react"
+import { Loader2, Download, Sparkles, ImageIcon, Smartphone, Square } from "lucide-react"
 import { toast } from "sonner"
 
 interface AIImageGeneratorModalProps {
@@ -112,7 +112,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
     const [backgroundType, setBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none")
     const [imageSize, setImageSize] = useState("1024x1024")
     const [setAsBackground, setSetAsBackground] = useState(false)
-    
+
     // Состояния для отображения текущих настроек (используются только после генерации)
     const [generatedBackgroundType, setGeneratedBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none")
     const [generatedImageSize, setGeneratedImageSize] = useState("1024x1024")
@@ -127,11 +127,11 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
 
     // Опции размера - стилизованы как в Sample Assets
     const imageSizes = [
-        { value: "512x512", label: "512×512 (Square)" },
-        { value: "768x768", label: "768×768 (Square)" },
-        { value: "1024x1024", label: "1024×1024 (Square)" },
-        { value: "1024x768", label: "1024×768 (Album)" },
-        { value: "768x1024", label: "768×1024 (Portrait)" },
+        { value: "512x512", label: "512×512", icon: Square },
+        { value: "768x768", label: "768×768", icon: Square },
+        { value: "1024x1024", label: "1024×1024", icon: Square },
+        { value: "768x1024", label: "768×1024", icon: Smartphone },
+        { value: "1024x1536", label: "1024×1536", icon: Smartphone },
     ]
 
     const generateMultipleImages = async (count = 3) => {
@@ -145,7 +145,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
         setGeneratedImages([])
         setSelectedImageId(null)
         setGeneratingCount(0)
-        
+
         // Запоминаем настройки для отображения
         setGeneratedBackgroundType(backgroundType)
         setGeneratedImageSize(imageSize)
@@ -331,20 +331,24 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                         {/* Опции размера - стилизованы как в Sample Assets */}
                         <div className="space-y-2 mb-4">
                             <div className="flex flex-wrap gap-2">
-                                {imageSizes.map((size) => (
-                                    <button
-                                        key={size.value}
-                                        onClick={() => handleImageSizeSelect(size.value)}
-                                        className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
-                                            ${imageSize === size.value
-                                                ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
-                                                : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
-                                            }`}
-                                        disabled={isLoading}
-                                    >
-                                        {size.label}
-                                    </button>
-                                ))}
+                                {imageSizes.map((size) => {
+                                    const Icon = size.icon
+                                    return (
+                                        <button
+                                            key={size.value}
+                                            onClick={() => handleImageSizeSelect(size.value)}
+                                            className={`flex items-center gap-2 px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
+                                                ${imageSize === size.value
+                                                    ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                                                    : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                                                }`}
+                                            disabled={isLoading}
+                                        >
+                                            <Icon className="w-4 h-4" />
+                                            {size.label}
+                                        </button>
+                                    )
+                                })}
                             </div>
                         </div>
                     </div>
@@ -422,28 +426,28 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                 {/* Footer */}
                 <div className="flex justify-end items-center gap-4 px-6 py-4 bg-[#2D2F34FF] rounded-b-lg border-t border-[#4A4D54FF]">
                     {/* Set as background checkbox */}
-                    
-                        <div className="flex items-center space-x-3">
-                            <Checkbox
-                                id="setAsBackground"
-                                checked={setAsBackground}
-                                className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                                />
-                            <Label htmlFor="setAsBackground" className="text-sm text-gray-400 cursor-pointer">
-                                Set as background
-                            </Label>
-                        </div>
-                
+
+                    <div className="flex items-center space-x-3">
+                        <Checkbox
+                            id="setAsBackground"
+                            checked={setAsBackground}
+                            className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                        />
+                        <Label htmlFor="setAsBackground" className="text-sm text-gray-400 cursor-pointer">
+                            Set as background
+                        </Label>
+                    </div>
+
                     <div className="flex gap-4">
-                        
-                            <Button
-                                onClick={handleAddToCanvas}
-                                variant="secondary"
-                                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white"
-                            >
-                                Add to Canvas
-                            </Button>
-                        
+
+                        <Button
+                            onClick={handleAddToCanvas}
+                            variant="secondary"
+                            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                            Add to Canvas
+                        </Button>
+
                     </div>
                 </div>
 
