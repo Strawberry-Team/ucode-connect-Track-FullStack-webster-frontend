@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTool } from "@/context/tool-context";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,22 @@ import {
   Layers,
   Maximize2,
   Crop,
-  Repeat
+  Repeat,
+  MoveUp,
+  SendToBack,
+  BringToFront,
+  Palette,
+  Save,
+  PaintBucket,
+  BrushCleaning
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
+import ColorPicker from "@/components/color-picker/color-picker";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import type { ElementData } from "@/types/canvas";
 
 // Adding styles for scrollbar (same as liquify-options)
@@ -39,9 +49,17 @@ const scrollbarStyles = `
 
 const ImageTransformOptions: React.FC = () => {
   const { renderableObjects } = useTool();
-  const { selectedElementId, updateElement, getElementById, setSelectedElementId, sendElementToBackground, setHoveredElementId, adjustImageToCanvas, fitImageToCanvas } = useElementsManager();
+  const { selectedElementId, updateElement, getElementById, setSelectedElementId, sendElementToBackground, bringElementToFront, setHoveredElementId, adjustImageToCanvas, fitImageToCanvas, setCanvasBackground, removeCanvasBackground } = useElementsManager();
 
   const [selectedImageId, setSelectedImageId] = useState<string | null>(selectedElementId);
+
+  // Canvas background color picker state
+  const [showCanvasBackgroundPicker, setShowCanvasBackgroundPicker] = useState(false);
+  const [canvasBackgroundColor, setCanvasBackgroundColor] = useState("#ffffff");
+  const [canvasBackgroundOpacity, setCanvasBackgroundOpacity] = useState(100);
+  const [tempCanvasBackgroundOpacityInput, setTempCanvasBackgroundOpacityInput] = useState("100");
+  const canvasBackgroundPickerRef = useRef<HTMLDivElement>(null!);
+  const canvasBackgroundOpacityInputRef = useRef<HTMLInputElement>(null!);
 
   // Check if there are any imported images (custom-image type) in the project
   const hasImportedImages = renderableObjects.some(obj =>
@@ -59,7 +77,7 @@ const ImageTransformOptions: React.FC = () => {
     // Button content: Icon (14px) + "Select Image" text + ChevronDown (12px) + gaps (2*2px) + padding (2*12px = 24px)
     const selectImageButtonText = "Select Image";
     const selectImageButtonWidth = 14 + selectImageButtonText.length * 7 + 12 + 4 + 24; // Approximate calculation
-    
+
     if (availableImages.length === 0) return Math.max(150, selectImageButtonWidth);
 
     const longestFileName = availableImages.reduce((longest, image) => {
@@ -69,11 +87,11 @@ const ImageTransformOptions: React.FC = () => {
 
     // Calculate width based on longest filename: icon (14px) + text + padding + safe margin
     const fileNameWidth = 14 + longestFileName.length * 8 + 40; // Icon + text + padding
-    
+
     // Use the larger of: select button width, filename width, or absolute minimum (150px)
     const minWidth = Math.max(150, selectImageButtonWidth, fileNameWidth);
     const maxWidth = 400; // Increased maximum width to accommodate longer filenames
-    
+
     return Math.min(minWidth, maxWidth);
   }, [availableImages]);
 
@@ -103,12 +121,192 @@ const ImageTransformOptions: React.FC = () => {
     setSelectedElementId(null);
   };
 
+  const handleCanvasBackgroundOpacityChange = (value: number) => {
+    setCanvasBackgroundOpacity(Math.max(0, Math.min(100, value)));
+  };
+
+  const handleCanvasBackgroundOpacityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTempCanvasBackgroundOpacityInput(value);
+  };
+
+  const handleCanvasBackgroundOpacityInputBlur = () => {
+    let value = Number.parseInt(tempCanvasBackgroundOpacityInput, 10);
+    if (Number.isNaN(value)) value = 100;
+    value = Math.max(0, Math.min(100, value));
+    setCanvasBackgroundOpacity(value);
+    setTempCanvasBackgroundOpacityInput(value.toString());
+  };
+
+  const handleCanvasBackgroundOpacitySliderValueChange = (values: number[]) => {
+    const value = values[0];
+    setCanvasBackgroundOpacity(value);
+    setTempCanvasBackgroundOpacityInput(value.toString());
+  };
+
+  // Function to convert color and opacity to RGBA
+  const colorToRGBA = (color: string, opacity: number) => {
+    if (color === 'transparent') return 'transparent';
+
+    // Convert hex to RGB
+    const hex = color.replace('#', '');
+    const r = Number.parseInt(hex.substring(0, 2), 16);
+    const g = Number.parseInt(hex.substring(2, 4), 16);
+    const b = Number.parseInt(hex.substring(4, 6), 16);
+
+    // Apply opacity
+    const alpha = opacity / 100;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const handleSetCanvasBackground = () => {
+    console.log('ImageTransform: Setting canvas background', {
+      color: canvasBackgroundColor,
+      opacity: canvasBackgroundOpacity
+    });
+
+    setCanvasBackground(canvasBackgroundColor, canvasBackgroundOpacity);
+    setShowCanvasBackgroundPicker(false);
+
+    console.log('ImageTransform: Canvas background successfully set');
+  };
+
+  const renderColorPickers = () => (
+    <>
+      {/* Canvas Background Controls */}
+      <div className="flex items-center space-x-3">
+        {/* Canvas Background Color Button */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+            onClick={() => setShowCanvasBackgroundPicker(!showCanvasBackgroundPicker)}
+          >
+            <p className="text-xs text-[#D4D4D5FF]">Background</p>
+            <div
+              className="w-5 h-5 rounded-xl border border-gray-500"
+              style={{
+                backgroundColor: colorToRGBA(canvasBackgroundColor, canvasBackgroundOpacity)
+              }}
+            />
+          </Button>
+          {showCanvasBackgroundPicker && (
+            <div className="absolute z-50 top-full left-0 mt-2">
+              {/* Canvas background opacity control */}
+              <div ref={canvasBackgroundPickerRef} className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
+                <div className="flex justify-between items-center mb-1">
+                  <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
+                  <div
+                    className="flex items-center h-6 bg-[#202225FF] border-2 border-[#44474AFF] rounded px-1.5 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 cursor-text"
+                    onClick={() => canvasBackgroundOpacityInputRef.current?.focus()}
+                  >
+                    <Input
+                      ref={canvasBackgroundOpacityInputRef}
+                      type="text"
+                      value={tempCanvasBackgroundOpacityInput}
+                      onChange={handleCanvasBackgroundOpacityInputChange}
+                      onBlur={handleCanvasBackgroundOpacityInputBlur}
+                      onKeyDown={(e) => { if (e.key === 'Enter') canvasBackgroundOpacityInputRef.current?.blur(); }}
+                      className="w-7 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0"
+                      maxLength={3}
+                    />
+                    <span className="text-xs text-[#A8AAACFF]">%</span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Slider
+                    id="canvas-bg-opacity-slider"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[canvasBackgroundOpacity]}
+                    onValueChange={handleCanvasBackgroundOpacitySliderValueChange}
+                    className="flex-grow"
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
+                  onClick={() => {
+                    setCanvasBackgroundColor('#ffffff');
+                    setCanvasBackgroundOpacity(0);
+                    setTempCanvasBackgroundOpacityInput("0");
+                  }}
+                >
+                  Transparent
+                </Button>
+              </div>
+              <ColorPicker
+                color={canvasBackgroundColor === 'transparent' ? '#ffffff' : canvasBackgroundColor}
+                setColor={(newColor) => {
+                  setCanvasBackgroundColor(newColor);
+                  if (newColor === 'transparent') {
+                    setCanvasBackgroundOpacity(0);
+                    setTempCanvasBackgroundOpacityInput("0");
+                  }
+                }}
+                onClose={() => setShowCanvasBackgroundPicker(false)}
+                additionalRefs={[canvasBackgroundPickerRef]}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center justify-center px-2 min-w-7 ml-3 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                  onClick={handleSetCanvasBackground}
+                >
+                  <PaintBucket size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Fill background with colour</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="flex gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center justify-center px-2 min-w-7 ml-3 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                  onClick={() => {
+                    removeCanvasBackground();
+                    setShowCanvasBackgroundPicker(false);
+                  }}
+                >
+                  <BrushCleaning size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset background fill</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    </>
+  );
+
+  // If no images imported, show message and color picker
   if (!hasImportedImages) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center space-x-4 bg-[#292C31FF] text-white h-full">
         <span className="text-xs text-[#A8AAACFF] text-center">
           Add images to canvas to use the <b>Image Transform</b> tool.
         </span>
+
+        <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
+
+        {renderColorPickers()}
       </div>
     );
   }
@@ -155,6 +353,10 @@ const ImageTransformOptions: React.FC = () => {
             </ScrollArea>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
+
+        {renderColorPickers()}
       </div>
     );
   }
@@ -167,10 +369,10 @@ const ImageTransformOptions: React.FC = () => {
   // Handle opacity conversion correctly - if opacity is already in 0-100 range (legacy), use as is
   // If opacity is in 0-1 range (correct), convert to 0-100 for display
   const rawOpacity = imageElement.opacity;
-  const imageOpacity = rawOpacity !== undefined 
+  const imageOpacity = rawOpacity !== undefined
     ? (rawOpacity > 1 ? Math.round(rawOpacity) : Math.round(rawOpacity * 100))
     : 100;
-    
+
   // Debug logging for opacity issues
   if (rawOpacity !== undefined && rawOpacity > 1) {
     console.warn('ImageTransform: Found opacity value > 1:', {
@@ -237,6 +439,23 @@ const ImageTransformOptions: React.FC = () => {
     }
   };
 
+  const handleBringToFront = () => {
+    if (currentSelectedImageId) {
+      console.log('ImageTransform: Bringing image to front', {
+        imageId: currentSelectedImageId.slice(-6),
+        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
+      });
+
+      // Bring element to front (this will trigger immediate save due to critical change detection)
+      bringElementToFront(currentSelectedImageId);
+
+      // Show success message
+      console.log('ImageTransform: Image successfully brought to front');
+    } else {
+      console.warn('ImageTransform: No image selected for bring to front operation');
+    }
+  };
+
   const handleResetTransforms = () => {
     if (currentSelectedImageId) {
       console.log('ImageTransform: Resetting all transforms');
@@ -275,7 +494,7 @@ const ImageTransformOptions: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center space-x-2 bg-[#292C31FF] text-white h-full">
+    <div className="flex items-center space-x-4 bg-[#292C31FF] text-white h-full">
       {/* Selected Image Indicator */}
       <div className="flex items-center space-x-4">
         <Label className="text-xs text-[#D4D4D5FF]">Selected:</Label>
@@ -303,25 +522,48 @@ const ImageTransformOptions: React.FC = () => {
         </TooltipProvider>
       </div>
 
-      <div className="ml-3 mr-5 h-6 border-l border-[#44474AFF]"></div>
+      <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
 
-      {/* Set as Background Button */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              onClick={handleSetAsBackground}
-              variant="ghost"
-              className="flex items-center justify-center mr-4 px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
-            >
-              <Layers size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Set as background</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      {/* Layer Controls */}
+      <div className="flex items-center space-x-4">
+        <Label className="text-xs text-[#D4D4D5FF]">Layer:</Label>
+
+        {/* Set as Background Button */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleSetAsBackground}
+                variant="ghost"
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              >
+                <SendToBack size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Bring to back</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Bring to Front Button */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleBringToFront}
+                variant="ghost"
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              >
+                <BringToFront size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Bring to front</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {/* Resize Controls */}
       <div className="flex items-center space-x-4">
@@ -362,7 +604,7 @@ const ImageTransformOptions: React.FC = () => {
       </div>
 
       {/* Flip Controls */}
-      <div className="flex items-center space-x-4 ml-3">
+      <div className="flex items-center space-x-4">
         <Label className="text-xs text-[#D4D4D5FF]">Flip:</Label>
         <TooltipProvider>
           <Tooltip>
@@ -405,7 +647,7 @@ const ImageTransformOptions: React.FC = () => {
         </TooltipProvider>
       </div>
 
-      <div className="ml-4 mr-3 h-6 border-l border-[#44474AFF]"></div>
+      <div className="ml-3 mr-3 h-6 border-l border-[#44474AFF]"></div>
 
       {/* Opacity Control */}
       <NumberInputWithPopover
@@ -440,7 +682,11 @@ const ImageTransformOptions: React.FC = () => {
         suffix=""
       />
 
-      <div className="ml-4 mr-6 h-6 border-l border-[#44474AFF]"></div>
+      <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
+
+      {renderColorPickers()}
+
+      <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
 
       {/* Reset Button */}
       <TooltipProvider>

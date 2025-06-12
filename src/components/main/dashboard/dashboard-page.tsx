@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import Cookies from 'js-cookie';
 import { getCurrentAuthenticatedUser } from '@/services/user-service';
 import type { User as AuthUser } from '@/types/auth';
-import { deleteProject, getProjectData, getUserProjects, duplicateProject } from '@/utils/project-storage';
+import { deleteProject, getProjectData, getUserProjects, duplicateProject, updateProjectName } from '@/utils/project-storage';
 import type { RecentProject } from '@/types/dashboard';
 import type { ElementData } from '@/types/canvas.ts';
 
@@ -466,7 +466,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
     clearHistory();
     addHistoryEntry({
       type: 'unknown',
-      description: `Opened project "${project.name}"`,
+      description: `Opened ${project.name}"`,
       linesSnapshot: renderableObjects
     });
     
@@ -493,7 +493,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
     
     if (!loggedInUser) {
       toast.error("Authentication required", { 
-        description: "Please log in to duplicate projects", 
+        description: "Sign in to duplicate projects", 
         duration: 3000 
       });
       return;
@@ -518,6 +518,28 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
     } else {
       toast.error("Duplication failed", { 
         description: "Could not duplicate the project", 
+        duration: 3000 
+      });
+    }
+  };
+
+  const handleRenameProject = (projectId: string, newName: string) => {
+    const success = updateProjectName(projectId, newName);
+    
+    if (success) {
+      // Refresh the projects list
+      if (loggedInUser) {
+        const userProjects = getUserProjects(loggedInUser.id);
+        setRecentProjects(userProjects);
+      }
+      
+      toast.success("Project renamed", { 
+        description: `Project renamed to "${newName}"`, 
+        duration: 3000 
+      });
+    } else {
+      toast.error("Rename failed", { 
+        description: "Could not rename the project", 
         duration: 3000 
       });
     }
@@ -666,6 +688,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
             onOpenProject={handleOpenProject}
             onDeleteProject={handleDeleteProject}
             onDuplicateProject={handleDuplicateProject}
+            onRenameProject={handleRenameProject}
             formatDate={formatDate}
           />
         </motion.div>

@@ -14,6 +14,8 @@ export interface Element {
     color: string
     backgroundColor: string
     backgroundOpacity: number
+    highlightColor: string
+    highlightOpacity: number
     // textColor?: string
     // textBgColor?: string
     // textBgOpacity: number
@@ -75,6 +77,8 @@ export interface ElementData {
   textBgColor?: string
   textBgOpacity?: number
   textBgOpacityInput?: string
+  highlightColor?: string
+  highlightOpacity?: number
   fontSize?: number
   fontFamily?: string
   fontStyles?: FontStyles

@@ -943,7 +943,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             <span className="flex items-center gap-2">
                               {tab.label}
                               {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
-                                <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
                               )}
                             </span>
                           </button>
@@ -969,7 +969,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     <span className="flex items-center gap-2">
                       {tab.label}
                       {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
-                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
                       )}
                     </span>
                   </button>

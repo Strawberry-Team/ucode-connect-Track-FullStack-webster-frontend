@@ -31,6 +31,8 @@ interface ElementsManagerContextValue {
   adjustImageToCanvas: (imageId: string) => void;
   fitImageToCanvas: (imageId: string) => void;
   setImageAsBackground: (imageId: string) => void;
+  setCanvasBackground: (color: string, opacity: number) => void;
+  removeCanvasBackground: () => void;
 }
 
 // Create the context with a default value of undefined

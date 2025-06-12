@@ -392,10 +392,12 @@ const Canvas: React.FC = () => {
 
     // Canvas export function
     const exportCanvas = useCallback(
-        async (format: "png" | "jpg" | "pdf" | "json") => {
+        async (format: "png" | "jpg" | "pdf" | "json" | "webp" | "svg") => {
             if (!stageRef.current || !contextStageSize) {
                 throw new Error("Canvas not ready for export")
             }
+
+
 
             setIsExporting(true)
 
@@ -408,12 +410,47 @@ const Canvas: React.FC = () => {
                 } else if (format === "jpg") {
                     // For JPG - create export with white background
                     dataURL = await createExportDataURL("jpg")
+                } else if (format === "webp") {
+                    // For WEBP - create export with transparent background
+                    dataURL = await createExportDataURL("webp")
+                } else if (format === "svg") {
+                    // For SVG - generate SVG content
+                    const svgContent = await createSVGExport()
+                    const blob = new Blob([svgContent], { type: "image/svg+xml" })
+                    const url = URL.createObjectURL(blob)
+                    const svgFileName = `project_${Date.now()}.svg`
+                    downloadURL(url, svgFileName)
+                    URL.revokeObjectURL(url)
+                    
+                    toast.success("Success", {
+                        description: `Project saved as "${svgFileName}"`,
+                        duration: 5000,
+                    })
+                    return
                 } else if (format === "pdf") {
                     // For PDF - create export with transparent background for now
                     dataURL = await createExportDataURL("png")
                 }
 
-                // Add watermark if user is not logged in
+                // WEBP exports require logged in user (Pro feature)
+                if (format === "webp") {
+                    if (!loggedInUser) {
+                        toast.error("Error", {
+                            description: "Sign in to export in WEBP format",
+                            duration: 5000,
+                        })
+                        return
+                    }
+                    const webpFileName = `project_${Date.now()}.webp`
+                    downloadDataURL(dataURL!, webpFileName)
+                    toast.success("Success", {
+                        description: `Project saved as "${webpFileName}"`,
+                        duration: 5000,
+                    })
+                    return
+                }
+
+                // Add watermark if user is not logged in (for PNG, JPG only)
                 if (!loggedInUser && (format === "png" || format === "jpg")) {
                     dataURL = await addWatermark(dataURL!, contextStageSize.width, contextStageSize.height, format)
                 }
@@ -484,16 +521,39 @@ const Canvas: React.FC = () => {
     )
 
     // Helper function to create export data URL without affecting visible canvas
-    const createExportDataURL = useCallback(async (format: "png" | "jpg"): Promise<string> => {
+    const createExportDataURL = useCallback(async (format: "png" | "jpg" | "webp"): Promise<string> => {
         if (!stageRef.current || !contextStageSize) {
             throw new Error("Canvas not ready for export")
         }
 
         const stage = stageRef.current
 
-        // Temporarily hide background pattern to get clean export without affecting visible canvas
+        // Find and temporarily hide UI elements that shouldn't be in export
         const backgroundNode = stage.findOne(".background-pattern") as Konva.Rect | null
         const wasBackgroundVisible = backgroundNode?.visible()
+        
+        // Find and hide all transformers specifically
+        const transformers = stage.find('Transformer')
+        const transformersVisibility: boolean[] = []
+        transformers.forEach((transformer) => {
+            transformersVisibility.push(transformer.visible())
+        })
+        
+        // Find UI layers that contain selection borders, transformers, snap lines, etc.
+        const layers = stage.find('Layer')
+        const uiLayers: Konva.Layer[] = []
+        const uiLayersVisibility: boolean[] = []
+        
+        // Hide layers that contain UI elements (typically the last 2-3 layers)
+        // We'll hide layers that don't contain actual content (brush lines, elements)
+        if (layers.length >= 2) {
+            // Usually the last 2 layers are UI layers
+            const lastTwoLayers = layers.slice(-2) as Konva.Layer[]
+            lastTwoLayers.forEach((layer) => {
+                uiLayers.push(layer)
+                uiLayersVisibility.push(layer.visible())
+            })
+        }
         
         let cleanDataURL: string
         
@@ -501,20 +561,43 @@ const Canvas: React.FC = () => {
             // Hide background pattern very briefly (won't be visible to user due to RAF timing)
             if (backgroundNode) {
                 backgroundNode.visible(false)
-                stage.batchDraw() // Force immediate redraw
             }
+            
+            // Hide all transformers specifically
+            transformers.forEach((transformer) => {
+                transformer.visible(false)
+            })
+            
+            // Hide UI layers (transformers, snap lines, crop tools, etc.)
+            uiLayers.forEach((layer) => {
+                layer.visible(false)
+            })
+            
+            stage.batchDraw() // Force immediate redraw
 
-            // Get clean stage content without background pattern
+            // Get clean stage content without background pattern and UI elements
+            const mimeType = format === "webp" ? "image/webp" : format === "jpg" ? "image/jpeg" : "image/png"
             cleanDataURL = stage.toDataURL({ 
-                mimeType: "image/png",
-                quality: 1
+                mimeType: mimeType,
+                quality: format === "webp" ? 0.9 : 1
             })
         } finally {
             // Immediately restore background pattern
             if (backgroundNode && wasBackgroundVisible) {
                 backgroundNode.visible(true)
-                stage.batchDraw() // Force immediate redraw
             }
+            
+            // Restore transformers visibility
+            transformers.forEach((transformer, index) => {
+                transformer.visible(transformersVisibility[index])
+            })
+            
+            // Restore UI layers visibility
+            uiLayers.forEach((layer, index) => {
+                layer.visible(uiLayersVisibility[index])
+            })
+            
+            stage.batchDraw() // Force immediate redraw
         }
 
         // Create final export canvas
@@ -536,7 +619,9 @@ const Canvas: React.FC = () => {
                 // Draw the clean stage content
                 exportCtx.drawImage(stageImage, 0, 0)
                 
-                resolve(exportCanvas.toDataURL(format === "jpg" ? "image/jpeg" : "image/png", format === "jpg" ? 0.9 : 1))
+                const outputMimeType = format === "webp" ? "image/webp" : format === "jpg" ? "image/jpeg" : "image/png"
+                const quality = format === "webp" ? 0.9 : format === "jpg" ? 0.9 : 1
+                resolve(exportCanvas.toDataURL(outputMimeType, quality))
             }
             
             stageImage.onerror = () => {
@@ -546,6 +631,424 @@ const Canvas: React.FC = () => {
             stageImage.src = cleanDataURL
         })
     }, [contextStageSize])
+
+    // Helper function to create SVG export
+    const createSVGExport = useCallback(async (): Promise<string> => {
+        if (!contextStageSize) {
+            throw new Error("Canvas not ready for SVG export")
+        }
+
+        const { width, height } = contextStageSize
+        
+        // Debug info - can be removed in production
+        console.log('SVG Export: Starting with canvas size:', width, 'x', height)
+        console.log('SVG Export: Renderable objects count:', renderableObjects.length)
+        
+        // Create SVG content with transparent background
+        let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background-color: transparent;">
+<defs>
+<!-- Gradient and pattern definitions can be added here -->
+</defs>`
+
+        // Helper function to convert color with opacity to rgba
+        const colorWithOpacity = (color: string | undefined, opacity: number = 100) => {
+            if (!color || color === 'transparent') return 'transparent'
+            if (opacity === undefined || opacity === null || opacity === 0) return 'transparent'
+            if (opacity === 100) return color
+            
+            // Ensure opacity is between 0 and 100, if it's already between 0 and 1, convert to 0-100 range
+            let normalizedOpacity = opacity
+            if (opacity <= 1 && opacity > 0) {
+                normalizedOpacity = opacity * 100
+            }
+            
+            // Simple RGB extraction for hex colors
+            if (color.startsWith('#')) {
+                const hex = color.substring(1)
+                const r = parseInt(hex.substring(0, 2), 16)
+                const g = parseInt(hex.substring(2, 4), 16)
+                const b = parseInt(hex.substring(4, 6), 16)
+                return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity / 100})`
+            }
+            
+            // Handle rgb/rgba colors
+            if (color.startsWith('rgb')) {
+                // Extract RGB values from rgb(r,g,b) or rgba(r,g,b,a) format
+                const matches = color.match(/\d+/g)
+                if (matches && matches.length >= 3) {
+                    const r = parseInt(matches[0])
+                    const g = parseInt(matches[1])
+                    const b = parseInt(matches[2])
+                    return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity / 100})`
+                }
+            }
+            
+            // For named colors, try to use them as-is with opacity
+            if (normalizedOpacity !== 100) {
+                // For named colors, we'll have to use a fallback
+                const colorMap: { [key: string]: string } = {
+                    'black': '#000000',
+                    'white': '#ffffff',
+                    'red': '#ff0000',
+                    'green': '#008000',
+                    'blue': '#0000ff',
+                    'yellow': '#ffff00',
+                    'cyan': '#00ffff',
+                    'magenta': '#ff00ff',
+                    'gray': '#808080',
+                    'grey': '#808080'
+                }
+                
+                const hexColor = colorMap[color.toLowerCase()]
+                if (hexColor) {
+                    const hex = hexColor.substring(1)
+                    const r = parseInt(hex.substring(0, 2), 16)
+                    const g = parseInt(hex.substring(2, 4), 16)
+                    const b = parseInt(hex.substring(4, 6), 16)
+                    return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity / 100})`
+                }
+            }
+            
+            return color
+        }
+
+        // Helper function to escape XML text
+        const escapeXml = (text: string) => {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+        }
+
+        let elementCount = 0
+        let lineCount = 0
+
+        // Process each renderable object
+        for (const obj of renderableObjects) {
+            if ('tool' in obj) {
+                // Handle brush and eraser lines
+                const line = obj as LineData
+                if (line.tool === 'brush') {
+                    lineCount++
+                    // Debug: Processing brush line
+                    
+                    const points = line.points
+                    if (points.length >= 4) {
+                        let pathData = `M ${points[0]} ${points[1]}`
+                        for (let i = 2; i < points.length; i += 2) {
+                            if (i + 1 < points.length) {
+                                pathData += ` L ${points[i]} ${points[i + 1]}`
+                            }
+                        }
+                        
+                        const lineAny = line as any
+                        const hasTransform = lineAny.x || lineAny.y || lineAny.rotation || lineAny.scaleX !== 1 || lineAny.scaleY !== 1
+                        const transform = hasTransform
+                            ? `transform="translate(${lineAny.x || 0}, ${lineAny.y || 0}) rotate(${lineAny.rotation || 0}) scale(${lineAny.scaleX || 1}, ${lineAny.scaleY || 1})"` 
+                            : ''
+                        
+                        // Debug: Brush line details
+                        const strokeColor = colorWithOpacity(line.color, line.opacity)
+                        console.log('SVG Export: Brush line color:', line.color, 'opacity:', line.opacity, 'result:', strokeColor)
+                        
+                        svgContent += `
+<path d="${pathData}" 
+      stroke="${strokeColor}" 
+      stroke-width="${line.strokeWidth}" 
+      stroke-linecap="round" 
+      stroke-linejoin="round" 
+      fill="none" 
+      ${transform} />`
+                    }
+                }
+                // Note: Eraser strokes are complex to implement in SVG as they use composite operations
+            } else {
+                // Handle elements (shapes, text, images)
+                const element = obj as ElementData
+                elementCount++
+                // Debug: Processing element
+                console.log('SVG Export: Processing element:', element.type, 'opacity:', element.opacity, 'colors:', {
+                    fillColor: element.fillColor,
+                    fillColorOpacity: element.fillColorOpacity,
+                    borderColor: element.borderColor,
+                    borderColorOpacity: element.borderColorOpacity
+                })
+                
+                // Ensure element opacity is properly handled (0-100 range converted to 0-1 for SVG)
+                let elementOpacity = element.opacity
+                if (elementOpacity === undefined || elementOpacity === null) {
+                    elementOpacity = 100
+                }
+                // If opacity is already in 0-1 range, convert to 0-100 first
+                if (elementOpacity <= 1 && elementOpacity > 0) {
+                    elementOpacity = elementOpacity * 100
+                }
+                const commonAttrs = `opacity="${Math.max(0.01, elementOpacity / 100)}"`
+                
+                // Calculate transform
+                const centerX = element.x + (element.width || 0) / 2
+                const centerY = element.y + (element.height || 0) / 2
+                const rotateTransform = element.rotation ? ` rotate(${element.rotation} ${centerX} ${centerY})` : ''
+                const scaleTransform = (element.scaleX !== 1 || element.scaleY !== 1) ? ` scale(${element.scaleX || 1} ${element.scaleY || 1})` : ''
+                const transform = (rotateTransform || scaleTransform) ? `transform="${rotateTransform}${scaleTransform}"` : ''
+
+                switch (element.type) {
+                    case 'rectangle':
+                    case 'square':
+                        // Debug: Rectangle element
+                        svgContent += `
+<rect x="${element.x}" y="${element.y}" 
+      width="${element.width}" height="${element.height}" 
+      fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+      stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+      stroke-width="${element.borderWidth || 0}" 
+      ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'rounded-rectangle':
+                        svgContent += `
+<rect x="${element.x}" y="${element.y}" 
+      width="${element.width}" height="${element.height}" 
+      rx="${element.cornerRadius || 10}" ry="${element.cornerRadius || 10}"
+      fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+      stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+      stroke-width="${element.borderWidth || 0}" 
+      ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'squircle':
+                        const squircleRadius = Math.min(element.width || 0, element.height || 0) / 4
+                        svgContent += `
+<rect x="${element.x}" y="${element.y}" 
+      width="${element.width}" height="${element.height}" 
+      rx="${squircleRadius}" ry="${squircleRadius}"
+      fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+      stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+      stroke-width="${element.borderWidth || 0}" 
+      ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'circle':
+                        const radius = Math.min(element.width || 0, element.height || 0) / 2
+                        // In ElementRenderer, circles are positioned with center coordinates (x + width/2)
+                        // But ElementData stores top-left coordinates, so we need to add half width/height
+                        const cx = element.x + (element.width || 0) / 2
+                        const cy = element.y + (element.height || 0) / 2
+                        // Debug: Circle element
+                        svgContent += `
+<circle cx="${cx}" cy="${cy}" r="${radius}" 
+        fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+        stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+        stroke-width="${element.borderWidth || 0}" 
+        ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'triangle':
+                        const triRadius = Math.min(element.width || 0, element.height || 0) / 2
+                        const triCx = element.x + (element.width || 0) / 2
+                        const triCy = element.y + (element.height || 0) / 2
+                        // Create triangle points (equilateral triangle)
+                        const triPoints = [
+                            `${triCx},${triCy - triRadius}`, // top point
+                            `${triCx - triRadius * 0.866},${triCy + triRadius * 0.5}`, // bottom left
+                            `${triCx + triRadius * 0.866},${triCy + triRadius * 0.5}`  // bottom right
+                        ].join(' ')
+                        svgContent += `
+<polygon points="${triPoints}" 
+         fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+         stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+         stroke-width="${element.borderWidth || 0}" 
+         ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'pentagon':
+                        const pentRadius = Math.min(element.width || 0, element.height || 0) / 2
+                        const pentCx = element.x + (element.width || 0) / 2
+                        const pentCy = element.y + (element.height || 0) / 2
+                        const pentPoints = []
+                        for (let i = 0; i < 5; i++) {
+                            const angle = (i * 2 * Math.PI / 5) - (Math.PI / 2)
+                            const x = pentCx + pentRadius * Math.cos(angle)
+                            const y = pentCy + pentRadius * Math.sin(angle)
+                            pentPoints.push(`${x},${y}`)
+                        }
+                        svgContent += `
+<polygon points="${pentPoints.join(' ')}" 
+         fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+         stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+         stroke-width="${element.borderWidth || 0}" 
+         ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'hexagon':
+                        const hexRadius = Math.min(element.width || 0, element.height || 0) / 2
+                        const hexCx = element.x + (element.width || 0) / 2
+                        const hexCy = element.y + (element.height || 0) / 2
+                        const hexPoints = []
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (i * 2 * Math.PI / 6) - (Math.PI / 2)
+                            const x = hexCx + hexRadius * Math.cos(angle)
+                            const y = hexCy + hexRadius * Math.sin(angle)
+                            hexPoints.push(`${x},${y}`)
+                        }
+                        svgContent += `
+<polygon points="${hexPoints.join(' ')}" 
+         fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+         stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+         stroke-width="${element.borderWidth || 0}" 
+         ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'star':
+                        const starRadius = Math.min(element.width || 0, element.height || 0) / 2
+                        const starCx = element.x + (element.width || 0) / 2
+                        const starCy = element.y + (element.height || 0) / 2
+                        const starInnerRadius = starRadius / 2
+                        const starPoints = []
+                        for (let i = 0; i < 10; i++) {
+                            const angle = (i * Math.PI / 5) - (Math.PI / 2)
+                            const radius = i % 2 === 0 ? starRadius : starInnerRadius
+                            const x = starCx + radius * Math.cos(angle)
+                            const y = starCy + radius * Math.sin(angle)
+                            starPoints.push(`${x},${y}`)
+                        }
+                        svgContent += `
+<polygon points="${starPoints.join(' ')}" 
+         fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+         stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+         stroke-width="${element.borderWidth || 0}" 
+         ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'heart':
+                        const heartCx = element.x + (element.width || 0) / 2
+                        const heartCy = element.y + (element.height || 0) / 2
+                        const heartWidth = element.width || 0
+                        const heartHeight = element.height || 0
+                        // SVG heart path (scaled and positioned)
+                        const heartPath = `M ${heartCx} ${heartCy + heartHeight * 0.3} 
+                                         C ${heartCx} ${heartCy - heartHeight * 0.1}, ${heartCx - heartWidth * 0.5} ${heartCy - heartHeight * 0.1}, ${heartCx - heartWidth * 0.5} ${heartCy + heartHeight * 0.1}
+                                         C ${heartCx - heartWidth * 0.5} ${heartCy + heartHeight * 0.2}, ${heartCx} ${heartCy + heartHeight * 0.4}, ${heartCx} ${heartCy + heartHeight * 0.5}
+                                         C ${heartCx} ${heartCy + heartHeight * 0.4}, ${heartCx + heartWidth * 0.5} ${heartCy + heartHeight * 0.2}, ${heartCx + heartWidth * 0.5} ${heartCy + heartHeight * 0.1}
+                                         C ${heartCx + heartWidth * 0.5} ${heartCy - heartHeight * 0.1}, ${heartCx} ${heartCy - heartHeight * 0.1}, ${heartCx} ${heartCy + heartHeight * 0.3} Z`
+                        svgContent += `
+<path d="${heartPath}" 
+      fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+      stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+      stroke-width="${element.borderWidth || 0}" 
+      ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'arrow':
+                        const arrowBodyY = element.y + (element.height || 0) / 2
+                        const arrowHeadWidth = (element.width || 0) * 0.2
+                        const arrowHeadHeight = (element.height || 0) * 0.6
+                        const arrowPath = `M ${element.x} ${arrowBodyY} 
+                                         L ${element.x + (element.width || 0) - arrowHeadWidth} ${arrowBodyY}
+                                         L ${element.x + (element.width || 0) - arrowHeadWidth} ${element.y + (element.height || 0) * 0.2}
+                                         L ${element.x + (element.width || 0)} ${element.y + (element.height || 0) / 2}
+                                         L ${element.x + (element.width || 0) - arrowHeadWidth} ${element.y + (element.height || 0) * 0.8}
+                                         L ${element.x + (element.width || 0) - arrowHeadWidth} ${arrowBodyY} Z`
+                        svgContent += `
+<path d="${arrowPath}" 
+      fill="${colorWithOpacity(element.fillColor, element.fillColorOpacity) || 'none'}" 
+      stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || 'none'}" 
+      stroke-width="${element.borderWidth || 0}" 
+      ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'text':
+                        const textX = element.x + (element.width || 0) / 2
+                        const textY = element.y + (element.height || 0) / 2
+                        const fontSize = element.fontSize || 16
+                        let textContent = element.text || ''
+                        
+                        // Apply text case
+                        switch (element.textCase) {
+                            case 'uppercase':
+                                textContent = textContent.toUpperCase()
+                                break
+                            case 'lowercase':
+                                textContent = textContent.toLowerCase()
+                                break
+                            case 'capitalize':
+                                textContent = textContent.split(' ').map(word => 
+                                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                ).join(' ')
+                                break
+                        }
+                        
+                        // Debug: Text element
+                        
+                        // Add background rectangle if background color is set
+                        if (element.backgroundColor && element.backgroundColor !== 'transparent' && element.backgroundOpacity && element.backgroundOpacity > 0) {
+                            svgContent += `
+<rect x="${element.x}" y="${element.y}" 
+      width="${element.width}" height="${element.height}" 
+      fill="${colorWithOpacity(element.backgroundColor, element.backgroundOpacity)}" 
+      ${commonAttrs} ${transform} />`
+                        }
+                        
+                        svgContent += `
+<text x="${textX}" y="${textY}" 
+      font-size="${fontSize}" 
+      font-family="${element.fontFamily || 'Arial'}" 
+      text-anchor="middle" 
+      dominant-baseline="middle" 
+      fill="${colorWithOpacity(element.color, element.textColorOpacity) || '#000000'}" 
+      ${element.fontStyles?.bold ? 'font-weight="bold"' : ''} 
+      ${element.fontStyles?.italic ? 'font-style="italic"' : ''} 
+      ${commonAttrs} ${transform}>${escapeXml(textContent)}</text>`
+                        break
+                        
+                    case 'line':
+                        const x2 = element.x + (element.width || 0)
+                        const y2 = element.y
+                        // Debug: Line element
+                        svgContent += `
+<line x1="${element.x}" y1="${element.y}" x2="${x2}" y2="${y2}" 
+      stroke="${colorWithOpacity(element.borderColor, element.borderColorOpacity) || '#000000'}" 
+      stroke-width="${element.borderWidth || 1}" 
+      ${commonAttrs} ${transform} />`
+                        break
+                        
+                    case 'custom-image':
+                        if (element.src) {
+                            // Custom images use center positioning, so convert to top-left for SVG
+                            const imgX = element.x - (element.width || 0) / 2
+                            const imgY = element.y - (element.height || 0) / 2
+                            // Debug: Image element
+                            svgContent += `
+<image x="${imgX}" y="${imgY}" 
+       width="${element.width}" height="${element.height}" 
+       href="${element.src}" 
+       ${commonAttrs} ${transform} />`
+                        }
+                        break
+                }
+            }
+        }
+
+        svgContent += '\n</svg>'
+        
+        console.log('SVG Export: Completed. Total elements:', elementCount, 'Total lines:', lineCount)
+        console.log('SVG Export: Final SVG length:', svgContent.length)
+        
+        return svgContent
+    }, [contextStageSize, renderableObjects])
+
+    // Helper function to download URL
+    const downloadURL = (url: string, filename: string) => {
+        const link = document.createElement("a")
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
 
     // Helper function to download data URL
     const downloadDataURL = (dataURL: string, filename: string) => {

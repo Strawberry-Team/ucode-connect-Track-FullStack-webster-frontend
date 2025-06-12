@@ -3,7 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AlignCenter, AlignLeft, AlignRight, AlignJustify, Bold, Italic, Underline, Type, PlusCircle, Trash2, Copy, Strikethrough, Baseline, ChevronDown, CaseSensitive, CaseUpper, CaseLower, RotateCcw } from 'lucide-react';
+import { AlignCenter, AlignLeft, AlignRight, AlignJustify, Bold, Italic, Underline, Type, PlusCircle, Trash2, Copy, Strikethrough, Baseline, ChevronDown, CaseSensitive, CaseUpper, CaseLower, RotateCcw, Layers, MoveUp, Highlighter } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -305,6 +305,7 @@ declare global {
 const TextOptions: React.FC = () => {
   const [hasUserChangedTextColor, setHasUserChangedTextColor] = useState(false);
   const [hasUserChangedTextBgColor, setHasUserChangedTextBgColor] = useState(false);
+  const [hasUserChangedHighlightColor, setHasUserChangedHighlightColor] = useState(false);
   const {
     color, 
     secondaryColor,
@@ -314,6 +315,10 @@ const TextOptions: React.FC = () => {
     setTextBgColor: contextSetTextBgColor,
     textBgOpacity: contextTextBgOpacity,
     setTextBgOpacity: contextSetTextBgOpacity,
+    highlightColor: contextHighlightColor,
+    setHighlightColor: contextSetHighlightColor,
+    highlightOpacity: contextHighlightOpacity,
+    setHighlightOpacity: contextSetHighlightOpacity,
     setFontSize,
     fontSize,
     setLineHeight,
@@ -354,16 +359,21 @@ const TextOptions: React.FC = () => {
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+  const [showHighlightColorPicker, setShowHighlightColorPicker] = useState(false);
   const textBgOpacityInputRef = useRef<HTMLInputElement>(null);
   const [tempTextBgOpacityInput, setTempTextBgOpacityInput] = useState<string>(() => String(Math.round(contextTextBgOpacity)));
+  const highlightOpacityInputRef = useRef<HTMLInputElement>(null);
+  const [tempHighlightOpacityInput, setTempHighlightOpacityInput] = useState<string>(() => String(Math.round(contextHighlightOpacity)));
   const textColorOpacityInputRef = useRef<HTMLInputElement>(null);
   const [tempTextColorOpacityInput, setTempTextColorOpacityInput] = useState<string>(() => String(Math.round(textColorOpacity)));
   const textColorControlsRef = useRef<HTMLDivElement>(null!);
   const textBgControlsRef = useRef<HTMLDivElement>(null!);
+  const highlightControlsRef = useRef<HTMLDivElement>(null!);
 
   const closeOtherPickers = () => {
     setShowColorPicker(false);
     setShowBgColorPicker(false);
+    setShowHighlightColorPicker(false);
   };
 
   // Sync tool state with selected element
@@ -376,6 +386,8 @@ const TextOptions: React.FC = () => {
         setTextColorOpacity(selectedElement.textColorOpacity !== undefined ? selectedElement.textColorOpacity : 100);
         contextSetTextBgColor(selectedElement.backgroundColor || "transparent");
         contextSetTextBgOpacity(selectedElement.backgroundOpacity !== undefined ? selectedElement.backgroundOpacity : 0);
+        contextSetHighlightColor(selectedElement.highlightColor || "#ffff00");
+        contextSetHighlightOpacity(selectedElement.highlightOpacity !== undefined ? selectedElement.highlightOpacity : 0);
         setFontSize(selectedElement.fontSize || 16);
         setLineHeight(selectedElement.lineHeight || 1);
         setFontFamily(selectedElement.fontFamily || "Arial");
@@ -387,11 +399,10 @@ const TextOptions: React.FC = () => {
         contextSetBorderStyle(selectedElement.borderStyle || "solid");
       }
     }
-  }, [selectedElementId, getElementDataFromRenderables, contextSetTextColor, setTextColorOpacity, contextSetTextBgColor, contextSetTextBgOpacity, setFontSize, setLineHeight, setFontFamily, setTextAlignment, setFontStyles, setTextCase, contextSetBorderColor, contextSetBorderWidth, contextSetBorderStyle]);
+  }, [selectedElementId, getElementDataFromRenderables, contextSetTextColor, setTextColorOpacity, contextSetTextBgColor, contextSetTextBgOpacity, contextSetHighlightColor, contextSetHighlightOpacity, setFontSize, setLineHeight, setFontFamily, setTextAlignment, setFontStyles, setTextCase, contextSetBorderColor, contextSetBorderWidth, contextSetBorderStyle]);
 
 
   useEffect(() => {
-
     if (activeTool?.type === "text" && !selectedElementId && color && !hasUserChangedTextColor) {
       contextSetTextColor(color);
     }
@@ -399,7 +410,6 @@ const TextOptions: React.FC = () => {
 
 
   useEffect(() => {
-
     if (activeTool?.type === "text" && !selectedElementId && secondaryColor && !hasUserChangedTextBgColor) {
       contextSetTextBgColor(secondaryColor);
 
@@ -410,10 +420,21 @@ const TextOptions: React.FC = () => {
     }
   }, [activeTool?.type, selectedElementId, secondaryColor, contextSetTextBgColor, contextSetTextBgOpacity, hasUserChangedTextBgColor]);
 
+  useEffect(() => {
+    if (activeTool?.type === "text" && !selectedElementId && secondaryColor && !hasUserChangedHighlightColor) {
+      contextSetHighlightColor(secondaryColor);
+
+      if (secondaryColor !== 'transparent') {
+        contextSetHighlightOpacity(30); // Set default highlight opacity to 30% for visibility
+        setTempHighlightOpacityInput("30");
+      }
+    }
+  }, [activeTool?.type, selectedElementId, secondaryColor, contextSetHighlightColor, contextSetHighlightOpacity, hasUserChangedHighlightColor]);
 
   useEffect(() => {
     setHasUserChangedTextColor(false);
     setHasUserChangedTextBgColor(false);
+    setHasUserChangedHighlightColor(false);
   }, [activeTool?.type, selectedElementId]);
 
   // Update selected element when text settings change
@@ -427,6 +448,8 @@ const TextOptions: React.FC = () => {
           textColorOpacity: textColorOpacity,
           backgroundColor: contextTextBgColor,
           backgroundOpacity: contextTextBgOpacity,
+          highlightColor: contextHighlightColor,
+          highlightOpacity: contextHighlightOpacity,
           fontSize,
           lineHeight,
           fontFamily,
@@ -457,6 +480,8 @@ const TextOptions: React.FC = () => {
     textColorOpacity,
     contextTextBgColor,
     contextTextBgOpacity,
+    contextHighlightColor,
+    contextHighlightOpacity,
     fontSize,
     lineHeight,
     fontFamily,
@@ -470,6 +495,19 @@ const TextOptions: React.FC = () => {
     getElementDataFromRenderables,
     updateSelectedElementStyle
   ]);
+
+  // Sync opacity input fields with context values
+  useEffect(() => {
+    setTempTextBgOpacityInput(String(Math.round(contextTextBgOpacity)));
+  }, [contextTextBgOpacity]);
+
+  useEffect(() => {
+    setTempTextColorOpacityInput(String(Math.round(textColorOpacity)));
+  }, [textColorOpacity]);
+
+  useEffect(() => {
+    setTempHighlightOpacityInput(String(Math.round(contextHighlightOpacity)));
+  }, [contextHighlightOpacity]);
 
   // Available default fonts
   const fonts = [
@@ -488,6 +526,8 @@ const TextOptions: React.FC = () => {
       color: contextTextColor,
       backgroundColor: contextTextBgColor,
       backgroundOpacity: contextTextBgOpacity,
+      highlightColor: contextHighlightColor,
+      highlightOpacity: contextHighlightOpacity,
       fontSize: fontSize,
       fontFamily: fontFamily,
       fontStyles: { ...fontStyles },
@@ -499,6 +539,8 @@ const TextOptions: React.FC = () => {
       color: contextTextColor,
       backgroundColor: contextTextBgColor,
       backgroundOpacity: contextTextBgOpacity,
+      highlightColor: contextHighlightColor,
+      highlightOpacity: contextHighlightOpacity,
       fontSize: fontSize,
       fontFamily: fontFamily,
       fontStyles: { ...fontStyles },
@@ -528,6 +570,8 @@ const TextOptions: React.FC = () => {
     textColorOpacity,
     contextTextBgColor,
     contextTextBgOpacity,
+    contextHighlightColor,
+    contextHighlightOpacity,
     fontSize,
     fontFamily,
     fontStyles,
@@ -641,6 +685,41 @@ const TextOptions: React.FC = () => {
     currentNum = Math.max(0, Math.min(100, currentNum));
     setTextColorOpacity(currentNum);
     setTempTextColorOpacityInput(String(currentNum));
+  };
+
+  const handleHighlightOpacitySliderValueChange = (value: number[]) => {
+    const newHighlightOpacity = Math.round(value[0]);
+    contextSetHighlightOpacity(newHighlightOpacity);
+    setTempHighlightOpacityInput(String(newHighlightOpacity));
+  };
+
+  const handleHighlightOpacityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let inputValue = e.target.value;
+    inputValue = inputValue.replace(/[^\d]/g, "");
+    if (inputValue === "") {
+      setTempHighlightOpacityInput("");
+      return;
+    }
+    let num = parseInt(inputValue, 10);
+    if (isNaN(num)) {
+      setTempHighlightOpacityInput(inputValue);
+      return;
+    }
+    if (num > 100) {
+      num = 100;
+      inputValue = String(100);
+    }
+    setTempHighlightOpacityInput(inputValue);
+  };
+
+  const handleHighlightOpacityInputBlur = () => {
+    let currentNum = parseInt(tempHighlightOpacityInput, 10);
+    if (isNaN(currentNum) || tempHighlightOpacityInput.trim() === "") {
+      currentNum = 0;
+    }
+    currentNum = Math.max(0, Math.min(100, currentNum));
+    contextSetHighlightOpacity(currentNum);
+    setTempHighlightOpacityInput(String(currentNum));
   };
 
   const renderColorPickers = () => (
@@ -782,6 +861,85 @@ const TextOptions: React.FC = () => {
           </div>
         )}
       </div>
+
+      <div className="h-6 border-l border-[#44474AFF]"></div>
+
+      <div className="relative ml-2">
+        <Button
+          variant="ghost"
+          className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
+          onClick={() => setShowHighlightColorPicker(!showHighlightColorPicker)}
+        >
+          <p className="text-xs text-[#D4D4D5FF]">Highlight</p>
+          <div
+            className="w-5 h-5 rounded-xl border border-gray-500"
+            style={{
+              backgroundColor: colorToRGBA(contextHighlightColor, contextHighlightOpacity)
+            }}
+          />
+        </Button>
+        {showHighlightColorPicker && (
+          <div className="absolute z-50 top-full left-0 mt-2">
+            <div ref={highlightControlsRef} className="mt-0 p-2 bg-[#292C31FF] border border-[#44474AFF] rounded flex flex-col gap-2">
+              <div className="flex justify-between items-center mb-1">
+                <Label className="text-xs text-[#D4D4D5FF]">Opacity:</Label>
+                <div
+                  className="flex items-center h-6 bg-[#202225FF] border-2 border-[#44474AFF] rounded px-1.5 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 cursor-text"
+                  onClick={() => highlightOpacityInputRef.current?.focus()}
+                >
+                  <Input
+                    ref={highlightOpacityInputRef}
+                    type="text"
+                    value={tempHighlightOpacityInput}
+                    onChange={handleHighlightOpacityInputChange}
+                    onBlur={handleHighlightOpacityInputBlur}
+                    onKeyDown={(e) => { if (e.key === 'Enter') highlightOpacityInputRef.current?.blur(); }}
+                    className="w-7 bg-transparent border-none text-xs text-white text-center focus:ring-0 p-0"
+                    maxLength={3}
+                  />
+                  <span className="text-xs text-[#A8AAACFF]">%</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  id="highlight-opacity-slider"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[contextHighlightOpacity]}
+                  onValueChange={handleHighlightOpacitySliderValueChange}
+                  className="flex-grow"
+                />
+              </div>
+              <Button
+                variant="ghost"
+                className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
+                onClick={(e) => {
+                  contextSetHighlightColor('#ffff00');
+                  contextSetHighlightOpacity(0);
+                  setTempHighlightOpacityInput("0");
+                  setHasUserChangedHighlightColor(true);
+                }}
+              >
+                Transparent
+              </Button>
+            </div>
+            <ColorPicker
+              color={contextHighlightColor === 'transparent' ? '#ffff00' : contextHighlightColor}
+              setColor={(newColor) => {
+                contextSetHighlightColor(newColor);
+                setHasUserChangedHighlightColor(true); 
+                if (newColor === 'transparent') {
+                  contextSetHighlightOpacity(0);
+                  setTempHighlightOpacityInput("0");
+                }
+              }}
+              onClose={() => setShowHighlightColorPicker(false)}
+              additionalRefs={[highlightControlsRef]}
+            />
+          </div>
+        )}
+      </div>
     </>
   );
 
@@ -900,6 +1058,9 @@ const TextOptions: React.FC = () => {
     contextSetTextBgColor("transparent");
     contextSetTextBgOpacity(0);
     setTempTextBgOpacityInput("0");
+    contextSetHighlightColor("#ffff00");
+    contextSetHighlightOpacity(0);
+    setTempHighlightOpacityInput("0");
     contextSetBorderColor("#000000");
     contextSetBorderWidth(0);
     contextSetBorderStyle("hidden");
@@ -916,6 +1077,8 @@ const TextOptions: React.FC = () => {
         textColorOpacity: 100,
         backgroundColor: "transparent",
         backgroundOpacity: 0,
+        highlightColor: "#ffff00",
+        highlightOpacity: 0,
         borderColor: "#000000",
         borderWidth: 0,
         borderStyle: "hidden",

@@ -819,6 +819,14 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
         const bgColor = element.backgroundColor || 'transparent';
         textarea.style.background = convertColorToRGBA(bgColor, element.backgroundOpacity);
+        
+        // Apply highlight color effect using text-shadow
+        if (element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0) {
+          const highlightRGBA = convertColorToRGBA(element.highlightColor, element.highlightOpacity);
+          textarea.style.textShadow = `0 0 8px ${highlightRGBA}, 0 0 16px ${highlightRGBA}`;
+        } else {
+          textarea.style.textShadow = 'none';
+        }
 
         textarea.style.fontWeight = element.fontStyles?.bold ? 'bold' : 'normal';
         textarea.style.fontStyle = element.fontStyles?.italic ? 'italic' : 'normal';
@@ -894,6 +902,11 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             lineHeight={element.lineHeight || 1}
                             padding={5}
                             fill={convertColorToRGBA(element.color, element.textColorOpacity) || "#000000"}
+                            shadowColor={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0 
+                                ? convertColorToRGBA(element.highlightColor, element.highlightOpacity) 
+                                : undefined}
+                            shadowBlur={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0 ? 8 : 0}
+                            shadowOpacity={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0 ? 1 : 0}
                             visible={!isEditing}
                             listening={!isEditing}
                             x={0} // Relative to group

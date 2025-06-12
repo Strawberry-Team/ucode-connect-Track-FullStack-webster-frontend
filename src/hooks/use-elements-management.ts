@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import type { ElementData, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType, RenderableObject } from "@/types/canvas";
+import type { ElementData, LineData, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType, RenderableObject } from "@/types/canvas";
 import type Konva from "konva";
 import { useTool } from "@/context/tool-context";
 
@@ -16,6 +16,8 @@ export interface ElementsManagementProps {
   lineHeight?: number;
   backgroundColor?: string;
   backgroundOpacity?: number;
+  highlightColor?: string;
+  highlightOpacity?: number;
   // Additional parameters for shapes
   fillColor?: string;
   fillColorOpacity?: number;
@@ -44,6 +46,8 @@ const useElementsManagement = ({
   lineHeight: defaultLineHeight = 1,
   backgroundColor: defaultBackgroundColor = "transparent",
   backgroundOpacity: defaultBackgroundOpacity = 100,
+  highlightColor: defaultHighlightColor = "#ffff00",
+  highlightOpacity: defaultHighlightOpacity = 0,
   fillColor: defaultFillColor = "#ffffff",
   fillColorOpacity: defaultFillColorOpacity = 100,
   borderColor: defaultBorderColor = "#000000",
@@ -64,6 +68,8 @@ const useElementsManagement = ({
     textColor: toolTextColor,
     textBgColor: toolTextBgColor,
     textBgOpacity: toolTextBgOpacity,
+    highlightColor: toolHighlightColor,
+    highlightOpacity: toolHighlightOpacity,
     fontSize: toolFontSize,
     fontFamily: toolFontFamily,
     fontStyles: toolFontStyles,
@@ -178,6 +184,8 @@ const useElementsManagement = ({
         lineHeight: settings?.lineHeight ?? toolLineHeight ?? defaultLineHeight,
         backgroundColor: settings?.backgroundColor ?? toolTextBgColor ?? defaultBackgroundColor,
         backgroundOpacity: settings?.backgroundOpacity ?? toolTextBgOpacity ?? (toolTextBgColor === "transparent" ? 0 : defaultBackgroundOpacity),
+        highlightColor: settings?.highlightColor ?? toolHighlightColor ?? defaultHighlightColor,
+        highlightOpacity: settings?.highlightOpacity ?? toolHighlightOpacity ?? defaultHighlightOpacity,
         borderColor: "#000000",
         borderWidth: 0,
         borderStyle: "hidden",
@@ -238,13 +246,13 @@ const useElementsManagement = ({
   [
     addRenderableObjectToContext, 
     toolMainColor, toolSecondaryMainColor, toolOpacity,
-    toolTextColor, toolTextBgColor, toolTextBgOpacity, 
+    toolTextColor, toolTextBgColor, toolTextBgOpacity, toolHighlightColor, toolHighlightOpacity,
     toolFontSize, toolFontFamily, toolFontStyles, toolTextCase, toolTextAlign, toolLineHeight,
     toolFillColor, toolFillColorOpacity, toolShapeBorderColor, toolShapeBorderWidth, toolShapeBorderStyle,
     toolShapeCornerRadius, currentToolShapeType, toolShapeTransform,
     toolTextColorOpacity, toolBorderColorOpacity,
     defaultPropColor, defaultFontSize, defaultFontFamily, defaultFontStyles, defaultTextCase, defaultTextAlignment,
-    defaultLineHeight, defaultBackgroundColor, defaultBackgroundOpacity,
+    defaultLineHeight, defaultBackgroundColor, defaultBackgroundOpacity, defaultHighlightColor, defaultHighlightOpacity,
     defaultFillColor, defaultFillColorOpacity, defaultBorderColor, defaultBorderWidth, defaultBorderStyle, defaultCornerRadius,
     defaultTextColorOpacity, defaultBorderColorOpacity,
     addHistoryEntry
@@ -734,6 +742,116 @@ const useElementsManagement = ({
     console.log('ElementsManagement: Image successfully set as background');
   }, [sendElementToBackground, fitImageToCanvas, contextStageSize]);
 
+  const setCanvasBackground = useCallback((color: string, opacity: number) => {
+    if (!contextStageSize) {
+      console.warn('ElementsManagement: No canvas size available for background operation');
+      return;
+    }
+
+    console.log('ElementsManagement: Setting canvas background', {
+      color,
+      opacity,
+      canvasSize: { width: contextStageSize.width, height: contextStageSize.height }
+    });
+
+    // Remove any existing background elements first
+    const otherObjects = renderableObjects.filter(obj => {
+      if ('tool' in obj) return true; // Keep all lines
+      return !obj.id.startsWith('background-'); // Remove old background elements
+    });
+
+    // Create a rectangle element that covers the entire canvas
+    // For rectangles, x,y coordinates are top-left corner (not center)
+    const backgroundElement: ElementData = {
+      id: `background-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: "rectangle",
+      x: 0, // Top-left x coordinate
+      y: 0, // Top-left y coordinate
+      width: contextStageSize.width,
+      height: contextStageSize.height,
+      fillColor: color,
+      fillColorOpacity: opacity,
+      borderColor: "#000000",
+      borderColorOpacity: 0,
+      borderWidth: 0,
+      borderStyle: "hidden",
+      color: color,
+      opacity: opacity / 100, // Convert to 0-1 range
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      draggable: false, // Background shouldn't be draggable
+      cornerRadius: 0,
+    };
+
+    // Add background element at the very beginning (true background - before everything including lines)
+    const newRenderableObjects = [backgroundElement, ...otherObjects];
+    
+    setRenderableObjects(newRenderableObjects);
+
+    // Add to history
+    addHistoryEntry({
+      type: 'elementAdded',
+      description: `Set canvas background color`,
+      linesSnapshot: newRenderableObjects
+    });
+
+    // Log the final element order for debugging
+    const finalOrder = newRenderableObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ 
+        index, 
+        type: (obj as ElementData).type, 
+        id: obj.id.slice(-6),
+        isBackground: obj.id.startsWith('background-')
+      }));
+
+    console.log('ElementsManagement: Canvas background successfully set', {
+      backgroundElement: {
+        id: backgroundElement.id.slice(-6),
+        position: { x: backgroundElement.x, y: backgroundElement.y },
+        size: { width: backgroundElement.width, height: backgroundElement.height },
+        color: backgroundElement.fillColor,
+        opacity: backgroundElement.fillColorOpacity
+      },
+      finalElementOrder: finalOrder,
+      totalObjects: newRenderableObjects.length
+    });
+  }, [contextStageSize, renderableObjects, setRenderableObjects, addHistoryEntry]);
+
+  const removeCanvasBackground = useCallback(() => {
+    console.log('ElementsManagement: Removing canvas background');
+
+    // Remove all background elements
+    const newRenderableObjects = renderableObjects.filter(obj => {
+      if ('tool' in obj) return true; // Keep all lines
+      return !obj.id.startsWith('background-'); // Remove background elements
+    });
+
+    setRenderableObjects(newRenderableObjects);
+
+    // Add to history
+    addHistoryEntry({
+      type: 'elementRemoved',
+      description: `Removed canvas background`,
+      linesSnapshot: newRenderableObjects
+    });
+
+    // Log the final element order for debugging
+    const finalOrder = newRenderableObjects
+      .filter(obj => !('tool' in obj))
+      .map((obj, index) => ({ 
+        index, 
+        type: (obj as ElementData).type, 
+        id: obj.id.slice(-6) 
+      }));
+
+    console.log('ElementsManagement: Canvas background successfully removed', {
+      finalElementOrder: finalOrder,
+      totalObjects: newRenderableObjects.length
+    });
+  }, [renderableObjects, setRenderableObjects, addHistoryEntry]);
+
   return {
     addElement,
     updateElement,
@@ -761,6 +879,8 @@ const useElementsManagement = ({
     adjustImageToCanvas,
     fitImageToCanvas,
     setImageAsBackground,
+    setCanvasBackground,
+    removeCanvasBackground,
   };
 };
 

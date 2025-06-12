@@ -1,5 +1,6 @@
 import type React from "react"
 import { useTool } from "@/context/tool-context"
+import { useElementsManager } from "@/context/elements-manager-context"
 import {
     Download,
     Upload,
@@ -27,17 +28,43 @@ import {
 const FileOptions: React.FC = () => {
     const [isFileMenuOpen, setIsFileMenuOpen] = useState(false)
     const { loggedInUser } = useUser()
-    const { importFile, exportFile } = useTool()
+    const { importFile, exportFile, setSelectedLineId } = useTool()
+    const elementsManager = useElementsManager()
 
     const menus = [
         { id: "file", label: "File" },
     ]
 
+    // Function to clear all selected objects
+    const clearAllSelections = () => {
+        elementsManager.setSelectedElementId(null)
+        setSelectedLineId(null)
+        // Force immediate re-render to ensure UI updates
+        setTimeout(() => {
+            // This ensures the selections are cleared in the UI
+        }, 0)
+    }
+
+    // Handle menu open/close and clear selections when opening
+    const handleMenuOpenChange = (open: boolean) => {
+        if (open) {
+            // Clear selections immediately when menu opens
+            elementsManager.setSelectedElementId(null)
+            setSelectedLineId(null)
+        }
+        setIsFileMenuOpen(open)
+    }
+
     const handleFormatSelect = (format: string, event: React.MouseEvent) => {
         event.preventDefault()
         event.stopPropagation()
-        exportFile(format.toLowerCase() as 'png' | 'jpg' | 'pdf' | 'json')
+        // Clear all selections before export
+        clearAllSelections()
         setIsFileMenuOpen(false)
+        // Longer delay to ensure selections are completely cleared and UI updated before export starts
+        setTimeout(() => {
+            exportFile(format.toLowerCase() as 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg')
+        }, 150)
     }
 
     const handleOpenFile = (event: React.MouseEvent) => {
@@ -63,7 +90,7 @@ const FileOptions: React.FC = () => {
         <TooltipProvider>
             <div className="flex flex-col items-center justify-center space-y-1">
                 {menus.map((menu) => (
-                    <DropdownMenu key={menu.id} open={isFileMenuOpen} onOpenChange={setIsFileMenuOpen}>
+                    <DropdownMenu key={menu.id} open={isFileMenuOpen} onOpenChange={handleMenuOpenChange}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <DropdownMenuTrigger asChild>
@@ -73,7 +100,7 @@ const FileOptions: React.FC = () => {
                                 </DropdownMenuTrigger>
                             </TooltipTrigger>
                             <TooltipContent side="right" align="center">
-                                <p>Import/Export File</p>
+                                <p>Import or Export File</p>
                             </TooltipContent>
                         </Tooltip>
                         <DropdownMenuContent
@@ -128,17 +155,58 @@ const FileOptions: React.FC = () => {
                                                     <div className="w-full">
                                                         <DropdownMenuItem
                                                             className="!text-gray-200 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer w-full"
-                                                            onClick={(event) => handleFormatSelect('PDF', event)}
+                                                            onClick={(event) => handleFormatSelect('WEBP', event)}
                                                             disabled={!loggedInUser}
                                                         >
-                                                            <FileImage className="mr-2 h-4 w-4" />
-                                                            <span>PDF</span>
+                                                            <Image className="mr-2 h-4 w-4" />
+                                                            <span>WEBP</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
                                                         </DropdownMenuItem>
                                                     </div>
                                                 </TooltipTrigger>
                                                 {!loggedInUser && (
                                                     <TooltipContent side="right" align="center">
-                                                        <p>Please log in to save in this format</p>
+                                                        <p>Sign in to export in this format</p>
+                                                    </TooltipContent>
+                                                )}
+                                            </Tooltip>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="w-full">
+                                                        <DropdownMenuItem
+                                                            className="!text-gray-200 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer w-full"
+                                                            onClick={(event) => handleFormatSelect('SVG', event)}
+                                                            disabled={!loggedInUser}
+                                                        >
+                                                            <FileImage className="mr-2 h-4 w-4" />
+                                                            <span>SVG</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                                                        </DropdownMenuItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                {!loggedInUser && (
+                                                    <TooltipContent side="right" align="center">
+                                                        <p>Sign in to export in this format</p>
+                                                    </TooltipContent>
+                                                )}
+                                            </Tooltip>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="w-full">
+                                                        <DropdownMenuItem
+                                                            className="!text-gray-200 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer w-full"
+                                                            onClick={(event) => handleFormatSelect('PDF', event)}
+                                                            disabled={!loggedInUser}
+                                                        >
+                                                            <FileImage className="mr-2 h-4 w-4" />
+                                                            <span>PDF</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                                                        </DropdownMenuItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                {!loggedInUser && (
+                                                    <TooltipContent side="right" align="center">
+                                                        <p>Sign in to export in this format</p>
                                                     </TooltipContent>
                                                 )}
                                             </Tooltip>
@@ -152,12 +220,13 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <FileJson className="mr-2 h-4 w-4" />
                                                             <span>JSON</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
                                                         </DropdownMenuItem>
                                                     </div>
                                                 </TooltipTrigger>
                                                 {!loggedInUser && (
                                                     <TooltipContent side="right" align="center">
-                                                        <p>Please log in to save in this format</p>
+                                                        <p>Sign in to export in this format</p>
                                                     </TooltipContent>
                                                 )}
                                             </Tooltip>

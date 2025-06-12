@@ -63,7 +63,8 @@ export const updateProject = (
   renderableObjects: RenderableObject[],
   thumbnailUrl?: string,
   width?: number,
-  height?: number
+  height?: number,
+  projectName?: string
 ): boolean => {
   try {
     const allProjects = getAllProjects();
@@ -89,12 +90,44 @@ export const updateProject = (
       updatedProject.thumbnailUrl = thumbnailUrl;
     }
 
+    if (projectName !== undefined) {
+      updatedProject.name = projectName;
+    }
+
     allProjects[projectId] = updatedProject;
     
     saveAllProjects(allProjects);
     
     return true;
   } catch (error) {
+    return false;
+  }
+};
+
+export const updateProjectName = (projectId: string, newName: string): boolean => {
+  try {
+    const allProjects = getAllProjects();
+    
+    if (!allProjects[projectId]) {
+      return false;
+    }
+    
+    allProjects[projectId] = {
+      ...allProjects[projectId],
+      name: newName,
+      lastModified: new Date().toISOString()
+    };
+    
+    saveAllProjects(allProjects);
+    
+    // Notify that project name was updated
+    window.dispatchEvent(new CustomEvent('projectNameUpdated', { 
+      detail: { projectId, newName } 
+    }));
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating project name:', error);
     return false;
   }
 };
@@ -228,6 +261,16 @@ export const duplicateProject = (projectId: string, userId?: number): string | n
     return newProjectId;
   } catch (error) {
     console.error('Error duplicating project:', error);
+    return null;
+  }
+};
+
+export const getProjectName = (projectId: string): string | null => {
+  try {
+    const allProjects = getAllProjects();
+    return allProjects[projectId]?.name || null;
+  } catch (error) {
+    console.error('Error getting project name:', error);
     return null;
   }
 }; 

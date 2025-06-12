@@ -35,14 +35,13 @@ export const useProjectManager = ({
   backgroundImage,
   stageRef
 }: UseProjectManagerProps) => {
-  const { registerProjectSaver, setHasUnsavedChanges } = useTool();
+  const { registerProjectSaver, setHasUnsavedChanges, projectName: toolContextProjectName, setProjectName: setToolContextProjectName } = useTool();
   
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-  const [projectName, setProjectName] = useState<string>("Untitled Project");
   const [showUnsavedWarning, setShowUnsavedWarning] = useState<boolean>(false);
 
   const currentProjectIdRef = useRef<string | null>(null);
-  const projectNameRef = useRef<string>("Untitled Project");
+  const projectNameRef = useRef<string>(toolContextProjectName || "Untitled Project");
   const renderableObjectsRef = useRef<RenderableObject[]>([]);
   const contextStageSizeRef = useRef<{ width: number; height: number } | null>(null);
 
@@ -52,9 +51,33 @@ export const useProjectManager = ({
     currentProjectIdRef.current = currentProjectId;
   }, [currentProjectId]);
 
+  // Listen for project name updates from storage
   useEffect(() => {
-    projectNameRef.current = projectName;
-  }, [projectName]);
+    const handleProjectNameUpdate = (event: CustomEvent) => {
+      const { projectId, newName } = event.detail;
+      
+      // If this is the current project, update the name in context
+      if (currentProjectId === projectId) {
+        setToolContextProjectName(newName);
+        
+        // Update URL if we're on the canvas page
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('name', encodeURIComponent(newName));
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+      }
+    };
+
+    window.addEventListener('projectNameUpdated', handleProjectNameUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('projectNameUpdated', handleProjectNameUpdate as EventListener);
+    };
+  }, [currentProjectId, setToolContextProjectName]);
+
+  useEffect(() => {
+    projectNameRef.current = toolContextProjectName || "Untitled Project";
+  }, [toolContextProjectName]);
 
   useEffect(() => {
     renderableObjectsRef.current = renderableObjects;
@@ -206,7 +229,8 @@ export const useProjectManager = ({
         currentRenderableObjects, 
         thumbnailUrl,
         currentStageSize.width,
-        currentStageSize.height
+        currentStageSize.height,
+        currentProjectName
       );
       console.log('ProjectManager: Updated existing project:', currentProjectIdValue, 'success:', success);
       if (success) {
@@ -270,8 +294,9 @@ export const useProjectManager = ({
     const projectId = searchParams.get('projectId');
     const name = searchParams.get('name');
     
-    if (name) {
-      setProjectName(name);
+    if (name && !projectId) {
+      // Only set project name from URL if it's a new project (no projectId)
+      setToolContextProjectName(decodeURIComponent(name));
     }
     
     if (projectId) {
@@ -280,7 +305,8 @@ export const useProjectManager = ({
       
       const projectData = getProjectData(projectId);
       if (projectData) {
-        setProjectName(projectData.project.name);
+        // Set project name from saved project data, taking precedence over URL
+        setToolContextProjectName(projectData.project.name);
         
         // Migrate any legacy opacity values (fix for opacity being stored as 0-100 instead of 0-1)
         const migratedObjects = projectData.renderableObjects.map(obj => {
@@ -383,8 +409,8 @@ export const useProjectManager = ({
 
   return {
     currentProjectId,
-    projectName,
-    setProjectName,
+    projectName: toolContextProjectName,
+    setProjectName: setToolContextProjectName,
     setCurrentProjectId,
     saveImmediately
   };

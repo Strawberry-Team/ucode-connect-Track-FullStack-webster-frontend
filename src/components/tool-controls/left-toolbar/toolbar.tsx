@@ -108,10 +108,10 @@ const Toolbar: React.FC = () => {
         },
         {
             id: "image-transform",
-            name: "Image Transform",
+            name: "Image & Background",
             type: "image-transform",
             icon: Image,
-            description: "Select and transform imported images.",
+            description: "Edit images, layer, resize, and adjust backgrounds.",
             imageUrl: "/tooltips/option-tooltips/landscape.jpg"
         },
         {
@@ -212,6 +212,7 @@ const Toolbar: React.FC = () => {
                                         title={tool.name}
                                         description={tool.description}
                                         imageUrl={tool.imageUrl}
+                                        className="bg-[#292C31FF] border-2 border-[#44474AFF] rounded !text-gray-200 rounded-lg"
                                     >
                                     </CustomTooltipContent>
                                 </CustomTooltip>
@@ -336,7 +337,7 @@ const Toolbar: React.FC = () => {
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={12}>
-                            <p>{loggedInUser ? "Sample Assets" : "Please log in to access Sample Assets"}</p>
+                            <p>{loggedInUser ? "Sample Assets" : "Sign in to access Sample Assets"}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

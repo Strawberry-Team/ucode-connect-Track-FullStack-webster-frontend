@@ -55,6 +55,12 @@ interface ToolContextValue {
     setActiveTool: (tool: Tool | null) => void
     activeElement: Element | null
     setActiveElement: (element: Element | null) => void
+    
+    // Project display state
+    hasEverSelectedTool: boolean
+    setHasEverSelectedTool: (hasSelected: boolean) => void
+    projectName: string | null
+    setProjectName: (name: string | null) => void
     color: string
     setColor: (color: string) => void
     secondaryColor: string
@@ -81,6 +87,10 @@ interface ToolContextValue {
     setTextBgColor: (color: string) => void
     textBgOpacity: number
     setTextBgOpacity: (opacity: number) => void
+    highlightColor: string
+    setHighlightColor: (color: string) => void
+    highlightOpacity: number
+    setHighlightOpacity: (opacity: number) => void
     fontSize: number
     setFontSize: (size: number) => void
     fontFamily: string
@@ -234,11 +244,11 @@ interface ToolContextValue {
 
     // File import/export functions
     importFile: (file: File) => Promise<void>;
-    exportFile: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>;
-    registerCanvasExporter: (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) => void;
+    exportFile: (format: 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg') => Promise<void>;
+    registerCanvasExporter: (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg') => Promise<void>) => void;
 
     // State for storing the canvas exporter function
-    canvasExporter: ((format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) | null;
+    canvasExporter: ((format: 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg') => Promise<void>) | null;
 
     // Project saving state
     hasUnsavedChanges: boolean;
@@ -252,6 +262,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     // No default tool selected - user must explicitly choose a tool
     const [activeTool, setActiveToolInternal] = useState<Tool | null>(null)
     const [activeElement, setActiveElement] = useState<Element | null>(null)
+    
+    // Project display state
+    const [hasEverSelectedTool, setHasEverSelectedTool] = useState<boolean>(false)
+    const [projectName, setProjectName] = useState<string | null>(null)
     const [color, setColor] = useState("#000000")
     const [secondaryColor, setSecondaryColor] = useState("#000000")
     const [brushSize, setBrushSize] = useState(20)
@@ -260,6 +274,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [textColor, setTextColor] = useState("#ffffff")
     const [textBgColor, setTextBgColor] = useState("transparent")
     const [textBgOpacity, setTextBgOpacity] = useState(100)
+    const [highlightColor, setHighlightColor] = useState("#ffff00")
+    const [highlightOpacity, setHighlightOpacity] = useState(0)
     const [textColorOpacity, setTextColorOpacity] = useState(100)
     const [fillColor, setFillColor] = useState("#ffffff")
     const [fillColorOpacity, setFillColorOpacity] = useState(100)
@@ -344,16 +360,42 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [isApplyingCrop, setIsApplyingCrop] = useState<boolean>(false);
 
     // State for storing the canvas exporter function
-    const [canvasExporter, setCanvasExporter] = useState<((format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) | null>(null);
+    const [canvasExporter, setCanvasExporter] = useState<((format: 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg') => Promise<void>) | null>(null);
 
     // Project saving state
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
     const projectSaverRef = useRef<(() => Promise<string | null>) | null>(null);
 
+    // Initialize project name from URL or saved project data
+    useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search)
+        const projectId = searchParams.get('projectId')
+        const nameFromUrl = searchParams.get('name')
+        
+        if (projectId) {
+            // If we have a project ID, get the name from stored project data
+            import('../utils/project-storage').then(({ getProjectName }) => {
+                const storedName = getProjectName(projectId)
+                if (storedName) {
+                    setProjectName(storedName)
+                }
+            })
+        } else if (nameFromUrl && !projectName) {
+            // If no project ID but URL has name, use it for new projects
+            setProjectName(decodeURIComponent(nameFromUrl))
+        }
+    }, [])
+
     const setActiveTool = useCallback((tool: Tool | null) => {
         setActiveToolInternal(tool);
         setIsAddModeActive(false); // Reset add mode when tool changes
         setCurrentAddToolType(null); // Reset add tool type
+        
+        // Mark that a tool has been selected at least once
+        if (tool !== null && !hasEverSelectedTool) {
+            setHasEverSelectedTool(true);
+        }
+        
         // Also reset brush transform mode if tool changes from brush
         if (tool?.type !== 'brush') {
             setBrushTransformModeActive(false);
@@ -364,7 +406,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         if (tool?.type !== 'cursor' && tool?.type !== 'text') {
             // This will help clear any selection-related cursor states
         }
-    }, []);
+    }, [hasEverSelectedTool]);
 
     const addRenderableObject = useCallback((obj: RenderableObject) => {
         setRenderableObjects(prev => [...prev, obj]);
@@ -590,6 +632,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         setHistory([]);
         setCurrentHistoryIndex(-1);
         setHasUnsavedChanges(false); // Reset unsaved changes when clearing history
+        setHasEverSelectedTool(false); // Reset tool selection state
+        setProjectName(null); // Reset project name
     };
 
     const importFile = async (file: File) => {
@@ -690,6 +734,13 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                             setStageSize(projectData.stageSize);
                         }
                         
+                        // Set project name from file name
+                        const projectNameFromFile = file.name.replace('.json', '');
+                        setProjectName(projectNameFromFile);
+                        
+                        // Reset tool selection state for imported project
+                        setHasEverSelectedTool(false);
+                        
                         // Reset unsaved changes for imported project
                         setHasUnsavedChanges(false);
                         
@@ -727,7 +778,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         }
     };
 
-    const exportFile = async (format: 'png' | 'jpg' | 'pdf' | 'json') => {
+    const exportFile = async (format: 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg') => {
         try {
             if (format === 'json') {
                 // Export project data as JSON
@@ -759,7 +810,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                     duration: 5000,
                 });
             } else if (canvasExporter) {
-                // Use canvas exporter for image formats
+                // Use canvas exporter for image formats (PNG, JPG, PDF, WEBP, SVG)
                 await canvasExporter(format);
             } else {
                 console.warn('Canvas exporter not registered');
@@ -777,7 +828,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         }
     };
 
-    const registerCanvasExporter = (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json') => Promise<void>) => {
+    const registerCanvasExporter = (exporter: (format: 'png' | 'jpg' | 'pdf' | 'json' | 'webp' | 'svg') => Promise<void>) => {
         setCanvasExporter(() => exporter);
     };
 
@@ -787,6 +838,19 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
             loadProjectFonts(renderableObjects);
         }
     }, [renderableObjects]);
+
+    // Set default project name when project starts or elements are added
+    useEffect(() => {
+        if (!projectName && (renderableObjects.length > 0 || stageSize)) {
+            const currentDate = new Date();
+            const formattedDate = currentDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            setProjectName(`Untitled Project - ${formattedDate}`);
+        }
+    }, [renderableObjects.length, stageSize, projectName]);
 
     return (
         <ToolContext.Provider
@@ -821,6 +885,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setTextBgColor,
                 textBgOpacity,
                 setTextBgOpacity,
+                highlightColor,
+                setHighlightColor,
+                highlightOpacity,
+                setHighlightOpacity,
                 fontSize,
                 setFontSize,
                 fontFamily,
@@ -965,6 +1033,12 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 hasUnsavedChanges,
                 setHasUnsavedChanges,
                 registerProjectSaver,
+
+                // Project display state
+                hasEverSelectedTool,
+                setHasEverSelectedTool,
+                projectName,
+                setProjectName,
             }}
         >
             {children}

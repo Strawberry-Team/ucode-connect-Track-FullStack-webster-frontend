@@ -3,7 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Square, ChevronDown, Circle, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareRoundCorner, Squircle, Trash2, Copy, PlusCircle, RotateCcw } from 'lucide-react';
+import { Square, ChevronDown, Circle, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareRoundCorner, Squircle, Trash2, Copy, PlusCircle, RotateCcw, Layers, MoveUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -255,7 +255,9 @@ const ShapeOptions: React.FC = () => {
     updateSelectedElementStyle,
     flipSelectedElementHorizontal,
     flipSelectedElementVertical,
-    rotateSelectedElement
+    rotateSelectedElement,
+    bringElementToFront,
+    sendElementToBackground
   } = useElementsManager();
 
   const [showFillColorPicker, setShowFillColorPicker] = useState(false);
@@ -502,6 +504,26 @@ const ShapeOptions: React.FC = () => {
         scaleX: 1,
         scaleY: 1
       });
+    }
+  };
+
+  const handleBringToFront = () => {
+    if (selectedElementId) {
+      console.log('ShapeOptions: Bringing shape to front', {
+        elementId: selectedElementId.slice(-6),
+        elementType: selectedElementData?.type
+      });
+      bringElementToFront(selectedElementId);
+    }
+  };
+
+  const handleSendToBackground = () => {
+    if (selectedElementId) {
+      console.log('ShapeOptions: Sending shape to background', {
+        elementId: selectedElementId.slice(-6),
+        elementType: selectedElementData?.type
+      });
+      sendElementToBackground(selectedElementId);
     }
   };
 
@@ -849,6 +871,52 @@ const ShapeOptions: React.FC = () => {
       )}
 
       <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
+
+      {/* Layer Controls - only show if a shape is selected */}
+      {isShapeElementSelected && (
+        <>
+          <Label className="text-xs text-[#D4D4D5FF]">Layer:</Label>
+          
+          {/* Send to Background Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                  onClick={handleSendToBackground}
+                >
+                  <Layers size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send to background</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Bring to Front Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+                  onClick={handleBringToFront}
+                >
+                  <MoveUp size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Bring to front</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <div className="ml-3 h-6 border-l border-[#44474AFF]"></div>
+        </>
+      )}
+
       {/* Reset All Styles button */}
       <TooltipProvider>
         <Tooltip>

@@ -17,8 +17,17 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const PropertiesPanel: React.FC = () => {
-  const { activeTool } = useTool()
+  const { activeTool, hasEverSelectedTool, projectName } = useTool()
   const navigate = useNavigate()
+
+  // Get project name from URL or context, prioritizing context over URL
+  const urlParams = new URLSearchParams(window.location.search)
+  const projectNameFromUrl = urlParams.get('name')
+  const projectIdFromUrl = urlParams.get('projectId')
+
+  // If we have a projectId, prefer the context projectName (which comes from saved data)
+  // If no projectId, use URL name for new projects
+  const currentProjectName = projectName || (projectNameFromUrl && !projectIdFromUrl ? decodeURIComponent(projectNameFromUrl) : null)
 
   const handleNavigateHome = () => {
     navigate('/', { state: { showDashboard: true } });
@@ -26,7 +35,15 @@ const PropertiesPanel: React.FC = () => {
 
 
   const renderToolOptions = () => {
-    
+    // Show project name if no tool is selected and no tool has ever been selected
+    if (!activeTool && !hasEverSelectedTool && currentProjectName) {
+      return (
+        <div className="flex items-center text-white/80 text-sm">
+          Project "<span className="font-bold text-white ml-1">{currentProjectName}</span>"
+        </div>
+      )
+    }
+
     switch (activeTool?.id) {
       case "brush":
         return <BrushOptions />
@@ -69,7 +86,7 @@ const PropertiesPanel: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
           <div className="border-l-2 border-[#44474AFF] h-8 mx-5"></div>
-          <div className="flex-1 min-w-0">{renderToolOptions()}</div>
+          <div className="flex-1 min-w-0 flex justify-center">{renderToolOptions()}</div>
         </div>
       </div>
     </div>

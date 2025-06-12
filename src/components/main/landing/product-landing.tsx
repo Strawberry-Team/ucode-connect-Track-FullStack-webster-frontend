@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend, CirclePlay, CirclePlus, Plus, Play, Zap } from 'lucide-react';
+import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend, CirclePlay, CirclePlus, Plus, Play, Zap, CircleX } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import {  User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Shield, FileText, Lock, Users, Database, Eye, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 
@@ -42,8 +42,8 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
         },
         {
             icon: <Image className="w-8 h-8" />,
-            title: "Image Transform",
-            description: "Select and transform imported images.",
+            title: "Image & Background",
+            description: "Edit images, layer, resize, and adjust backgrounds.",
             preview: "/tooltips/option-tooltips/landscape.jpg"
         },
         {
@@ -884,9 +884,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 </div>
                                 <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl p-6 text-center border border-gray-600">
                                     <div className="flex items-center justify-center gap-2 mb-2">
-                                        <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
+                                        <CircleX className="w-5 h-5 text-red-400" />
                                         <span className="text-red-400 font-semibold">Not Available</span>
                                     </div>
                                     <p className="text-gray-300 text-sm">Upload only</p>
@@ -946,7 +944,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                             </motion.div>
                         </div>
 
-                        
+
                     </div>
                 </div>
             </section>

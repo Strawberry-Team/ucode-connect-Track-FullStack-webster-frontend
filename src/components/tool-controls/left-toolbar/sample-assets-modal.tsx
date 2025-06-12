@@ -731,14 +731,17 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
                 className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
-                  ${
-                    activeTab === tab.id
-                      ? "text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md"
-                      : "text-gray-400 border-transparent hover:border-gray-500"
+                  ${activeTab === tab.id
+                    ? "text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md"
+                    : "text-gray-400 border-transparent hover:border-gray-500"
                   }`}
               >
-                {tab.label}
+                <span className="flex items-center gap-2">
+                  <span>{tab.label}</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">Pro</span>
+                </span>
               </button>
+
             ))}
           </div>
         </DialogHeader>
@@ -801,10 +804,9 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                       key={term}
                       onClick={() => handleQuickSearch(term)}
                       className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
-                        ${
-                          searchQuery === term
-                            ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
-                            : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                        ${searchQuery === term
+                          ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                          : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
                         }`}
                       disabled={isLoadingImages}
                     >
@@ -858,11 +860,10 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                             key={color.value}
                             onClick={() => handlePixabayColorToggle(color.value)}
                             className={`px-2 py-0.5 text-xs ${colorClass} rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
-                                ${
-                                  isSelected
-                                    ? "bg-blue-500/30 border-blue-500 shadow-md"
-                                    : "bg-[#3A3D44FF] border-[#4A4D54FF]"
-                                }`}
+                                ${isSelected
+                                ? "bg-blue-500/30 border-blue-500 shadow-md"
+                                : "bg-[#3A3D44FF] border-[#4A4D54FF]"
+                              }`}
                           >
                             {color.label}
                           </button>
@@ -891,10 +892,9 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                           onClick={() => handlePixabayOrientationToggle(orientation.value)}
                           className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
                             flex items-center justify-center
-                            ${
-                              selectedPixabayOrientation === orientation.value
-                                ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
-                                : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                            ${selectedPixabayOrientation === orientation.value
+                              ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                              : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
                             }`}
                         >
                           {orientation.icon}
@@ -1086,10 +1086,9 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                       key={term}
                       onClick={() => handleUnsplashQuickSearch(term)}
                       className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
-                        ${
-                          unsplashSearchQuery === term
-                            ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
-                            : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                        ${unsplashSearchQuery === term
+                          ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                          : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
                         }`}
                       disabled={isLoadingUnsplashImages || !isUnsplashConfigured()}
                     >
@@ -1144,11 +1143,10 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                             key={color.value}
                             onClick={() => handleColorToggle(color.value)}
                             className={`px-2 py-0.5 text-xs ${colorClass} rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
-                                ${
-                                  isSelected
-                                    ? "bg-blue-500/30 border-blue-500 shadow-md"
-                                    : "bg-[#3A3D44FF] border-[#4A4D54FF]"
-                                }`}
+                                ${isSelected
+                                ? "bg-blue-500/30 border-blue-500 shadow-md"
+                                : "bg-[#3A3D44FF] border-[#4A4D54FF]"
+                              }`}
                             disabled={!isUnsplashConfigured()}
                           >
                             {color.label}
@@ -1178,10 +1176,9 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
                           onClick={() => handleOrientationToggle(orientation.value)}
                           className={`px-2 py-0.5 text-xs rounded-full border transition-all duration-200 hover:bg-blue-500/20 hover:border-blue-500/50 hover:scale-105 focus:bg-blue-500/20 focus:border-blue-500 focus:outline-none focus:scale-105
                             flex items-center justify-center
-                            ${
-                              selectedOrientation === orientation.value
-                                ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
-                                : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
+                            ${selectedOrientation === orientation.value
+                              ? "bg-blue-500/30 border-blue-500 text-blue-200 shadow-md"
+                              : "bg-[#3A3D44FF] border-[#4A4D54FF] text-gray-300 hover:text-gray-200"
                             }`}
                           disabled={!isUnsplashConfigured()}
                         >
@@ -1358,11 +1355,10 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
             <Button
               onClick={handleAddSelectedImage}
               disabled={!selectedPixabayImageId && !selectedUnsplashImageId}
-              className={`px-3 py-2 ${
-                selectedPixabayImageId || selectedUnsplashImageId
-                  ? "bg-blue-500 hover:bg-blue-600 text-white"
-                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
-              }`}
+              className={`px-3 py-2 ${selectedPixabayImageId || selectedUnsplashImageId
+                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                }`}
             >
               Add to Canvas
             </Button>
