@@ -14,8 +14,6 @@ import type {
 import { toast } from 'sonner';
 import { loadProjectFonts } from "@/utils/font-utils";
 
-// Import MousePointer2 for default tool
-import { MousePointer2 } from "lucide-react";
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
 

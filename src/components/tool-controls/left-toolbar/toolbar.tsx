@@ -12,14 +12,12 @@ import {
     Image,
     SwatchBook,
     Wand2,
-    Zap,
     Share2,
     Copy,
     Mail,
     Facebook,
     Instagram,
     Send,
-    ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"

@@ -3,7 +3,6 @@ import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import {
-  Waves,
   RotateCcw,
   ChevronDown,
   Move,
@@ -16,7 +15,6 @@ import {
   RotateCw,
   RotateCcw as TwirlLeft,
   Image as ImageIcon,
-  MousePointer,
   MousePointerClick
 } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";

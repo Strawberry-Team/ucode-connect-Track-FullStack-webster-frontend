@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import type { LineData, RenderableObject } from "@/types/canvas";
 import { calculateEffectiveEraserSize, calculateEraserPressure } from "@/utils/canvas-utils";
 import type { MirrorMode } from "@/context/tool-context";

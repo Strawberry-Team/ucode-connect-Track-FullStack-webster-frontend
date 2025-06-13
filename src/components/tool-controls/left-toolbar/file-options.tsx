@@ -25,7 +25,7 @@ import {
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from "@/components/ui/tooltip" // Import Tooltip components
+} from "@/components/ui/tooltip"
 
 const FileOptions: React.FC = () => {
     const [isFileMenuOpen, setIsFileMenuOpen] = useState(false)

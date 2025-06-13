@@ -1,17 +1,16 @@
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Download, Sparkles, ImageIcon, Square, RectangleVertical, Zap } from "lucide-react"
+import { Loader2, Sparkles, ImageIcon, Square, RectangleVertical, Zap } from "lucide-react"
 import { toast } from "sonner"
-import type { ShapeType, ElementData } from "@/types/canvas"
+import type { ElementData } from "@/types/canvas"
 import { useTool } from "@/context/tool-context"
-import { useElementsManager } from "@/context/elements-manager-context"
-import { generateImage, type GenerateImageOptions, type GeneratedImage } from "@/lib/api/generate-ai-image"
+import { generateImage, type GenerateImageOptions, type GeneratedImage } from "@/lib/api/pollinations-ai"
 
 interface AIImageGeneratorModalProps {
     isOpen: boolean
@@ -36,7 +35,6 @@ const scrollbarStyles = `
 
 const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, onClose }) => {
     const { stageSize, addRenderableObject, addHistoryEntry, renderableObjects, setRenderableObjects } = useTool()
-    const { setImageAsBackground } = useElementsManager()
     const [prompt, setPrompt] = useState("")
     const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([])
     const [selectedImageId, setSelectedImageId] = useState<string | null>(null)

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, ImageUp, Trash2, Copy, Edit2, Check, X, Settings, FileEdit } from 'lucide-react';
+import { Clock, ImageUp, Trash2, Copy, Edit2, Check, Settings } from 'lucide-react';
 import type { RecentProject } from '@/types/dashboard';
 import { formatDimensionDisplay } from '@/utils/format-utils';
 
