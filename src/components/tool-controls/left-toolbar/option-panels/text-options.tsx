@@ -723,7 +723,9 @@ const TextOptions: React.FC = () => {
 
   const renderColorPickers = () => (
     <>
-      <div className="relative ml-3 mr-5">
+    <div className="h-6 ml-3 border-l border-[#44474AFF]"></div>
+
+      <div className="relative ml-3">
         <Button
           variant="ghost"
           className="h-7 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
@@ -782,7 +784,7 @@ const TextOptions: React.FC = () => {
         )}
       </div>
 
-      <div className="h-6 border-l border-[#44474AFF]"></div>
+      
 
       <div className="relative ml-2">
         <Button
@@ -861,9 +863,8 @@ const TextOptions: React.FC = () => {
         )}
       </div>
 
-      <div className="h-6 border-l border-[#44474AFF]"></div>
 
-      <div className="relative ml-2">
+      <div className="relative">
         <Button
           variant="ghost"
           className="h-7 px-2 flex items-center gap-2 text-xs text-white rounded hover:bg-[#3F434AFF]"
@@ -1200,6 +1201,8 @@ const TextOptions: React.FC = () => {
       </div>
 
       {renderColorPickers()}
+
+      <div className="h-6 border-l border-[#44474AFF]"></div>
 
       <NumberInputWithPopover
         label="Line height"

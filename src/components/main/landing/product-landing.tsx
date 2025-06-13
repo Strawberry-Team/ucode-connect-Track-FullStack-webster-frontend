@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend, CirclePlay, CirclePlus, Plus, Play, Zap, CircleX } from 'lucide-react';
+import { Brush, Droplet, Crop, Hand, Waves, Shapes, Type, Eraser, Image, Blend, Plus, Play, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { User } from 'lucide-react';
 import { Shield, FileText, Lock, Users, Database, Eye, CheckCircle, AlertCircle, Info } from 'lucide-react';
@@ -728,7 +728,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                 </div>
             </section>
 
-            <section className="py-20 px-6">
+            <section id="possibilities" className="py-20 px-6">
                 <div className="max-w-7xl mx-auto">
                     <motion.div
                         className="text-center mb-16"

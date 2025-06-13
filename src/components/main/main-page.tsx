@@ -59,16 +59,19 @@ const HomePage: React.FC = () => {
     }
   }, [isLoadingAuth, loggedInUser, loginUserContext]);
 
+  // Check if the URL has an anchor
+  const hasAnchor = window.location.hash && (window.location.hash.includes('#features') || window.location.hash.includes('#team') || window.location.hash.includes('#possibilities'));
+
   // Determine which view to show
   useEffect(() => {
-    if (location.state?.showDashboard === false) {
+    if (location.state?.showDashboard === false || hasAnchor) {
       setViewMode('landing');
-    } else if (loggedInUser || location.state?.showDashboard) {
+    } else if (loggedInUser && !hasAnchor && location.state?.showDashboard !== false) {
       setViewMode('dashboard');
     } else {
       setViewMode('landing');
     }
-  }, [loggedInUser, location.state]);
+  }, [loggedInUser, location.state, hasAnchor]);
 
   const toggleView = () => {
     setViewMode(viewMode === 'landing' ? 'dashboard' : 'landing');
@@ -78,6 +81,19 @@ const HomePage: React.FC = () => {
   const handleLogoClick = () => {
     setViewMode('landing');
     navigate('/', { state: { showDashboard: false } });
+  };
+
+  const handleSectionClick = (sectionId: string) => {
+    setViewMode('landing');
+    navigate(`/#${sectionId}`, { state: { showDashboard: false } });
+    setIsMenuOpen(false);
+    
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   return (
@@ -108,8 +124,9 @@ const HomePage: React.FC = () => {
             <div className="hidden md:flex items-center space-x-8">
               {viewMode === 'landing' && (
                 <>
-                  <a href="#features" className="text-gray-300 hover:text-blue-400 transition-colors">Features</a>
-                  <a href="#team" className="text-gray-300 hover:text-blue-400 transition-colors">Team</a>
+                  <a onClick={() => handleSectionClick('features')} className="text-gray-300 hover:text-blue-400 transition-colors cursor-pointer">Features</a>
+                  <a onClick={() => handleSectionClick('possibilities')} className="text-gray-300 hover:text-blue-400 transition-colors cursor-pointer">Possibilities</a>
+                  <a onClick={() => handleSectionClick('team')} className="text-gray-300 hover:text-blue-400 transition-colors cursor-pointer">Team</a>
                 </>
               )}
 
@@ -118,7 +135,6 @@ const HomePage: React.FC = () => {
                 variant="secondary"
                 className="w-[110px] h-10 rounded-full bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-white font-semibold"
               >
-
                 {viewMode === 'landing' ? 'Dashboard' : 'Landing'}
               </Button>
             </div>
@@ -152,9 +168,9 @@ const HomePage: React.FC = () => {
               <div className="px-6 py-4 space-y-4 flex flex-col items-center justify-center">
                 {viewMode === 'landing' && (
                   <>
-                    <a href="#features" className="block text-gray-300 hover:text-blue-400">Features</a>
-                    <a href="#testimonials" className="block text-gray-300 hover:text-blue-400">Reviews</a>
-                    <a href="#team" className="block text-gray-300 hover:text-blue-400">Team</a>
+                    <a onClick={() => handleSectionClick('features')} className="block text-gray-300 hover:text-blue-400 cursor-pointer">Features</a>
+                    <a onClick={() => handleSectionClick('possibilities')} className="block text-gray-300 hover:text-blue-400 cursor-pointer">Possibilities</a>
+                    <a onClick={() => handleSectionClick('team')} className="block text-gray-300 hover:text-blue-400 cursor-pointer">Team</a>
                   </>
                 )}
                 <button

@@ -3,7 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Square, ChevronDown, Circle, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareRoundCorner, Squircle, Trash2, Copy, PlusCircle, RotateCcw, Layers, MoveUp } from 'lucide-react';
+import { Square, ChevronDown, Circle, RectangleHorizontal, TriangleIcon, Pentagon, Hexagon, Star, Heart, ArrowRight, Minus, FileImage, SquareRoundCorner, Squircle, PlusCircle, RotateCcw, Layers, MoveUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { TooltipContent, TooltipTrigger, Tooltip, TooltipProvider } from "@/components/ui/tooltip";
-import type { ShapeType, BorderStyle, Element, Tool, ElementData } from "@/types/canvas";
+import type { ShapeType, BorderStyle, Element, ElementData } from "@/types/canvas";
 import { useElementsManager } from "@/context/elements-manager-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
@@ -403,33 +403,6 @@ const ShapeOptions: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new window.Image();
-        img.src = e.target?.result as string;
-        img.onload = () => {
-          const customImageElement: Element & { src?: string, width?: number, height?: number } = {
-            id: "custom-image-active",
-            type: "custom-image",
-            icon: FileImage,
-            src: img.src,
-            width: img.width,
-            height: img.height,
-          };
-          setContextActiveElement(customImageElement as Element);
-          const shapeTool: Tool = { id: "shape-tool", name: "Shape", type: "shape", icon: getShapeIcon("custom-image") };
-          setContextActiveTool(shapeTool);
-          setIsAddModeActive(true);
-          setCurrentAddToolType("custom-image");
-        };
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleAddShape = () => {
     const currentShapeIcon = getShapeIcon(shapeType);
 
@@ -788,44 +761,6 @@ const ShapeOptions: React.FC = () => {
           </TooltipTrigger>
           <TooltipContent>
             <p>Add shape</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {/* Duplicate button */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs hover:bg-[#3F434AFF] rounded ${!isShapeElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'
-                }`}
-              onClick={duplicateSelectedElement}
-              disabled={!isShapeElementSelected}>
-              <Copy size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Duplicate shape</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {/* Delete button */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs hover:bg-[#3F434AFF] rounded ${!isShapeElementSelected ? 'opacity-50 cursor-not-allowed text-[#D4D4D5FF]' : 'text-white'
-                }`}
-              onClick={removeSelectedElement}
-              disabled={!isShapeElementSelected}>
-              <Trash2 size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Delete shape</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
