@@ -1156,7 +1156,21 @@ const Canvas: React.FC = () => {
             )
 
             if (e.key === "Delete" || e.key === "Backspace") {
-                elementsManager.removeSelectedElement()
+                // Don't delete objects if user is typing in text input
+                if (isInTextInput) {
+                    return;
+                }
+                
+                // Check if we have a selected brush/eraser line to delete
+                if (selectedLineId && isBrushTransformModeActive && (activeTool?.type === "brush" || activeTool?.type === "eraser")) {
+                    const success = drawingManager.removeSelectedLine(selectedLineId);
+                    if (success) {
+                        setSelectedLineId(null); // Clear selection after successful deletion
+                    }
+                } else {
+                    // Otherwise delete selected element (shape, text, image)
+                    elementsManager.removeSelectedElement();
+                }
             } else if ((e.metaKey || e.ctrlKey) && e.key === "d") {
                 // Handle Command+D (or Ctrl+D on Windows/Linux) for duplication
                 e.preventDefault() // Prevent browser's bookmark dialog

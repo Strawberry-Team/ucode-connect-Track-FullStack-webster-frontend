@@ -32,7 +32,7 @@ import ColorPicker from "@/components/color-picker/color-picker";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import type { ElementData } from "@/types/canvas";
-import { removeImageBackground, convertImageUrlToBlob, convertBlobToDataUrl } from "@/lib/api/remove_bg_image";
+import { removeImageBackground, convertImageUrlToBlob, convertBlobToDataUrl } from "@/lib/api/remove-bg";
 
 // Adding styles for scrollbar (same as liquify-options)
 const scrollbarStyles = `

@@ -447,6 +447,29 @@ const useDrawing = ({
 
     }, [setRenderableObjects, renderableObjects, addHistoryEntry]);
 
+    const removeSelectedLine = useCallback((lineId: string) => {
+        const lineToRemove = renderableObjects.find(obj => obj.id === lineId && 'tool' in obj && (obj.tool === 'brush' || obj.tool === 'eraser')) as LineData | undefined;
+        if (!lineToRemove) return false;
+
+        // Remove the line from renderable objects
+        const updatedObjects = renderableObjects.filter(obj => obj.id !== lineId);
+        setRenderableObjects(updatedObjects);
+
+        // Create descriptive message for history
+        const toolName = lineToRemove.tool === 'brush' ? 'brush stroke' : 'eraser stroke';
+        addHistoryEntry({
+            type: 'elementRemoved',
+            description: `Removed ${toolName}`,
+            linesSnapshot: updatedObjects,
+            metadata: {
+                elementId: lineId,
+                elementType: lineToRemove.tool
+            }
+        });
+
+        return true; // Return success
+    }, [renderableObjects, setRenderableObjects, addHistoryEntry]);
+
     return {
         getIsDrawing,
         startDrawing,
@@ -459,6 +482,7 @@ const useDrawing = ({
         moveSelectedLine,
         duplicateSelectedLine,
         rotateSelectedLine,
+        removeSelectedLine,
     };
 };
 

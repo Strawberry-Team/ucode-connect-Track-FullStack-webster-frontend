@@ -20,6 +20,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+// API imports
+import { searchPixabayImages, type PixabayImage, type PixabayResponse } from '@/lib/api/pixabay';
+import { searchUnsplashImages, isUnsplashConfigured, type UnsplashImage, type UnsplashResponse } from '@/lib/api/unsplash';
+import { generateImage, generateMultipleImages, type GenerateImageOptions, type GeneratedImage } from '@/lib/api/pollinations-ai';
 
 const allTemplates: Record<string, Template[]> = {
   recommended: [
@@ -108,62 +112,7 @@ interface CreateProjectModalProps {
   onCreate: (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => void;
 }
 
-interface PixabayImage {
-  id: number;
-  webformatURL: string;
-  previewURL: string;
-  tags: string;
-  user: string;
-  views: number;
-  downloads: number;
-  likes: number;
-  webformatWidth: number;
-  webformatHeight: number;
-}
 
-interface PixabayResponse {
-  total: number;
-  totalHits: number;
-  hits: PixabayImage[];
-}
-
-interface UnsplashImage {
-  id: string;
-  urls: {
-    regular: string;
-    small: string;
-    thumb: string;
-  };
-  alt_description: string;
-  user: {
-    name: string;
-  };
-  likes: number;
-  width: number;
-  height: number;
-}
-
-interface UnsplashResponse {
-  total: number;
-  total_pages: number;
-  results: UnsplashImage[];
-}
-
-// AI Image Generation interfaces
-interface GenerateImageOptions {
-  prompt: string;
-  backgroundType?: "none" | "white" | "black" | "gradient";
-  width?: number;
-  height?: number;
-  noLogo?: boolean;
-}
-
-interface GeneratedImage {
-  url: string;
-  prompt: string;
-  timestamp: number;
-  id: string;
-}
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
   const { loggedInUser } = useUser()
@@ -625,8 +574,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setGeneratedAIImageSize('1024x1024');
   };
 
-  // Function to search Pixabay images
-  const searchPixabayImages = async (query: string) => {
+  // Function to search Pixabay images using API module
+  const searchPixabayImagesLocal = async (query: string) => {
     if (!query.trim()) {
       setPixabayImages([]);
       return;
@@ -636,48 +585,24 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setSearchError('');
 
     try {
-      // Use environment variable or fallback to provided API key
-      const apiKey = import.meta.env.VITE_PIXABAY_API_KEY || '50744411-22fa88c98bef12cb7a788e3e6';
-      const encodedQuery = encodeURIComponent(query.trim());
-
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('key', apiKey);
-      params.append('q', query.trim());
-      params.append('image_type', 'all');
-      params.append('per_page', '200');
-      params.append('safesearch', 'true');
-      params.append('order', 'popular');
-
-      // Add color filter if selected
-      if (selectedPixabayColor) {
-        params.append('colors', selectedPixabayColor);
-      }
-
-      // Add orientation filter if selected
-      if (selectedPixabayOrientation) {
-        params.append('orientation', selectedPixabayOrientation);
-      }
-
-      const response = await fetch(`https://pixabay.com/api/?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const data: PixabayResponse = await response.json();
+      const data = await searchPixabayImages({
+        query: query.trim(),
+        color: selectedPixabayColor,
+        orientation: selectedPixabayOrientation,
+        perPage: 200
+      });
       setPixabayImages(data.hits);
     } catch (error) {
       console.error('Error fetching Pixabay images:', error);
-      setSearchError('Failed to fetch images. Please try again.');
+      setSearchError(error instanceof Error ? error.message : 'Failed to fetch images. Please try again.');
       setPixabayImages([]);
     } finally {
       setIsLoadingImages(false);
     }
   };
 
-  // Function to search Unsplash images
-  const searchUnsplashImages = async (query: string) => {
+  // Function to search Unsplash images using API module
+  const searchUnsplashImagesLocal = async (query: string) => {
     if (!query.trim()) {
       setUnsplashImages([]);
       return;
@@ -687,46 +612,12 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setUnsplashSearchError('');
 
     try {
-      const accessKey = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
-      if (!accessKey || accessKey === 'your_unsplash_access_key_here') {
-        throw new Error('Unsplash API key not configured. Please add VITE_UNSPLASH_ACCESS_KEY to your .env.local file. Get your free API key from https://unsplash.com/developers');
-      }
-
-      const encodedQuery = encodeURIComponent(query.trim());
-
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('query', query.trim());
-      params.append('per_page', '30');
-      params.append('order_by', 'popular');
-
-      // Add color filter if selected
-      if (selectedColor) {
-        params.append('color', selectedColor);
-      }
-
-      // Add orientation filter if selected
-      if (selectedOrientation) {
-        params.append('orientation', selectedOrientation);
-      }
-
-      const response = await fetch(
-        `https://api.unsplash.com/search/photos?${params.toString()}`,
-        {
-          headers: {
-            'Authorization': `Client-ID ${accessKey}`
-          }
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Invalid Unsplash API key. Please check your VITE_UNSPLASH_ACCESS_KEY in .env.local file.');
-        }
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const data: UnsplashResponse = await response.json();
+      const data = await searchUnsplashImages({
+        query: query.trim(),
+        color: selectedColor,
+        orientation: selectedOrientation,
+        perPage: 30
+      });
       setUnsplashImages(data.results);
     } catch (error) {
       console.error('Error fetching Unsplash images:', error);
@@ -745,7 +636,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   useEffect(() => {
     if (activeTab === 'sample-images' && !hasSearchedPixabay && !searchQuery && pixabayImages.length === 0) {
       setSearchQuery('ui element');
-      searchPixabayImages('ui element');
+      searchPixabayImagesLocal('ui element');
       setHasSearchedPixabay(true);
     }
   }, [activeTab]);
@@ -755,7 +646,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     if (activeTab === 'sample-backgrounds' && !hasSearchedUnsplash && !unsplashSearchQuery && unsplashImages.length === 0) {
       if (isUnsplashConfigured()) {
         setUnsplashSearchQuery('simple');
-        searchUnsplashImages('simple');
+        searchUnsplashImagesLocal('simple');
         setHasSearchedUnsplash(true);
       }
     }
@@ -765,7 +656,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   useEffect(() => {
     if (activeTab === 'sample-backgrounds' && unsplashSearchQuery && isUnsplashConfigured()) {
       const timeoutId = setTimeout(() => {
-        searchUnsplashImages(unsplashSearchQuery);
+        searchUnsplashImagesLocal(unsplashSearchQuery);
       }, 300); // Debounce for 300ms
 
       return () => clearTimeout(timeoutId);
@@ -776,7 +667,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   useEffect(() => {
     if (activeTab === 'sample-images' && searchQuery) {
       const timeoutId = setTimeout(() => {
-        searchPixabayImages(searchQuery);
+        searchPixabayImagesLocal(searchQuery);
       }, 300); // Debounce for 300ms
 
       return () => clearTimeout(timeoutId);
@@ -785,7 +676,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      searchPixabayImages(searchQuery.trim());
+      searchPixabayImagesLocal(searchQuery.trim());
       setShowPixabayAdvancedFilters(false); // Close advanced filters menu when searching
       setHasSearchedPixabay(true);
     }
@@ -793,7 +684,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   const handleUnsplashSearchSubmit = () => {
     if (unsplashSearchQuery.trim()) {
-      searchUnsplashImages(unsplashSearchQuery.trim());
+      searchUnsplashImagesLocal(unsplashSearchQuery.trim());
       setShowAdvancedFilters(false); // Close advanced filters menu when searching
       setHasSearchedUnsplash(true);
     }
@@ -1024,14 +915,14 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const handleQuickSearch = (term: string) => {
     setSearchQuery(term);
     setSelectedImageId(null); // Clear selection when doing quick search
-    searchPixabayImages(term); // Immediately search for the term
+    searchPixabayImagesLocal(term); // Immediately search for the term
     setHasSearchedPixabay(true);
   };
 
   const handleUnsplashQuickSearch = (term: string) => {
     setUnsplashSearchQuery(term);
     setSelectedUnsplashImageId(null); // Clear selection when doing quick search
-    searchUnsplashImages(term); // Immediately search for the term
+    searchUnsplashImagesLocal(term); // Immediately search for the term
     setHasSearchedUnsplash(true);
   };
 

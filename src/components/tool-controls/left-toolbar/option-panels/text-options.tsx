@@ -19,6 +19,8 @@ import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
 import { colorToRGBA } from "./common";
 import { loadGoogleFont, isGoogleFont } from "@/utils/font-utils";
+// API imports
+import { loadGoogleFonts as loadGoogleFontsAPI, type GoogleFont as GoogleFontAPI } from '@/lib/api/google-fonts';
 
 // Add types and interfaces for Google Fonts
 interface GoogleFont {
@@ -78,11 +80,8 @@ const FontSelector: React.FC<{
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://www.googleapis.com/webfonts/v1/webfonts?key=${GOOGLE_FONTS_API_KEY}&sort=popularity`
-      );
-      const data: GoogleFontsResponse = await response.json();
-      setGoogleFonts(data.items || []);
+      const fonts = await loadGoogleFontsAPI();
+      setGoogleFonts(fonts || []);
     } catch (error) {
       console.error('Failed to load Google Fonts:', error);
     } finally {

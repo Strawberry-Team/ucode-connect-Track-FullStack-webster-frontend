@@ -9,6 +9,7 @@ import {
     Image,
     FolderOpen,
     Zap,
+    ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -107,7 +108,7 @@ const FileOptions: React.FC = () => {
                         <DropdownMenuContent
                             side="right"
                             align="end"
-                            className="ml-2 mb-7 p-1 bg-[#292C31FF] border-2 border-[#44474AFF] rounded !text-gray-200 rounded-lg"
+                            className={`ml-2 p-1 bg-[#292C31FF] border-2 border-[#44474AFF] rounded !text-gray-200 rounded-lg`}
                         >
                             {menu.id === "file" && (
                                 <>
@@ -127,9 +128,7 @@ const FileOptions: React.FC = () => {
                                                     <Download className="mr-2 h-4 w-4" />
                                                     <span>Save as</span>
                                                 </div>
-                                                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
+                                                <ChevronRight className="ml-2 h-4 w-4" />
                                             </DropdownMenuItem>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent
@@ -246,25 +245,6 @@ const FileOptions: React.FC = () => {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 ))}
-
-                {loggedInUser && (
-                    <div className="flex p-1 min-h-9 min-w-9 border-none rounded-full">
-                        <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
-                            <img
-                                src={loggedInUser.profilePictureName
-                                    ? `http://localhost:8080/uploads/user-avatars/${loggedInUser.profilePictureName}`
-                                    : undefined}
-                                alt="User avatar"
-                                className="h-full w-full object-cover"
-                            />
-                            {!loggedInUser.profilePictureName && (
-                                <div className="h-full w-full bg-[#32353CFF] text-gray-200 flex items-center justify-center text-xs">
-                                    {loggedInUser.firstName ? loggedInUser.firstName.charAt(0).toUpperCase() : 'User'}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
         </TooltipProvider>
     )

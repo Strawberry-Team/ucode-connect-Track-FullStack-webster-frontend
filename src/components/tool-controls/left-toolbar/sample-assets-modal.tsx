@@ -21,49 +21,11 @@ import {
 import { useTool } from "@/context/tool-context"
 import { useElementsManager } from "@/context/elements-manager-context"
 import { toast } from "sonner"
+// API imports
+import { searchPixabayImages, type PixabayImage, type PixabayResponse } from '@/lib/api/pixabay';
+import { searchUnsplashImages, isUnsplashConfigured, type UnsplashImage, type UnsplashResponse } from '@/lib/api/unsplash';
 
-// Pixabay image interface
-interface PixabayImage {
-  id: number
-  webformatURL: string
-  previewURL: string
-  tags: string
-  user: string
-  views: number
-  downloads: number
-  likes: number
-  webformatWidth: number
-  webformatHeight: number
-}
 
-interface PixabayResponse {
-  total: number
-  totalHits: number
-  hits: PixabayImage[]
-}
-
-// Unsplash image interface
-interface UnsplashImage {
-  id: string
-  urls: {
-    regular: string
-    small: string
-    thumb: string
-  }
-  alt_description: string
-  user: {
-    name: string
-  }
-  likes: number
-  width: number
-  height: number
-}
-
-interface UnsplashResponse {
-  total: number
-  total_pages: number
-  results: UnsplashImage[]
-}
 
 interface SampleAssetsModalProps {
   isOpen: boolean
@@ -181,8 +143,8 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     { value: "vertical", label: "Vertical", icon: <RectangleVertical className="w-4 h-4" /> },
   ]
 
-  // Function to search Pixabay images
-  const searchPixabayImages = async (query: string) => {
+  // Function to search Pixabay images using API module
+  const searchPixabayImagesLocal = async (query: string) => {
     if (!query.trim()) {
       setPixabayImages([])
       return
@@ -192,43 +154,24 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     setSearchError("")
 
     try {
-      const apiKey = import.meta.env.VITE_PIXABAY_API_KEY || "50744411-22fa88c98bef12cb7a788e3e6"
-
-      const params = new URLSearchParams()
-      params.append("key", apiKey)
-      params.append("q", query.trim())
-      params.append("image_type", "all")
-      params.append("per_page", "200")
-      params.append("safesearch", "true")
-      params.append("order", "popular")
-
-      if (selectedPixabayColor) {
-        params.append("colors", selectedPixabayColor)
-      }
-
-      if (selectedPixabayOrientation) {
-        params.append("orientation", selectedPixabayOrientation)
-      }
-
-      const response = await fetch(`https://pixabay.com/api/?${params.toString()}`)
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`)
-      }
-
-      const data: PixabayResponse = await response.json()
+      const data = await searchPixabayImages({
+        query: query.trim(),
+        color: selectedPixabayColor,
+        orientation: selectedPixabayOrientation,
+        perPage: 200
+      });
       setPixabayImages(data.hits)
     } catch (error) {
       console.error("Error fetching Pixabay images:", error)
-      setSearchError("Failed to fetch images. Please try again.")
+      setSearchError(error instanceof Error ? error.message : "Failed to fetch images. Please try again.")
       setPixabayImages([])
     } finally {
       setIsLoadingImages(false)
     }
   }
 
-  // Function to search Unsplash images
-  const searchUnsplashImages = async (query: string) => {
+  // Function to search Unsplash images using API module
+  const searchUnsplashImagesLocal = async (query: string) => {
     if (!query.trim()) {
       setUnsplashImages([])
       return
@@ -238,38 +181,12 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     setUnsplashSearchError("")
 
     try {
-      const accessKey = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
-      if (!accessKey || accessKey === "your_unsplash_access_key_here") {
-        throw new Error("Unsplash API key not configured. Please add VITE_UNSPLASH_ACCESS_KEY to your .env.local file.")
-      }
-
-      const params = new URLSearchParams()
-      params.append("query", query.trim())
-      params.append("per_page", "30")
-      params.append("order_by", "popular")
-
-      if (selectedColor) {
-        params.append("color", selectedColor)
-      }
-
-      if (selectedOrientation) {
-        params.append("orientation", selectedOrientation)
-      }
-
-      const response = await fetch(`https://api.unsplash.com/search/photos?${params.toString()}`, {
-        headers: {
-          Authorization: `Client-ID ${accessKey}`,
-        },
-      })
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Invalid Unsplash API key. Please check your VITE_UNSPLASH_ACCESS_KEY in .env.local file.")
-        }
-        throw new Error(`API Error: ${response.status}`)
-      }
-
-      const data: UnsplashResponse = await response.json()
+      const data = await searchUnsplashImages({
+        query: query.trim(),
+        color: selectedColor,
+        orientation: selectedOrientation,
+        perPage: 30
+      });
       setUnsplashImages(data.results)
     } catch (error) {
       console.error("Error fetching Unsplash images:", error)
@@ -288,7 +205,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (activeTab === "sample-images" && !hasSearchedPixabay && !searchQuery && pixabayImages.length === 0) {
       setSearchQuery("button")
-      searchPixabayImages("button")
+      searchPixabayImagesLocal("button")
       setHasSearchedPixabay(true)
     }
   }, [activeTab])
@@ -302,7 +219,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     ) {
       if (isUnsplashConfigured()) {
         setUnsplashSearchQuery("simple")
-        searchUnsplashImages("simple")
+        searchUnsplashImagesLocal("simple")
         setHasSearchedUnsplash(true)
       }
     }
@@ -312,7 +229,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (activeTab === "sample-backgrounds" && unsplashSearchQuery && isUnsplashConfigured()) {
       const timeoutId = setTimeout(() => {
-        searchUnsplashImages(unsplashSearchQuery)
+        searchUnsplashImagesLocal(unsplashSearchQuery)
       }, 300)
       return () => clearTimeout(timeoutId)
     }
@@ -321,7 +238,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (activeTab === "sample-images" && searchQuery) {
       const timeoutId = setTimeout(() => {
-        searchPixabayImages(searchQuery)
+        searchPixabayImagesLocal(searchQuery)
       }, 300)
       return () => clearTimeout(timeoutId)
     }
@@ -552,7 +469,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     if (searchQuery.trim()) {
       setSelectedPixabayImageId(null) // Clear selection when searching
       setSetPixabayAsBackground(false) // Clear background setting when searching
-      searchPixabayImages(searchQuery.trim())
+      searchPixabayImagesLocal(searchQuery.trim())
       setShowPixabayAdvancedFilters(false)
       setHasSearchedPixabay(true)
     }
@@ -562,7 +479,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     if (unsplashSearchQuery.trim()) {
       setSelectedUnsplashImageId(null) // Clear selection when searching
       setSetUnsplashAsBackground(false) // Clear background setting when searching
-      searchUnsplashImages(unsplashSearchQuery.trim())
+      searchUnsplashImagesLocal(unsplashSearchQuery.trim())
       setShowAdvancedFilters(false)
       setHasSearchedUnsplash(true)
     }
@@ -584,7 +501,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     setSearchQuery(term)
     setSelectedPixabayImageId(null) // Clear selection when searching
     setSetPixabayAsBackground(false) // Clear background setting when searching
-    searchPixabayImages(term)
+    searchPixabayImagesLocal(term)
     setHasSearchedPixabay(true)
   }
 
@@ -592,7 +509,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     setUnsplashSearchQuery(term)
     setSelectedUnsplashImageId(null) // Clear selection when searching
     setSetUnsplashAsBackground(false) // Clear background setting when searching
-    searchUnsplashImages(term)
+    searchUnsplashImagesLocal(term)
     setHasSearchedUnsplash(true)
   }
 

@@ -1143,9 +1143,21 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 
                 const [imageLoaded, setImageLoaded] = useState(false);
                 const [imageInstance, setImageInstance] = useState<HTMLImageElement | null>(null);
+                const [isLoadingNewImage, setIsLoadingNewImage] = useState(false);
+                const [currentImageSrc, setCurrentImageSrc] = useState<string | undefined>(undefined);
                 
                 useEffect(() => {
                     if (element.src) {
+                        // If we already have an image and src changed, mark as loading new image
+                        if (imageInstance && imageLoaded && currentImageSrc !== element.src) {
+                            setIsLoadingNewImage(true);
+                        }
+                        
+                        // If this is the same src as current, no need to reload
+                        if (currentImageSrc === element.src && imageLoaded) {
+                            return;
+                        }
+                        
                         const img = new window.Image();
                         
                         // Try to load with crossOrigin first for CORS compliance
@@ -1156,6 +1168,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         const handleLoad = () => {
                             setImageInstance(img);
                             setImageLoaded(true);
+                            setIsLoadingNewImage(false);
+                            setCurrentImageSrc(element.src);
                             console.log('ElementRenderer: Image loaded successfully for element:', element.id);
                         };
                         
@@ -1168,7 +1182,11 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                                 img.src = element.src;
                             } else {
                                 console.error('ElementRenderer: Failed to load image:', element.src);
-                                setImageLoaded(false);
+                                setIsLoadingNewImage(false);
+                                // Only reset if we don't have a previous image to show
+                                if (!imageInstance) {
+                                    setImageLoaded(false);
+                                }
                             }
                         };
                         
@@ -1177,9 +1195,15 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         img.src = element.src;
                         
                         return () => {
-                            setImageInstance(null);
-                            setImageLoaded(false);
+                            // Don't reset imageInstance and imageLoaded on cleanup
+                            // to preserve previous image state during loading
                         };
+                    } else {
+                        // If no src, reset everything
+                        setImageInstance(null);
+                        setImageLoaded(false);
+                        setIsLoadingNewImage(false);
+                        setCurrentImageSrc(undefined);
                     }
                 }, [element.src, element.brightness, element.contrast, element.flipHorizontal, element.flipVertical]);
                 
@@ -1214,49 +1238,81 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     };
                     
                     return (
-                        <KonvaImage
-                            ref={(node) => {
-                                if (node) {
-                                    // Clear existing cache before applying new filters
-                                    node.clearCache();
-                                    
-                                    // Apply brightness filter
-                                    if (element.brightness && element.brightness !== 0) {
-                                        node.brightness(element.brightness / 100); // Convert from -100/100 to -1/1 range
-                                    } else {
-                                        node.brightness(0); // Reset brightness if 0
-                                    }
-                                    
-                                    // Apply contrast filter
-                                    if (element.contrast && element.contrast !== 0) {
-                                        node.contrast(element.contrast); // Contrast uses the same range
-                                    } else {
-                                        node.contrast(0); // Reset contrast if 0
-                                    }
-                                    
-                                    // Cache the filtered result only if filters are applied
-                                    if (filters.length > 0) {
-                                        node.cache();
-                                    }
-                                }
-                                (nodeRef as React.MutableRefObject<Konva.Image | null>).current = node;
-                            }}
-                            image={imageInstance}
+                        <Group
+                            ref={nodeRef as React.RefObject<Konva.Group>}
                             x={imgCenterX}
                             y={imgCenterY}
                             offsetX={imgOffsetX}
                             offsetY={imgOffsetY}
                             width={element.width}
                             height={element.height}
-                            scaleX={elementTransforms.scaleX}
-                            scaleY={elementTransforms.scaleY}
-                            filters={filters}
-                            {...imageCommonProps}
-                            {...strokeStyleProps} // Borders for image
-                        />
+                            {...commonProps}
+                        >
+                            <KonvaImage
+                                ref={(node) => {
+                                    if (node) {
+                                        // Clear existing cache before applying new filters
+                                        node.clearCache();
+                                        
+                                        // Apply brightness filter
+                                        if (element.brightness && element.brightness !== 0) {
+                                            node.brightness(element.brightness / 100); // Convert from -100/100 to -1/1 range
+                                        } else {
+                                            node.brightness(0); // Reset brightness if 0
+                                        }
+                                        
+                                        // Apply contrast filter
+                                        if (element.contrast && element.contrast !== 0) {
+                                            node.contrast(element.contrast); // Contrast uses the same range
+                                        } else {
+                                            node.contrast(0); // Reset contrast if 0
+                                        }
+                                        
+                                        // Cache the filtered result only if filters are applied
+                                        if (filters.length > 0) {
+                                            node.cache();
+                                        }
+                                    }
+                                }}
+                                image={imageInstance}
+                                width={element.width}
+                                height={element.height}
+                                scaleX={elementTransforms.scaleX}
+                                scaleY={elementTransforms.scaleY}
+                                filters={filters}
+                                x={0}
+                                y={0}
+                                {...imageCommonProps}
+                                {...strokeStyleProps} // Borders for image
+                            />
+                            {/* Show subtle loading overlay when new image is loading */}
+                            {isLoadingNewImage && (
+                                <Rect
+                                    width={element.width}
+                                    height={element.height}
+                                    fill="rgba(255, 255, 255, 0.7)"
+                                    x={0}
+                                    y={0}
+                                />
+                            )}
+                            {isLoadingNewImage && (
+                                <Text
+                                    width={element.width}
+                                    height={element.height}
+                                    text="Loading..."
+                                    fontSize={12}
+                                    fontFamily="Arial"
+                                    fill="#666"
+                                    align="center"
+                                    verticalAlign="middle"
+                                    x={0}
+                                    y={0}
+                                />
+                            )}
+                        </Group>
                     );
                 } else if (element.src && !imageLoaded) {
-                    // Show placeholder while loading
+                    // Show placeholder only for initial loading (no previous image)
                     return (
                         <Group
                             ref={nodeRef as React.RefObject<Konva.Group>}

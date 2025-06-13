@@ -61,6 +61,8 @@ interface ToolContextValue {
     setHasEverSelectedTool: (hasSelected: boolean) => void
     projectName: string | null
     setProjectName: (name: string | null) => void
+    projectId: string | null
+    setProjectId: (id: string | null) => void
     color: string
     setColor: (color: string) => void
     secondaryColor: string
@@ -274,6 +276,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     // Project display state
     const [hasEverSelectedTool, setHasEverSelectedTool] = useState<boolean>(false)
     const [projectName, setProjectName] = useState<string | null>(null)
+    const [projectId, setProjectId] = useState<string | null>(null)
     const [color, setColor] = useState("#000000")
     const [secondaryColor, setSecondaryColor] = useState("#000000")
     const [brushSize, setBrushSize] = useState(20)
@@ -374,16 +377,17 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
     const projectSaverRef = useRef<(() => Promise<string | null>) | null>(null);
 
-    // Initialize project name from URL or saved project data
+    // Initialize project name and ID from URL or saved project data
     useEffect(() => {
         const searchParams = new URLSearchParams(window.location.search)
-        const projectId = searchParams.get('projectId')
+        const urlProjectId = searchParams.get('projectId')
         const nameFromUrl = searchParams.get('name')
         
-        if (projectId) {
-            // If we have a project ID, get the name from stored project data
+        if (urlProjectId) {
+            // If we have a project ID, set it and get the name from stored project data
+            setProjectId(urlProjectId)
             import('../utils/project-storage').then(({ getProjectName }) => {
-                const storedName = getProjectName(projectId)
+                const storedName = getProjectName(urlProjectId)
                 if (storedName) {
                     setProjectName(storedName)
                 }
@@ -492,6 +496,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 projectSaverRef.current().then((savedProjectId) => {
                     if (savedProjectId) {
                         console.log('ToolContext: Project saved successfully with ID:', savedProjectId);
+                        // Set projectId if it's not already set (for new projects)
+                        if (!projectId) {
+                            setProjectId(savedProjectId);
+                        }
                         setHasUnsavedChanges(true);
                         
                         // Log element order after critical changes
@@ -554,6 +562,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
             projectSaverRef.current().then((savedProjectId) => {
                 if (savedProjectId) {
                     console.log('ToolContext: Project saved successfully after history revert');
+                    // Set projectId if it's not already set
+                    if (!projectId) {
+                        setProjectId(savedProjectId);
+                    }
                 }
             }).catch((error) => {
                 console.error('ToolContext: Error saving project after history revert:', error);
@@ -1144,6 +1156,8 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 setHasEverSelectedTool,
                 projectName,
                 setProjectName,
+                projectId,
+                setProjectId,
 
                 // Stage reference for sharing functionality
                 stageRef,

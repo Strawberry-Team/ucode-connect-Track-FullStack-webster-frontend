@@ -11,7 +11,7 @@ import { toast } from "sonner"
 import type { ShapeType, ElementData } from "@/types/canvas"
 import { useTool } from "@/context/tool-context"
 import { useElementsManager } from "@/context/elements-manager-context"
-import { generateImage, type GenerateImageOptions, type GeneratedImage } from "@/lib/api/generate_ai_image"
+import { generateImage, type GenerateImageOptions, type GeneratedImage } from "@/lib/api/generate-ai-image"
 
 interface AIImageGeneratorModalProps {
     isOpen: boolean
