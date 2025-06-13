@@ -11,79 +11,11 @@ import { toast } from "sonner"
 import type { ShapeType, ElementData } from "@/types/canvas"
 import { useTool } from "@/context/tool-context"
 import { useElementsManager } from "@/context/elements-manager-context"
+import { generateImage, type GenerateImageOptions, type GeneratedImage } from "@/lib/api/generate_ai_image"
 
 interface AIImageGeneratorModalProps {
     isOpen: boolean
     onClose: () => void
-}
-
-// API functions for generating images
-export interface GenerateImageOptions {
-    prompt: string
-    backgroundType?: "none" | "white" | "black" | "gradient"
-    width?: number
-    height?: number
-    noLogo?: boolean
-}
-
-export interface GeneratedImage {
-    url: string
-    prompt: string
-    timestamp: number
-    id: string
-}
-
-export const generateImage = async (options: GenerateImageOptions): Promise<GeneratedImage> => {
-    const { prompt, backgroundType = "none", width = 1024, height = 1024, noLogo = true } = options
-
-    if (!prompt.trim()) {
-        throw new Error("Please enter an image description")
-    }
-
-    let finalPrompt = prompt
-
-    // Add background specification if selected
-    if (backgroundType !== "none") {
-        if (backgroundType === "white") {
-            finalPrompt += ", on pure white background"
-        } else if (backgroundType === "black") {
-            finalPrompt += ", on pure black background"
-        } else if (backgroundType === "gradient") {
-            finalPrompt += ", on colorful gradient background"
-        }
-    }
-
-    const encodedPrompt = encodeURIComponent(finalPrompt)
-    const timestamp = Date.now()
-    const randomSeed = Math.floor(Math.random() * 1000000)
-
-    // Fixed URL with correct size parameters
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${timestamp + randomSeed}&nologo=true`
-
-    return {
-        url: imageUrl,
-        prompt: finalPrompt,
-        timestamp: Date.now(),
-        id: `ai-image-${timestamp}-${randomSeed}`,
-    }
-}
-
-export const downloadImage = async (imageUrl: string, filename?: string): Promise<void> => {
-    try {
-        const response = await fetch(imageUrl)
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = filename || `ai-generated-image-${Date.now()}.png`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-    } catch (err) {
-        console.error("Error downloading image:", err)
-        throw new Error("Error downloading image")
-    }
 }
 
 // Styles for scrollbar
@@ -220,18 +152,6 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
 
     const handleImageSelect = (imageId: string) => {
         setSelectedImageId(imageId)
-    }
-
-    const handleDownload = async () => {
-        const selectedImage = generatedImages.find((img) => img.id === selectedImageId)
-        if (!selectedImage) return
-
-        try {
-            await downloadImage(selectedImage.url, `ai-generated-${Date.now()}.png`)
-            toast.success("Image downloaded!")
-        } catch (err) {
-            toast.error("Error downloading image")
-        }
     }
 
     const handleAddToCanvas = async () => {
@@ -635,6 +555,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                             onClick={handleAddToCanvas}
                             variant="secondary"
                             className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white"
+                            disabled={!selectedImageId}
                         >
                             Add to Canvas
                         </Button>

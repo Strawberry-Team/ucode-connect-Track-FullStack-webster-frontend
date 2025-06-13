@@ -20,7 +20,9 @@ import {
   Palette,
   Save,
   PaintBucket,
-  BrushCleaning
+  BrushCleaning,
+  Eraser,
+  Scissors
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -30,6 +32,7 @@ import ColorPicker from "@/components/color-picker/color-picker";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import type { ElementData } from "@/types/canvas";
+import { removeImageBackground, convertImageUrlToBlob, convertBlobToDataUrl } from "@/lib/api/remove_bg_image";
 
 // Adding styles for scrollbar (same as liquify-options)
 const scrollbarStyles = `
@@ -60,6 +63,51 @@ const ImageTransformOptions: React.FC = () => {
   const [tempCanvasBackgroundOpacityInput, setTempCanvasBackgroundOpacityInput] = useState("100");
   const canvasBackgroundPickerRef = useRef<HTMLDivElement>(null!);
   const canvasBackgroundOpacityInputRef = useRef<HTMLInputElement>(null!);
+
+  // Add loading state for background removal
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+
+  // Function to remove background using remove.bg API
+  const handleRemoveBackground = async () => {
+    if (!currentSelectedImageId) {
+      return;
+    }
+
+    try {
+      setIsRemovingBackground(true);
+      
+      const selectedImage = getElementById(currentSelectedImageId);
+      if (!selectedImage || !selectedImage.element) {
+        setIsRemovingBackground(false);
+        return;
+      }
+
+      const imageUrl = selectedImage.element.src;
+      if (!imageUrl) {
+        setIsRemovingBackground(false);
+        return;
+      }
+
+      const apiKey = import.meta.env.VITE_REMOVEBG_API_KEY || '';
+
+
+      if (!apiKey) {
+        setIsRemovingBackground(false);
+        return;
+      }
+
+      const imageBlob = await convertImageUrlToBlob(imageUrl);
+      const processedBlob = await removeImageBackground(imageBlob, apiKey);
+      const base64data = await convertBlobToDataUrl(processedBlob);
+      updateElement(currentSelectedImageId, { src: base64data });
+
+      setIsRemovingBackground(false);
+
+    } catch (error) {
+      setIsRemovingBackground(false);
+
+    }
+  };
 
   // Check if there are any imported images (custom-image type) in the project
   const hasImportedImages = renderableObjects.some(obj =>
@@ -270,7 +318,7 @@ const ImageTransformOptions: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        
+
         <div className="flex gap-1">
           <TooltipProvider>
             <Tooltip>
@@ -603,6 +651,8 @@ const ImageTransformOptions: React.FC = () => {
         </TooltipProvider>
       </div>
 
+
+
       {/* Flip Controls */}
       <div className="flex items-center space-x-4">
         <Label className="text-xs text-[#D4D4D5FF]">Flip:</Label>
@@ -642,6 +692,37 @@ const ImageTransformOptions: React.FC = () => {
             </TooltipTrigger>
             <TooltipContent>
               <p>Flip vertically</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
+
+      {/* Background Removal Control */}
+      <div className="flex items-center space-x-4">
+        <Label className="text-xs text-[#D4D4D5FF] flex flex-col leading-[1.2]">
+          <span>Remove</span>
+          <span>background</span>
+        </Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleRemoveBackground}
+                disabled={isRemovingBackground}
+                variant="ghost"
+                className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
+              >
+                {isRemovingBackground ? (
+                  <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                ) : (
+                  <Scissors size={14} />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Remove background</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
