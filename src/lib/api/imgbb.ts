@@ -69,32 +69,9 @@ export const uploadToImgBB = async (
     expiration?: number
 ): Promise<ImgBBUploadResponse> => {
     // Get API key from different sources depending on environment
-    let apiKey: string | undefined;
-    
-    try {
-        // For Vite environment variables
-        apiKey = import.meta.env?.VITE_IMGBB_API_KEY;
-    } catch (e) {
-        // import.meta is not supported in all browsers
-    }
-    
-    // If not found through import.meta, try other ways
-    if (!apiKey) {
-        // For Next.js or other bundlers that insert variables during build
-        apiKey = (globalThis as any).__IMGBB_API_KEY__ ||
-                 (typeof window !== 'undefined' && (window as any).__IMGBB_API_KEY__);
-    }
-    
-    // Temporary for testing - you can insert the key directly
-    if (!apiKey) {
-        console.warn('API key not found in environment variables. Check .env.local file');
-        // apiKey = 'your_api_key_here'; // Uncomment and insert your key for testing
-    }
-    
-    if (!apiKey) {
-        throw new Error('ImgBB API key not found. Please set VITE_IMGBB_API_KEY in your .env.local file or insert key directly in code for testing');
-    }
 
+    const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+    
     // Remove data URL prefix if present (data:image/png;base64,)
     const cleanBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
 
