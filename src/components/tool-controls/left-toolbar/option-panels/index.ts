@@ -7,5 +7,4 @@ export { default as HandOptions } from './hand-options';
 export { default as LiquifyOptions } from './liquify-options';
 export { default as BlurOptions } from './blur-options';
 export { default as ImageTransformOptions } from './image-transform-options';
-export { default as BackgroundOptions } from './background-options';
 export { MirrorSelector, lightenColor } from './common'; 

@@ -13,7 +13,6 @@ import {
   LiquifyOptions,
   BlurOptions,
   ImageTransformOptions,
-  BackgroundOptions
 } from "./option-panels"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -50,8 +49,6 @@ const PropertiesPanel: React.FC = () => {
         return <BlurOptions />
       case "image-transform":
         return <ImageTransformOptions />
-      case "background":
-        return <BackgroundOptions />
       case "crop":
         return <CropOptions />
       case "hand":
