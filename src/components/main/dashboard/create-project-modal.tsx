@@ -25,84 +25,200 @@ import { searchPixabayImages, type PixabayImage, type PixabayResponse } from '@/
 import { searchUnsplashImages, isUnsplashConfigured, type UnsplashImage, type UnsplashResponse } from '@/lib/api/unsplash';
 import { generateImage, generateMultipleImages, type GenerateImageOptions, type GeneratedImage } from '@/lib/api/pollinations-ai';
 
+// Template image imports
+import template1 from '@/assets/project-templates/template_1_macbook.png';
+import template2 from '@/assets/project-templates/template_2_ipad_vertical.png';
+import template3 from '@/assets/project-templates/template_3_ipad_horizontal.png';
+import template4 from '@/assets/project-templates/template_4_iphone.png';
+import template5 from '@/assets/project-templates/template_5_iphone_gloss.png';
+import template6 from '@/assets/project-templates/template_6_iphone_horizontal.png';
+import template7 from '@/assets/project-templates/template_7_watch.png';
+import template8 from '@/assets/project-templates/template_8_iphone_music.png';
+import template9 from '@/assets/project-templates/template_9_iphone_instagram_story.png';
+import template10 from '@/assets/project-templates/template_10_instagram_post.png';
+import template11 from '@/assets/project-templates/template_11_iphone_facebook_post.png';
+
+// Template images interface
+interface ProjectTemplate {
+  id: string;
+  title: string;
+  imagePath: string;
+  width: number;
+  height: number;
+  dimensionsText: string;
+}
+
+// Project templates from assets folder
+const projectTemplates: ProjectTemplate[] = [
+  {
+    id: 'macbook',
+    title: 'MacBook',
+    imagePath: template1,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'ipad-vertical',
+    title: 'iPad Vertical',
+    imagePath: template2,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'ipad-horizontal',
+    title: 'iPad Horizontal',
+    imagePath: template3,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'watch',
+    title: 'Apple Watch',
+    imagePath: template7,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-gloss',
+    title: 'iPhone Vertical Gloss',
+    imagePath: template5,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone',
+    title: 'iPhone Vertical',
+    imagePath: template4,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-horizontal',
+    title: 'iPhone Horizontal',
+    imagePath: template6,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  
+  {
+    id: 'iphone-music',
+    title: 'iPhone Music',
+    imagePath: template8,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-instagram-story',
+    title: 'iPhone Instagram Story',
+    imagePath: template9,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'instagram-post',
+    title: 'Instagram Post',
+    imagePath: template10,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-facebook-post',
+    title: 'iPhone Facebook Post',
+    imagePath: template11,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+];
+
 const allTemplates: Record<string, Template[]> = {
   recommended: [
-    { id: 'art-grid', title: 'Art grid', dimensionsText: '1000x1000 px', width: 1000, height: 1000, iconUrl: 'https://pixlr.com/img/icon/category/art.svg' },
-    { id: 'social-post', title: 'Social post', dimensionsText: '1080x1080 px', width: 1080, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/social.svg' },
-    { id: 'social-story', title: 'Social story', dimensionsText: '1080x1920 px', width: 1080, height: 1920, iconUrl: 'https://pixlr.com/img/icon/category/social.svg' },
-    { id: 'web-med', title: 'Web med', dimensionsText: '1600x900 px', width: 1600, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'thumb-720p', title: 'Thumb 720p', dimensionsText: '1280x720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: 'wide-1080p', title: 'Wide 1080p', dimensionsText: '1920x1080 px', width: 1920, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: '12-mpx-43', title: '12 mpx 4:3', dimensionsText: '4032x3024 px', width: 4032, height: 3024, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: '8-mpx-43', title: '8 mpx 4:3', dimensionsText: '3264x2448 px', width: 3264, height: 2448, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: 'art-grid', title: 'Art grid', dimensionsText: '1000 x 1000 px', width: 1000, height: 1000, iconUrl: 'https://pixlr.com/img/icon/category/art.svg' },
+    { id: 'social-post', title: 'Social post', dimensionsText: '1080 x 1080 px', width: 1080, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/social.svg' },
+    { id: 'social-story', title: 'Social story', dimensionsText: '1080 x 1920 px', width: 1080, height: 1920, iconUrl: 'https://pixlr.com/img/icon/category/social.svg' },
+    { id: 'web-med', title: 'Web med', dimensionsText: '1600 x 900 px', width: 1600, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
+    { id: 'thumb-720p', title: 'Thumb 720p', dimensionsText: '1280 x 720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: 'wide-1080p', title: 'Wide 1080p', dimensionsText: '1920 x 1080 px', width: 1920, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '12-mpx-43', title: '12 mpx 4:3', dimensionsText: '4032 x 3024 px', width: 4032, height: 3024, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: '8-mpx-43', title: '8 mpx 4:3', dimensionsText: '3264 x 2448 px', width: 3264, height: 2448, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
   ],
   photo: [
-    { id: '12-mpx-43-photo', title: '12 mpx 4:3', dimensionsText: '4032x3024 px', width: 4032, height: 3024, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: '8-mpx-43-photo', title: '8 mpx 4:3', dimensionsText: '3264x2448 px', width: 3264, height: 2448, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: 'landscape-3x2', title: 'Landscape 3x2 in', dimensionsText: '900x600 px', width: 900, height: 600, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: 'landscape-6x4', title: 'Landscape 6x4 in', dimensionsText: '1800x1200 px', width: 1800, height: 1200, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: 'landscape-7x5', title: 'Landscape 7x5 in', dimensionsText: '2100x1500 px', width: 2100, height: 1500, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: 'landscape-10x8', title: 'Landscape 10x8 in', dimensionsText: '3000x2400 px', width: 3000, height: 2400, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
-    { id: 'portrait-2x3', title: 'Portrait 2x3 in', dimensionsText: '600x900 px', width: 600, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
-    { id: 'portrait-4x6', title: 'Portrait 4x6 in', dimensionsText: '1200x1800 px', width: 1200, height: 1800, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
-    { id: 'portrait-5x7', title: 'Portrait 5x7 in', dimensionsText: '1500x2100 px', width: 1500, height: 2100, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
-    { id: 'portrait-8x10', title: 'Portrait 8x10 in', dimensionsText: '2400x3000 px', width: 2400, height: 3000, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
+    { id: '12-mpx-43-photo', title: '12 mpx 4:3', dimensionsText: '4032 x 3024 px', width: 4032, height: 3024, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: '8-mpx-43-photo', title: '8 mpx 4:3', dimensionsText: '3264 x 2448 px', width: 3264, height: 2448, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: 'landscape-3x2', title: 'Landscape 3x2 in', dimensionsText: '900 x 600 px', width: 900, height: 600, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: 'landscape-6x4', title: 'Landscape 6x4 in', dimensionsText: '1800 x 1200 px', width: 1800, height: 1200, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: 'landscape-7x5', title: 'Landscape 7x5 in', dimensionsText: '2100 x 1500 px', width: 2100, height: 1500, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: 'landscape-10x8', title: 'Landscape 10x8 in', dimensionsText: '3000 x 2400 px', width: 3000, height: 2400, iconUrl: 'https://pixlr.com/img/icon/category/landscape.svg' },
+    { id: 'portrait-2x3', title: 'Portrait 2x3 in', dimensionsText: '600 x 900 px', width: 600, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
+    { id: 'portrait-4x6', title: 'Portrait 4x6 in', dimensionsText: '1200 x 1800 px', width: 1200, height: 1800, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
+    { id: 'portrait-5x7', title: 'Portrait 5x7 in', dimensionsText: '1500 x 2100 px', width: 1500, height: 2100, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
+    { id: 'portrait-8x10', title: 'Portrait 8x10 in', dimensionsText: '2400 x 3000 px', width: 2400, height: 3000, iconUrl: 'https://pixlr.com/img/icon/category/portrait.svg' },
   ],
   social: [
-    { id: 'instagram-square', title: 'Instagram square', dimensionsText: '1080x1080 px', width: 1080, height: 1080, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png' },
-    { id: 'instagram-post', title: 'Instagram post', dimensionsText: '1080x1350 px', width: 1080, height: 1350, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png' },
-    { id: 'instagram-story', title: 'Instagram story', dimensionsText: '1080x1920 px', width: 1080, height: 1920, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png' },
-    { id: 'facebook-post', title: 'Facebook post', dimensionsText: '1200x630 px', width: 1200, height: 630, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
-    { id: 'facebook-story', title: 'Facebook story', dimensionsText: '1080x1920 px', width: 1080, height: 1920, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
-    { id: 'facebook-cover', title: 'Facebook cover', dimensionsText: '851x315 px', width: 851, height: 315, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
-    { id: 'facebook-profile', title: 'Facebook profile', dimensionsText: '850x850 px', width: 850, height: 850, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
-    { id: 'twitter-post', title: 'Twitter post', dimensionsText: '1600x900 px', width: 1600, height: 900, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg' },
-    { id: 'twitter-cover', title: 'Twitter cover', dimensionsText: '1500x500 px', width: 1500, height: 500, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg' },
-    { id: 'twitter-profile', title: 'Twitter profile', dimensionsText: '400x400 px', width: 400, height: 400, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg' },
-    { id: 'youtube-profile', title: 'Youtube profile', dimensionsText: '800x800 px', width: 800, height: 800, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
-    { id: 'youtube-thumbnail', title: 'Youtube thumbnail', dimensionsText: '1280x720 px', width: 1280, height: 720, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
-    { id: 'youtube-art', title: 'Youtube art', dimensionsText: '2048x1152 px', width: 2048, height: 1152, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
-    { id: 'pinterest-pin', title: 'Pinterest pin', dimensionsText: '1000x1500 px', width: 1000, height: 1500, iconUrl: 'https://pixlr.com/img/icon/category/pinterest.svg' },
-    { id: 'pinterest-square-pin', title: 'Pinterest square pin', dimensionsText: '1000x1000 px', width: 1000, height: 1000, iconUrl: 'https://pixlr.com/img/icon/category/pinterest.svg' },
-    { id: 'pinterest-wide-pin', title: 'Pinterest wide pin', dimensionsText: '1000x2100 px', width: 1000, height: 2100, iconUrl: 'https://pixlr.com/img/icon/category/pinterest.svg' },
+    { id: 'instagram-square', title: 'Instagram square', dimensionsText: '1080 x 1080 px', width: 1080, height: 1080, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png' },
+    { id: 'instagram-post', title: 'Instagram post', dimensionsText: '1080 x 1350 px', width: 1080, height: 1350, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png' },
+    { id: 'instagram-story', title: 'Instagram story', dimensionsText: '1080 x 1920 px', width: 1080, height: 1920, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png' },
+    { id: 'facebook-post', title: 'Facebook post', dimensionsText: '1200 x 630 px', width: 1200, height: 630, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
+    { id: 'facebook-story', title: 'Facebook story', dimensionsText: '1080 x 1920 px', width: 1080, height: 1920, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
+    { id: 'facebook-cover', title: 'Facebook cover', dimensionsText: '851 x 315 px', width: 851, height: 315, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
+    { id: 'facebook-profile', title: 'Facebook profile', dimensionsText: '850 x 850 px', width: 850, height: 850, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png' },
+    { id: 'twitter-post', title: 'Twitter post', dimensionsText: '1600 x 900 px', width: 1600, height: 900, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg' },
+    { id: 'twitter-cover', title: 'Twitter cover', dimensionsText: '1500 x 500 px', width: 1500, height: 500, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg' },
+    { id: 'twitter-profile', title: 'Twitter profile', dimensionsText: '400 x 400 px', width: 400, height: 400, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg' },
+    { id: 'youtube-profile', title: 'Youtube profile', dimensionsText: '800 x 800 px', width: 800, height: 800, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
+    { id: 'youtube-thumbnail', title: 'Youtube thumbnail', dimensionsText: '1280 x 720 px', width: 1280, height: 720, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
+    { id: 'youtube-art', title: 'Youtube art', dimensionsText: '2048 x 1152 px', width: 2048, height: 1152, iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
+    { id: 'pinterest-pin', title: 'Pinterest pin', dimensionsText: '1000 x 1500 px', width: 1000, height: 1500, iconUrl: 'https://pixlr.com/img/icon/category/pinterest.svg' },
+    { id: 'pinterest-square-pin', title: 'Pinterest square pin', dimensionsText: '1000 x 1000 px', width: 1000, height: 1000, iconUrl: 'https://pixlr.com/img/icon/category/pinterest.svg' },
+    { id: 'pinterest-wide-pin', title: 'Pinterest wide pin', dimensionsText: '1000 x 2100 px', width: 1000, height: 2100, iconUrl: 'https://pixlr.com/img/icon/category/pinterest.svg' },
   ],
   web: [
-    { id: 'web-1994', title: 'Web 1994', dimensionsText: '800x600 px', width: 800, height: 600, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'web-2004', title: 'Web 2004', dimensionsText: '1280x720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'web-2012', title: 'Web 2012', dimensionsText: '1366x768 px', width: 1366, height: 768, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'web-2016', title: 'Web 2016', dimensionsText: '1440x900 px', width: 1440, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'web-2020', title: 'Web 2020', dimensionsText: '1920x1200 px', width: 1920, height: 1200, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
-    { id: 'icon-16', title: 'Icon 16', dimensionsText: '16x16 px', width: 16, height: 16, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
-    { id: 'icon-32', title: 'Icon 32', dimensionsText: '32x32 px', width: 32, height: 32, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
-    { id: 'icon-64', title: 'Icon 64', dimensionsText: '64x64 px', width: 64, height: 64, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
-    { id: 'icon-512', title: 'Icon 512', dimensionsText: '512x512 px', width: 512, height: 512, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
-    { id: 'icon-1024', title: 'Icon 1024', dimensionsText: '1024x1024 px', width: 1024, height: 1024, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
+    { id: 'web-1994', title: 'Web 1994', dimensionsText: '800 x 600 px', width: 800, height: 600, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
+    { id: 'web-2004', title: 'Web 2004', dimensionsText: '1280 x 720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
+    { id: 'web-2012', title: 'Web 2012', dimensionsText: '1366 x 768 px', width: 1366, height: 768, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
+    { id: 'web-2016', title: 'Web 2016', dimensionsText: '1440 x 900 px', width: 1440, height: 900, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
+    { id: 'web-2020', title: 'Web 2020', dimensionsText: '1920 x 1200 px', width: 1920, height: 1200, iconUrl: 'https://pixlr.com/img/icon/category/web.svg' },
+    { id: 'icon-16', title: 'Icon 16', dimensionsText: '16 x 16 px', width: 16, height: 16, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
+    { id: 'icon-32', title: 'Icon 32', dimensionsText: '32 x 32 px', width: 32, height: 32, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
+    { id: 'icon-64', title: 'Icon 64', dimensionsText: '64 x 64 px', width: 64, height: 64, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
+    { id: 'icon-512', title: 'Icon 512', dimensionsText: '512 x 512 px', width: 512, height: 512, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
+    { id: 'icon-1024', title: 'Icon 1024', dimensionsText: '1024 x 1024 px', width: 1024, height: 1024, iconUrl: 'https://pixlr.com/img/icon/category/icon.svg' },
   ],
   print: [
-    { id: 'letter-8x11', title: 'Letter 8 x 11 in', dimensionsText: '2400x3300 px', width: 2400, height: 3300, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'legal-8x14', title: 'Legal 8 x 14 in', dimensionsText: '2400x4200 px', width: 2400, height: 4200, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'tabloid-11x17', title: 'Tabloid 11 x 17 in', dimensionsText: '3300x5100 px', width: 3300, height: 5100, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'a3-297x420', title: 'A3 297 x 420 mm', dimensionsText: '3508x4961 px', width: 3508, height: 4961, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'a4-210x297', title: 'A4 210 x 297 mm', dimensionsText: '2480x3508 px', width: 2480, height: 3508, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'a5-148x210', title: 'A5 148 x 210 mm', dimensionsText: '1748x2480 px', width: 1748, height: 2480, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'a6-105x148', title: 'A6 105 x 148 mm', dimensionsText: '1240x1748 px', width: 1240, height: 1748, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
-    { id: 'business-card', title: 'Business card', dimensionsText: '1050x600 px', width: 1050, height: 600, iconUrl: 'https://pixlr.com/img/icon/category/business-card.svg' },
-    { id: 'flyer-4.25x5.5', title: 'Flyer 4.25 x 5.5 in', dimensionsText: '1275x1650 px', width: 1275, height: 1650, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
-    { id: 'flyer-5.5x8.5', title: 'Flyer 5.5 x 8.5 in', dimensionsText: '1650x2550 px', width: 1650, height: 2550, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
-    { id: 'flyer-8.5x11', title: 'Flyer 8.5 x 11 in', dimensionsText: '2550x3300 px', width: 2550, height: 3300, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
-    { id: 'brochure-8.5x11', title: 'Booklet 8.5 x 11 in', dimensionsText: '2550x3300 px', width: 2550, height: 3300, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
-    { id: 'brochure-8.5x14', title: 'Booklet 8.5 x 14 in', dimensionsText: '2550x4200 px', width: 2550, height: 4200, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
-    { id: 'brochure-11x17', title: 'Booklet 11 x 17 in', dimensionsText: '3300x5100 px', width: 3300, height: 5100, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
-    { id: 'invitation-4x6', title: 'Invitation 4 x 6 in', dimensionsText: '384x576 px', width: 384, height: 576, iconUrl: 'https://pixlr.com/img/icon/category/invitation.svg' },
-    { id: 'invitation-5x7', title: 'Invitation 5 x 7 in', dimensionsText: '480x672 px', width: 480, height: 672, iconUrl: 'https://pixlr.com/img/icon/category/invitation.svg' },
+    { id: 'letter-8x11', title: 'Letter 8 x 11 in', dimensionsText: '2400 x 3300 px', width: 2400, height: 3300, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'legal-8x14', title: 'Legal 8 x 14 in', dimensionsText: '2400 x 4200 px', width: 2400, height: 4200, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'tabloid-11x17', title: 'Tabloid 11 x 17 in', dimensionsText: '3300 x 5100 px', width: 3300, height: 5100, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'a3-297x420', title: 'A3 297 x 420 mm', dimensionsText: '3508 x 4961 px', width: 3508, height: 4961, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'a4-210x297', title: 'A4 210 x 297 mm', dimensionsText: '2480 x 3508 px', width: 2480, height: 3508, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'a5-148x210', title: 'A5 148 x 210 mm', dimensionsText: '1748 x 2480 px', width: 1748, height: 2480, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'a6-105x148', title: 'A6 105 x 148 mm', dimensionsText: '1240 x 1748 px', width: 1240, height: 1748, iconUrl: 'https://pixlr.com/img/icon/category/paper.svg' },
+    { id: 'business-card', title: 'Business card', dimensionsText: '1050 x 600 px', width: 1050, height: 600, iconUrl: 'https://pixlr.com/img/icon/category/business-card.svg' },
+    { id: 'flyer-4.25x5.5', title: 'Flyer 4.25 x 5.5 in', dimensionsText: '1275 x 1650 px', width: 1275, height: 1650, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
+    { id: 'flyer-5.5x8.5', title: 'Flyer 5.5 x 8.5 in', dimensionsText: '1650 x 2550 px', width: 1650, height: 2550, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
+    { id: 'flyer-8.5x11', title: 'Flyer 8.5 x 11 in', dimensionsText: '2550 x 3300 px', width: 2550, height: 3300, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
+    { id: 'brochure-8.5x11', title: 'Booklet 8.5 x 11 in', dimensionsText: '2550 x 3300 px', width: 2550, height: 3300, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
+    { id: 'brochure-8.5x14', title: 'Booklet 8.5 x 14 in', dimensionsText: '2550 x 4200 px', width: 2550, height: 4200, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
+    { id: 'brochure-11x17', title: 'Booklet 11 x 17 in', dimensionsText: '3300 x 5100 px', width: 3300, height: 5100, iconUrl: 'https://pixlr.com/img/icon/category/flyer.svg' },
+    { id: 'invitation-4x6', title: 'Invitation 4 x 6 in', dimensionsText: '384 x 576 px', width: 384, height: 576, iconUrl: 'https://pixlr.com/img/icon/category/invitation.svg' },
+    { id: 'invitation-5x7', title: 'Invitation 5 x 7 in', dimensionsText: '480 x 672 px', width: 480, height: 672, iconUrl: 'https://pixlr.com/img/icon/category/invitation.svg' },
   ],
   video: [
-    { id: '360p', title: '360p', dimensionsText: '640x360 px', width: 640, height: 360, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: '480p', title: '480p', dimensionsText: '854x480 px', width: 854, height: 480, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: '720p', title: '720p', dimensionsText: '1280x720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: '1080p-hd', title: '1080p HD', dimensionsText: '1920x1080 px', width: 1920, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: '1440p-2k', title: '1440p 2K', dimensionsText: '2560x1440 px', width: 2560, height: 1440, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
-    { id: '4k-uhd', title: '4K UHD', dimensionsText: '3840x2160 px', width: 3840, height: 2160, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '360p', title: '360p', dimensionsText: '640 x 360 px', width: 640, height: 360, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '480p', title: '480p', dimensionsText: '854 x 480 px', width: 854, height: 480, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '720p', title: '720p', dimensionsText: '1280 x 720 px', width: 1280, height: 720, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '1080p-hd', title: '1080p HD', dimensionsText: '1920 x 1080 px', width: 1920, height: 1080, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '1440p-2k', title: '1440p 2K', dimensionsText: '2560 x 1440 px', width: 2560, height: 1440, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
+    { id: '4k-uhd', title: '4K UHD', dimensionsText: '3840 x 2160 px', width: 3840, height: 2160, iconUrl: 'https://pixlr.com/img/icon/category/video.svg' },
   ]
 };
 
@@ -112,16 +228,15 @@ interface CreateProjectModalProps {
   onCreate: (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => void;
 }
 
-
-
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
   const { loggedInUser } = useUser()
 
-  type TabType = 'canvas-resolutions' | 'sample-images' | 'sample-backgrounds' | 'ai-images';
+  type TabType = 'canvas-resolutions' | 'sample-images' | 'sample-backgrounds' | 'ai-images' | 'templates';
   type SubTabType = 'recommended' | 'photo' | 'social' | 'web' | 'print' | 'video';
 
   const tabs = [
     { id: 'canvas-resolutions' as TabType, label: 'Canvas Resolutions' },
+    { id: 'templates' as TabType, label: 'Mockups' },
     { id: 'sample-images' as TabType, label: 'Sample Elements', disabled: !loggedInUser },
     { id: 'sample-backgrounds' as TabType, label: 'Sample Backgrounds', disabled: !loggedInUser },
     { id: 'ai-images' as TabType, label: 'AI-Generated Images', disabled: !loggedInUser },
@@ -147,7 +262,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [pixabayImages, setPixabayImages] = useState<PixabayImage[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
-  const [setAsBackground, setSetAsBackground] = useState<boolean>(false);
+  const [setAsBackground, setSetAsBackground] = useState<boolean>(true);
   const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>('');
 
@@ -155,7 +270,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const [unsplashSearchQuery, setUnsplashSearchQuery] = useState<string>('');
   const [unsplashImages, setUnsplashImages] = useState<UnsplashImage[]>([]);
   const [selectedUnsplashImageId, setSelectedUnsplashImageId] = useState<string | null>(null);
-  const [setUnsplashAsBackground, setSetUnsplashAsBackground] = useState<boolean>(false);
+  const [setUnsplashAsBackground, setSetUnsplashAsBackground] = useState<boolean>(true);
   const [isLoadingUnsplashImages, setIsLoadingUnsplashImages] = useState<boolean>(false);
   const [unsplashSearchError, setUnsplashSearchError] = useState<string>('');
 
@@ -177,7 +292,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const [aiPrompt, setAIPrompt] = useState<string>('');
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [selectedAIImageId, setSelectedAIImageId] = useState<string | null>(null);
-  const [setAIAsBackground, setSetAIAsBackground] = useState<boolean>(false);
+  const [setAIAsBackground, setSetAIAsBackground] = useState<boolean>(true);
   const [isLoadingAIImages, setIsLoadingAIImages] = useState<boolean>(false);
   const [aiError, setAIError] = useState<string>('');
   const [generatingCount, setGeneratingCount] = useState<number>(0);
@@ -189,6 +304,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   // States for displaying current settings (used only after generation)
   const [generatedAIBackgroundType, setGeneratedAIBackgroundType] = useState<"none" | "white" | "black" | "gradient">("none");
   const [generatedAIImageSize, setGeneratedAIImageSize] = useState<string>("1024x1024");
+
+  // Template states
+  const [selectedTemplateImage, setSelectedTemplateImage] = useState<ProjectTemplate | null>(null);
+  const [setTemplateAsBackground, setSetTemplateAsBackground] = useState<boolean>(true);
 
   const currentTemplates = allTemplates[activeSubTab] || [];
 
@@ -260,7 +379,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
     // Save settings for display
     setGeneratedAIBackgroundType(aiBackgroundType);
-    setGeneratedAIImageSize(aiImageSize);
+    setGeneratedAIImageSize(aiImageSize.replace("x", " × ") + " px");
 
     try {
       const [width, height] = aiImageSize.split("x").map(Number);
@@ -349,6 +468,16 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     const width = parseInt(canvasWidth, 10) || 1000;
     const height = parseInt(canvasHeight, 10) || 1000;
 
+    console.log('CreateProjectModal: handleCreateWithDefaults called', {
+      selectedTemplateImage: selectedTemplateImage ? {
+        id: selectedTemplateImage.id,
+        title: selectedTemplateImage.title,
+        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
+      } : null,
+      setTemplateAsBackground,
+      activeTab
+    });
+
     let backgroundImage: string | undefined;
     let shouldSetAsBackground = false;
 
@@ -405,6 +534,33 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         shouldSetAsBackground = false;
       }
     }
+
+    // If user selected a template image and wants it as background
+    if (selectedTemplateImage && setTemplateAsBackground) {
+      backgroundImage = selectedTemplateImage.imagePath;
+      shouldSetAsBackground = true;
+      console.log('CreateProjectModal: Template image set as background (defaults)', {
+        templateId: selectedTemplateImage.id,
+        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
+        shouldSetAsBackground
+      });
+    }
+
+    // If user selected a template image but doesn't want it as background
+    if (selectedTemplateImage && !setTemplateAsBackground) {
+      backgroundImage = selectedTemplateImage.imagePath;
+      shouldSetAsBackground = false;
+      console.log('CreateProjectModal: Template image set as element (defaults)', {
+        templateId: selectedTemplateImage.id,
+        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
+        shouldSetAsBackground
+      });
+    }
+
+    console.log('CreateProjectModal: Final backgroundImage (defaults)', {
+      backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
+      shouldSetAsBackground
+    });
 
     onCreate(name, width, height, backgroundImage, shouldSetAsBackground);
     onClose();
@@ -542,11 +698,14 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setSelectedTemplateId(null);
     setActiveTab('canvas-resolutions');
     setActiveSubTab('recommended');
+    // Reset Template states
+    setSelectedTemplateImage(null);
+    setSetTemplateAsBackground(true);
     // Reset Pixabay states
     setSearchQuery('');
     setPixabayImages([]);
     setSelectedImageId(null);
-    setSetAsBackground(false);
+    setSetAsBackground(true);
     setSearchError('');
     setSelectedPixabayColor('');
     setSelectedPixabayOrientation('');
@@ -556,7 +715,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setUnsplashSearchQuery('');
     setUnsplashImages([]);
     setSelectedUnsplashImageId(null);
-    setSetUnsplashAsBackground(false);
+    setSetUnsplashAsBackground(true);
     setUnsplashSearchError('');
     setSelectedColor('');
     setSelectedOrientation('');
@@ -566,12 +725,12 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setAIPrompt('');
     setGeneratedImages([]);
     setSelectedAIImageId(null);
-    setSetAIAsBackground(false);
+    setSetAIAsBackground(true);
     setAIError('');
     setAIBackgroundType('none');
-    setAIImageSize('1024x1024');
+    setAIImageSize('1024 x 1024 px');
     setGeneratedAIBackgroundType('none');
-    setGeneratedAIImageSize('1024x1024');
+    setGeneratedAIImageSize('1024 x 1024 px');
   };
 
   // Function to search Pixabay images using API module
@@ -719,8 +878,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   const handleInputChange = () => {
     setSelectedTemplateId(null);
+    setSelectedTemplateImage(null); // Clear template image selection
     setSelectedImageId(null); // Also clear Pixabay selection
     setSelectedUnsplashImageId(null); // Also clear Unsplash selection
+    setSelectedAIImageId(null); // Also clear AI selection
   };
 
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -755,6 +916,16 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const handleCreate = () => {
     const widthNum = parseInt(canvasWidth, 10);
     const heightNum = parseInt(canvasHeight, 10);
+
+    console.log('CreateProjectModal: handleCreate called', {
+      selectedTemplateImage: selectedTemplateImage ? {
+        id: selectedTemplateImage.id,
+        title: selectedTemplateImage.title,
+        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
+      } : null,
+      setTemplateAsBackground,
+      activeTab
+    });
 
     if (projectName.trim() && widthNum > 0 && heightNum > 0) {
       let backgroundImage: string | undefined;
@@ -814,6 +985,33 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         }
       }
 
+          // If user selected a template image and wants it as background
+    if (selectedTemplateImage && setTemplateAsBackground) {
+      backgroundImage = selectedTemplateImage.imagePath;
+      shouldSetAsBackground = true;
+      console.log('CreateProjectModal: Template image set as background', {
+        templateId: selectedTemplateImage.id,
+        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
+        shouldSetAsBackground
+      });
+    }
+
+    // If user selected a template image but doesn't want it as background
+    if (selectedTemplateImage && !setTemplateAsBackground) {
+      backgroundImage = selectedTemplateImage.imagePath;
+      shouldSetAsBackground = false;
+      console.log('CreateProjectModal: Template image set as element', {
+        templateId: selectedTemplateImage.id,
+        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
+        shouldSetAsBackground
+      });
+    }
+
+      console.log('CreateProjectModal: Final backgroundImage', {
+        backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
+        shouldSetAsBackground
+      });
+
       onCreate(projectName.trim(), widthNum, heightNum, backgroundImage, shouldSetAsBackground);
       onClose();
     } else {
@@ -825,10 +1023,15 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     setActiveTab(tabId);
     setSelectedTemplateId(null); // Reset selected template when switching tabs
 
+    // Reset template selection when switching away from templates
+    if (tabId !== 'templates') {
+      setSelectedTemplateImage(null);
+    }
+
     // Reset Pixabay selection when switching away from sample-images (but keep search results and filters)
     if (tabId !== 'sample-images') {
       setSelectedImageId(null);
-      setSetAsBackground(false);
+      setSetAsBackground(true);
       // Only reset filters and close advanced menu when switching to non-sample tabs
       if (tabId !== 'sample-backgrounds' && tabId !== 'ai-images') {
         setSelectedPixabayColor('');
@@ -840,7 +1043,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     // Reset Unsplash selection when switching away from sample-backgrounds (but keep search results and filters)
     if (tabId !== 'sample-backgrounds') {
       setSelectedUnsplashImageId(null);
-      setSetUnsplashAsBackground(false);
+      setSetUnsplashAsBackground(true);
       // Only reset filters and close advanced menu when switching to non-sample tabs
       if (tabId !== 'sample-images' && tabId !== 'ai-images') {
         setSelectedColor('');
@@ -852,7 +1055,13 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     // Reset AI selection when switching away from ai-images (but keep generated images)
     if (tabId !== 'ai-images') {
       setSelectedAIImageId(null);
-      setSetAIAsBackground(false);
+      setSetAIAsBackground(true);
+    }
+
+    // Reset template selection when switching away from templates
+    if (tabId !== 'templates') {
+      setSelectedTemplateImage(null);
+      setSetTemplateAsBackground(true);
     }
   };
 
@@ -910,6 +1119,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   const handleUnsplashBackgroundCheckboxChange = (checked: boolean) => {
     setSetUnsplashAsBackground(checked);
+  };
+
+  const handleTemplateBackgroundCheckboxChange = (checked: boolean) => {
+    setSetTemplateAsBackground(checked);
   };
 
   const handleQuickSearch = (term: string) => {
@@ -976,13 +1189,13 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   const handleAIBackgroundTypeSelect = (type: "none" | "white" | "black" | "gradient") => {
     setAIBackgroundType(type);
     setSelectedAIImageId(null); // Reset selection when changing background
-    setSetAIAsBackground(false); // Reset background setting
+    setSetAIAsBackground(true); // Reset background setting
   };
 
   const handleAIImageSizeSelect = (size: string) => {
     setAIImageSize(size);
     setSelectedAIImageId(null); // Reset selection when changing size
-    setSetAIAsBackground(false); // Reset background setting
+    setSetAIAsBackground(true); // Reset background setting
   };
 
   const handleAIImageSelect = (imageId: string) => {
@@ -1015,6 +1228,23 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     if (e.key === 'Enter') {
       handleAIGenerate();
     }
+  };
+
+  // Template handlers
+  const handleTemplateImageSelect = (template: ProjectTemplate) => {
+    setSelectedTemplateImage(template);
+    setSelectedTemplateId(null); // Clear regular template selection
+    setSelectedImageId(null); // Clear Pixabay selection
+    setSelectedUnsplashImageId(null); // Clear Unsplash selection
+    setSelectedAIImageId(null); // Clear AI selection
+    setSetTemplateAsBackground(true); // Reset background checkbox
+
+    // Auto-fill project name and dimensions based on selected template
+    if (!projectName.trim()) {
+      setProjectName(template.title);
+    }
+    setCanvasWidth(template.width.toString());
+    setCanvasHeight(template.height.toString());
   };
 
   const AspectRatioPreview: React.FC<{ width: number; height: number; iconUrl?: string; title?: string, className?: string }> = ({ width, height, iconUrl, title, className }) => {
@@ -1166,11 +1396,11 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     className={`flex flex-col items-center justify-start p-2 bg-[#3A3D44FF] h-[160px] min-w-[120px] border-2 border-[#4A4D54FF] hover:bg-[#4A4D54FF] cursor-pointer transition-colors duration-150 rounded-lg
                               ${selectedTemplateId === template.id ? 'border-2 border-blue-500 ring-blue-500' : 'ring-1 ring-transparent hover:ring-gray-600'}`}
                   >
-                    <CardContent className="px-2 py-0 flex flex-col items-center justify-center">
+                    <CardContent className="px-2 py-0 flex flex-col ">
                       <AspectRatioPreview width={template.width} height={template.height} iconUrl={template.iconUrl} title={template.title}
                         className="!h-[100px] !w-[100px]" />
-                      <h4 className="text-xs font-semibold text-gray-200 text-center">{template.title}</h4>
-                      <p className="text-xs text-gray-300 text-center">{template.dimensionsText}</p>
+                      <p className="text-xs text-gray-300 text-start">{template.title}</p>
+                      <p className="text-xs text-gray-500 text-start">{template.dimensionsText}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -1508,7 +1738,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             by {image.user.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {image.width} × {image.height}
+                            {image.width} × {image.height} px
                           </div>
                         </div>
                       </CardContent>
@@ -1583,7 +1813,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
               {selectedUnsplashImageId && (
                 <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
-                  <div className="text-sm text-gray-400 mb-2">Selected Image:</div>
+                  <div className="text-sm text-gray-400 mb-2">Selected background:</div>
                   <div className="text-sm text-white-100 mb-1 break-words">
                     {unsplashImages.find(img => img.id === selectedUnsplashImageId)?.alt_description || 'Background image'}
                   </div>
@@ -1870,7 +2100,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             by {image.user}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {image.webformatWidth} × {image.webformatHeight}
+                            {image.webformatWidth} × {image.webformatHeight} px
                           </div>
                         </div>
                       </CardContent>
@@ -1946,7 +2176,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
               {selectedImageId && (
                 <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
-                  <div className="text-sm text-gray-400 mb-2">Selected Image:</div>
+                  <div className="text-sm text-gray-400 mb-2">Selected element:</div>
                   <div className="text-sm text-white-100 mb-1 break-words">
                     {pixabayImages.find(img => img.id === selectedImageId)?.tags || 'Background image'}
                   </div>
@@ -2087,8 +2317,8 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             <div className="text-xs text-gray-300 truncate" title={image.prompt}>
                               AI-Generated Image
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                              {`${generatedAIImageSize} • ${aiBackgroundOptions.find((opt) => opt.value === generatedAIBackgroundType)?.label}`}
+                            <div className="text-xs text-gray-500 mt-1">
+                              {`${generatedAIImageSize}`}
                             </div>
                           </div>
                         </CardContent>
@@ -2182,12 +2412,131 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
               {selectedAIImageId && (
                 <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
-                  <div className="text-sm text-gray-400 mb-2">Selected Image:</div>
+                  <div className="text-sm text-gray-400 mb-2">Selected image:</div>
                   <div className="text-sm text-white-100 mb-1 break-words">
                     {generatedImages.find(img => img.id === selectedAIImageId)?.prompt || 'AI-Generated Image'}
                   </div>
                   <div className="text-sm text-gray-400">
                     by Pollinations.AI
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Templates Tab */}
+        {activeTab === 'templates' && (
+          <div className="flex md:flex-row flex-col gap-6 p-6 pb-0 flex-1 overflow-hidden">
+            <div className="flex flex-col md:w-[700px]">
+
+              <div className="flex-1 overflow-y-auto max-h-[calc(90vh-16rem)] pr-4 custom-scroll">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {projectTemplates.map((template) => (
+                    <Card
+                      key={template.id}
+                      onClick={() => handleTemplateImageSelect(template)}
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleTemplateImageSelect(template)}
+                      className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0 
+                                 ${selectedTemplateImage?.id === template.id ? "border-blue-500" : "border-[#4A4D54FF] hover:border-gray-600"}`}
+                    >
+                      <CardContent className="p-0">
+                        <div className="aspect-square overflow-hidden">
+                          <img
+                            src={template.imagePath}
+                            alt={template.title}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200 p-1"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="p-2">
+                          <div className="text-xs text-gray-300 truncate" title={template.title}>
+                            {template.title}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {template.dimensionsText}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 flex flex-col items-start justify-start max-w-[300px]">
+              <h3 className="text-lg font-medium text-gray-300">Project Settings</h3>
+              <div className="w-full">
+                <Label htmlFor="projectNameTemplate" className="text-gray-400 mb-1.5 block">Project name</Label>
+                <Input
+                  id="projectNameTemplate"
+                  type="text"
+                  value={projectName}
+                  onChange={handleNameChange}
+                  onKeyPress={handleNameKeyPress}
+                  placeholder="My new design"
+                  className="bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 w-full"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <div>
+                  <Label htmlFor="canvasWidthTemplate" className="text-gray-400 mb-1.5 block">Width (px)</Label>
+                  <Input
+                    id="canvasWidthTemplate"
+                    type="number"
+                    value={canvasWidth}
+                    onChange={handleWidthChange}
+                    onKeyPress={handleDimensionKeyPress}
+                    placeholder="1920"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="canvasHeightTemplate" className="text-gray-400 mb-1.5 block">Height (px)</Label>
+                  <Input
+                    id="canvasHeightTemplate"
+                    type="number"
+                    value={canvasHeight}
+                    onChange={handleHeightChange}
+                    onKeyPress={handleDimensionKeyPress}
+                    placeholder="1080"
+                    min="1"
+                    className="hide-arrows bg-[#3A3D44FF] border-2 border-[#4A4D54FF] text-gray-100 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
+                  />
+                </div>
+              </div>
+
+              {/* Background Checkbox */}
+              {selectedTemplateImage && (
+                <div className="w-full p-4 bg-[#3A3D44FF] rounded-lg border border-[#4A4D54FF]">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="setTemplateAsBackground"
+                      checked={setTemplateAsBackground}
+                      onCheckedChange={handleTemplateBackgroundCheckboxChange}
+                      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                    <Label
+                      htmlFor="setTemplateAsBackground"
+                      className="text-sm text-gray-400 cursor-pointer"
+                    >
+                      Set as background
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Template Info */}
+              {selectedTemplateImage && (
+                <div className="w-full p-3 bg-[#3A3D44FF] border border-[#4A4D54FF] rounded-lg">
+                  <div className="text-sm text-gray-400 mb-2">Selected mockup:</div>
+                  <div className="text-sm text-white mb-1">
+                    {selectedTemplateImage.title}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    {selectedTemplateImage.dimensionsText}
                   </div>
                 </div>
               )}

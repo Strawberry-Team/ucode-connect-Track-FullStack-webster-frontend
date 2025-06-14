@@ -180,6 +180,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
   };
 
   const handleCreateNewProject = (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => {
+    console.log('DashboardPage: handleCreateNewProject called', {
+      name,
+      width,
+      height,
+      backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
+      setAsBackground
+    });
+
     resetAllToolSettings();
     setInitialImage(null);
     setStageSize({ width, height });
@@ -187,15 +195,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
 
     // Якщо є backgroundImage, створюємо custom-image елемент
     if (backgroundImage) {
+      console.log('DashboardPage: Creating image element for background', {
+        imageUrl: backgroundImage.substring(0, 50) + '...',
+        setAsBackground
+      });
+
       const img = new window.Image();
       img.onload = () => {
+        console.log('DashboardPage: Background image loaded successfully', {
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight
+        });
+
         // Вираховуємо розміри зображення для canvas
         let imageWidth, imageHeight;
         
         if (setAsBackground) {
-          // Якщо встановлено як фон, розтягуємо на весь canvas
-          imageWidth = width;
-          imageHeight = height;
+          // Якщо встановлено як фон, покриваємо весь canvas зберігаючи пропорції
+          const scaleX = width / img.naturalWidth;
+          const scaleY = height / img.naturalHeight;
+          const scale = Math.max(scaleX, scaleY); // Використовуємо більший scale щоб покрити весь canvas
+          
+          imageWidth = img.naturalWidth * scale;
+          imageHeight = img.naturalHeight * scale;
         } else {
           // Якщо не фон, зберігаємо пропорції та масштабуємо при потребі
           imageWidth = img.naturalWidth;
@@ -218,14 +240,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
         const imageCenterY = height / 2;
         
         // Створюємо елемент зображення
-        const imageElement = {
-          id: `background-image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        const imageElement: ElementData = {
+          id: `template-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: "custom-image",
           x: imageCenterX,
           y: imageCenterY,
           width: imageWidth,
           height: imageHeight,
           src: backgroundImage,
+          fileName: `Template - ${name}`,
           borderColor: "#000000",
           borderColorOpacity: 100,
           borderWidth: 0,
@@ -237,32 +260,37 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
           scaleY: 1,
           draggable: true,
           preserveAspectRatio: true,
-        } as ElementData;
+        };
+
+        console.log('DashboardPage: Template element created', {
+          id: imageElement.id,
+          type: imageElement.type,
+          x: imageElement.x,
+          y: imageElement.y,
+          width: imageElement.width,
+          height: imageElement.height,
+          src: imageElement.src ? imageElement.src.substring(0, 50) + '...' : 'undefined',
+          fileName: imageElement.fileName
+        });
         
-        // Додаємо зображення в renderable objects
-        // Завжди додаємо зображення спочатку
+        // Додаємо елемент до renderableObjects
         setRenderableObjects([imageElement]);
         
-        // Якщо користувач хоче встановити як фон, то зображення вже на першому шарі
-        // Якщо ні - то воно буде як звичайний елемент, але все одно буде першим доданим
-        
-        // Додаємо в історію
+        // Додаємо до історії
         clearHistory();
         addHistoryEntry({
           type: 'elementAdded',
-          description: setAsBackground ? `Added background image` : `Added image`,
+          description: `Template added: ${name}`,
           linesSnapshot: [imageElement]
         });
 
-        // Показуємо повідомлення про успіх
-        toast.success("Success", {
-          description: setAsBackground ? `Background image added to project` : `Image added to project`,
-          duration: 3000,
-        });
+        console.log('DashboardPage: Template element added to renderableObjects successfully');
       };
       
       img.onerror = () => {
-        console.error("Error loading background image");
+        console.error("DashboardPage: Error loading background image", {
+          imageUrl: backgroundImage.substring(0, 50) + '...'
+        });
         toast.error("Image Error", {
           description: "Could not load the background image",
           duration: 3000,
