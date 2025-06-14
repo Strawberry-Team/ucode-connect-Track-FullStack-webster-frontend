@@ -137,7 +137,7 @@ const Toolbar: React.FC = () => {
         },
         {
             id: "image-transform",
-            name: "Image",
+            name: "Image & Background",
             type: "image-transform",
             icon: Image,
             description: "Edit images, layer, resize, and adjust backgrounds.",

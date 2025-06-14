@@ -294,6 +294,13 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                 } else {
                     // Add normally to the end (top layer)
                     addRenderableObject(imageElement)
+
+                    // Add to history for non-background images
+                    addHistoryEntry({
+                        type: "elementAdded",
+                        description: `Added AI generated image: ${imageName}`,
+                        linesSnapshot: [...renderableObjects, imageElement], // Include the newly added element
+                    })
                 }
 
                 // Wait a bit for image to render before adding to history
