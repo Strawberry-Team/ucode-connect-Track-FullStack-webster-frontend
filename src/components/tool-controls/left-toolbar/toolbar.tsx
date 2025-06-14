@@ -144,14 +144,6 @@ const Toolbar: React.FC = () => {
             imageUrl: "/tooltips/option-tooltips/landscape.jpg"
         },
         {
-            id: "background",
-            name: "Background",
-            type: "background",
-            icon: BrickWall ,
-            description: "Edit images, layer, resize, and adjust backgrounds.",
-            imageUrl: "/tooltips/option-tooltips/landscape.jpg"
-        },
-        {
             id: "liquify",
             name: "Liquify",
             type: "liquify",

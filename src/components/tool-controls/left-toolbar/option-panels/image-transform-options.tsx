@@ -22,7 +22,10 @@ import {
   PaintBucket,
   BrushCleaning,
   Eraser,
-  Scissors
+  Scissors,
+  Sun,
+  Contrast,
+  Blend
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -75,7 +78,7 @@ const ImageTransformOptions: React.FC = () => {
 
     try {
       setIsRemovingBackground(true);
-      
+
       const selectedImage = getElementById(currentSelectedImageId);
       if (!selectedImage || !selectedImage.element) {
         setIsRemovingBackground(false);
@@ -319,7 +322,7 @@ const ImageTransformOptions: React.FC = () => {
           </TooltipProvider>
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1 -ml-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -545,7 +548,7 @@ const ImageTransformOptions: React.FC = () => {
     <div className="flex items-center space-x-4 bg-[#292C31FF] text-white h-full">
       {/* Selected Image Indicator */}
       <div className="flex items-center space-x-4">
-        <Label className="text-xs text-[#D4D4D5FF]">Selected:</Label>
+        
         <Button variant="ghost" className="flex items-center h-7 px-2 gap-2 text-xs text-white rounded bg-[#1e1f22] border-2 border-[#44474AFF]">
           <ImageIcon size={14} />
           <div className="flex flex-col items-start">
@@ -574,7 +577,6 @@ const ImageTransformOptions: React.FC = () => {
 
       {/* Layer Controls */}
       <div className="flex items-center space-x-4">
-        <Label className="text-xs text-[#D4D4D5FF]">Layer:</Label>
 
         {/* Set as Background Button */}
         <TooltipProvider>
@@ -615,7 +617,6 @@ const ImageTransformOptions: React.FC = () => {
 
       {/* Resize Controls */}
       <div className="flex items-center space-x-4">
-        <Label className="text-xs text-[#D4D4D5FF]">Resize:</Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -653,6 +654,49 @@ const ImageTransformOptions: React.FC = () => {
 
 
 
+      {/* Flip Controls */}
+      <div className="flex items-center space-x-4">
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleFlipHorizontal}
+                variant="ghost"
+                className={`flex items-center justify-center px-2 min-w-7 min-h-7 rounded cursor-pointer border-2 border-[#44474AFF] ${flipHorizontal
+                  ? "bg-[#0096FF] text-white border-[#0096FF]"
+                  : "hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white"
+                  }`}
+              >
+                <FlipHorizontal size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Flip horizontally</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleFlipVertical}
+                variant="ghost"
+                className={`flex items-center justify-center px-2 min-w-7 min-h-7 rounded cursor-pointer border-2 border-[#44474AFF] ${flipVertical
+                  ? "bg-[#0096FF] text-white border-[#0096FF]"
+                  : "hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white"
+                  }`}
+              >
+                <FlipVertical size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Flip vertically</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
 
@@ -685,11 +729,12 @@ const ImageTransformOptions: React.FC = () => {
         </TooltipProvider>
       </div>
 
-      <div className="ml-3 mr-3 h-6 border-l border-[#44474AFF]"></div>
+
 
       {/* Opacity Control */}
       <NumberInputWithPopover
-        label="Opacity"
+      label={<Blend className="!h-4.5 !w-4.5" aria-label="Blend" />}
+
         value={imageOpacity}
         onChange={handleOpacityChange}
         min={0}
@@ -700,7 +745,7 @@ const ImageTransformOptions: React.FC = () => {
 
       {/* Brightness Control */}
       <NumberInputWithPopover
-        label="Brightness"
+        label={<Sun className="!h-4.5 !w-4.5" aria-label="Brightness" />}
         value={brightness}
         onChange={handleBrightnessChange}
         min={-100}
@@ -711,7 +756,7 @@ const ImageTransformOptions: React.FC = () => {
 
       {/* Contrast Control */}
       <NumberInputWithPopover
-        label="Contrast"
+        label={<Contrast className="!h-4.5 !w-4.5" aria-label="Contrast" />}
         value={contrast}
         onChange={handleContrastChange}
         min={-100}
@@ -724,7 +769,7 @@ const ImageTransformOptions: React.FC = () => {
 
       {renderColorPickers()}
 
-      <div className="ml-3 mr-6 h-6 border-l border-[#44474AFF]"></div>
+
 
       {/* Reset Button */}
       <TooltipProvider>
