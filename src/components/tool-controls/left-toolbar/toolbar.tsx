@@ -403,15 +403,13 @@ const Toolbar: React.FC = () => {
                                     variant="ghost"
                                     className="h-10 w-10 px-2 group text-sm hover:bg-[#383A3EFF] mb-1"
                                     onClick={() => setShowSampleAssetsModal(true)}
-                                    disabled={!loggedInUser}
                                 >
                                     <SwatchBook className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
                                 </Button>
-                                <span className="absolute -top-0 -right-0 flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20"></span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={12}>
-                            <p>{loggedInUser ? "Sample Assets" : "Sign in to access Sample Assets tool"}</p>
+                            <p>Sample Assets</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

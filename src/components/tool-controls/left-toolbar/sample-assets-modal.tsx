@@ -20,12 +20,132 @@ import {
 } from "lucide-react"
 import { useTool } from "@/context/tool-context"
 import { useElementsManager } from "@/context/elements-manager-context"
+import { useUser } from "@/context/user-context"
 import { toast } from "sonner"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 // API imports
 import { searchPixabayImages, type PixabayImage, type PixabayResponse } from '@/lib/api/pixabay';
 import { searchUnsplashImages, isUnsplashConfigured, type UnsplashImage, type UnsplashResponse } from '@/lib/api/unsplash';
 
+// Template image imports
+import template1 from '@/assets/project-templates/template_1_macbook.png';
+import template2 from '@/assets/project-templates/template_2_ipad_vertical.png';
+import template3 from '@/assets/project-templates/template_3_ipad_horizontal.png';
+import template4 from '@/assets/project-templates/template_4_iphone.png';
+import template5 from '@/assets/project-templates/template_5_iphone_gloss.png';
+import template6 from '@/assets/project-templates/template_6_iphone_horizontal.png';
+import template7 from '@/assets/project-templates/template_7_watch.png';
+import template8 from '@/assets/project-templates/template_8_iphone_music.png';
+import template9 from '@/assets/project-templates/template_9_iphone_instagram_story.png';
+import template10 from '@/assets/project-templates/template_10_instagram_post.png';
+import template11 from '@/assets/project-templates/template_11_iphone_facebook_post.png';
 
+// Template images interface
+interface ProjectTemplate {
+  id: string;
+  title: string;
+  imagePath: string;
+  width: number;
+  height: number;
+  dimensionsText: string;
+}
+
+// Project templates from assets folder
+const projectTemplates: ProjectTemplate[] = [
+  {
+    id: 'macbook',
+    title: 'MacBook',
+    imagePath: template1,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'ipad-vertical',
+    title: 'iPad Vertical',
+    imagePath: template2,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'ipad-horizontal',
+    title: 'iPad Horizontal',
+    imagePath: template3,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'watch',
+    title: 'Apple Watch',
+    imagePath: template7,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-gloss',
+    title: 'iPhone Vertical Gloss',
+    imagePath: template5,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone',
+    title: 'iPhone Vertical',
+    imagePath: template4,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-horizontal',
+    title: 'iPhone Horizontal',
+    imagePath: template6,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-music',
+    title: 'iPhone Music',
+    imagePath: template8,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-instagram-story',
+    title: 'iPhone Instagram Story',
+    imagePath: template9,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'instagram-post',
+    title: 'Instagram Post',
+    imagePath: template10,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+  {
+    id: 'iphone-facebook-post',
+    title: 'iPhone Facebook Post',
+    imagePath: template11,
+    width: 1000,
+    height: 1000,
+    dimensionsText: '1000 x 1000 px'
+  },
+];
 
 interface SampleAssetsModalProps {
   isOpen: boolean
@@ -39,12 +159,16 @@ interface SampleAssetsModalProps {
   ) => void
 }
 
-type TabType = "sample-images" | "sample-backgrounds"
+type TabType = "mockups" | "sample-images" | "sample-backgrounds"
 
-const tabs = [
-  { id: "sample-images" as TabType, label: "Sample Elements" },
-  { id: "sample-backgrounds" as TabType, label: "Sample Backgrounds" },
-]
+const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, onAddToCanvas }) => {
+  const { loggedInUser } = useUser()
+  
+  const tabs = [
+    { id: "mockups" as TabType, label: "Mockups", disabled: false },
+    { id: "sample-images" as TabType, label: "Sample Elements", disabled: !loggedInUser },
+    { id: "sample-backgrounds" as TabType, label: "Sample Backgrounds", disabled: !loggedInUser },
+  ]
 
 // Adding styles for scrollbar
 const scrollbarStyles = `
@@ -62,10 +186,13 @@ const scrollbarStyles = `
   }
 `
 
-const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, onAddToCanvas }) => {
-  const [activeTab, setActiveTab] = useState<TabType>("sample-images")
+  const [activeTab, setActiveTab] = useState<TabType>("mockups")
   const { stageSize, addRenderableObject, addHistoryEntry, renderableObjects, setRenderableObjects } = useTool()
   const { setImageAsBackground } = useElementsManager()
+
+  // Template states
+  const [selectedTemplateImage, setSelectedTemplateImage] = useState<ProjectTemplate | null>(null)
+  const [setTemplateAsBackground, setSetTemplateAsBackground] = useState<boolean>(false)
 
   // Pixabay API states for sample images
   const [searchQuery, setSearchQuery] = useState<string>("")
@@ -264,7 +391,13 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
       let originalHeight = 0
       let shouldSetAsBackground = false
 
-      if (selectedPixabayImageId) {
+      if (selectedTemplateImage) {
+        imageUrl = selectedTemplateImage.imagePath
+        imageName = `${selectedTemplateImage.title}.png`
+        originalWidth = selectedTemplateImage.width
+        originalHeight = selectedTemplateImage.height
+        shouldSetAsBackground = setTemplateAsBackground
+      } else if (selectedPixabayImageId) {
         const selectedImage = pixabayImages.find((img) => img.id === selectedPixabayImageId)
         if (!selectedImage) return
 
@@ -461,8 +594,39 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     }
   }
 
+  // Template handlers
+  const handleTemplateImageSelect = (template: ProjectTemplate) => {
+    setSelectedTemplateImage(template)
+    setSelectedPixabayImageId(null) // Clear pixabay selection
+    setSelectedUnsplashImageId(null) // Clear unsplash selection
+    setSetTemplateAsBackground(false) // Reset background checkbox
+    
+    toast.success("Template selected", { 
+      description: `${template.title} is ready to be added to canvas`,
+      duration: 3000 
+    })
+  }
+
+  const handleTemplateBackgroundCheckboxChange = (checked: boolean) => {
+    setSetTemplateAsBackground(checked)
+  }
+
   const handleTabClick = (tabId: TabType) => {
     setActiveTab(tabId)
+    
+    // Reset selections when switching tabs
+    if (tabId !== 'mockups') {
+      setSelectedTemplateImage(null)
+      setSetTemplateAsBackground(false)
+    }
+    if (tabId !== 'sample-images') {
+      setSelectedPixabayImageId(null)
+      setSetPixabayAsBackground(false)
+    }
+    if (tabId !== 'sample-backgrounds') {
+      setSelectedUnsplashImageId(null)
+      setSetUnsplashAsBackground(false)
+    }
   }
 
   const handleSearchSubmit = () => {
@@ -605,7 +769,11 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
   }
 
   const resetFormStates = () => {
-    setActiveTab("sample-images")
+    setActiveTab("mockups")
+    // Reset template states
+    setSelectedTemplateImage(null)
+    setSetTemplateAsBackground(false)
+    // Reset pixabay states
     setSearchQuery("")
     setPixabayImages([])
     setSelectedPixabayImageId(null)
@@ -614,6 +782,7 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
     setSelectedPixabayOrientation("")
     setShowPixabayAdvancedFilters(false)
     setHasSearchedPixabay(false)
+    // Reset unsplash states
     setUnsplashSearchQuery("")
     setUnsplashImages([])
     setSelectedUnsplashImageId(null)
@@ -645,25 +814,106 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
           {/* Tabs */}
           <div className="flex border-b border-[#4A4D54FF]">
             {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
-                  ${activeTab === tab.id
-                    ? "text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md"
-                    : "text-gray-400 border-transparent hover:border-gray-500"
-                  }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  {tab.label}
-                  <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
-                    <Zap className="w-4 h-4 !text-white" />
-                  </span>
-                </div>
-              </button>
+              <div key={tab.id} className="flex">
+                {tab.disabled ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex relative">
+                          <button
+                            onClick={() => !tab.disabled && handleTabClick(tab.id)}
+                            onKeyDown={(e) => !tab.disabled && (e.key === 'Enter' || e.key === ' ') && handleTabClick(tab.id)}
+                            className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
+                              ${activeTab === tab.id
+                                ? 'text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md'
+                                : 'text-gray-400 border-transparent hover:border-gray-500'
+                              }
+                            ${tab.disabled ? 'opacity-50 hover:text-gray-400 hover:border-transparent' : ''}`}
+                            tabIndex={tab.disabled ? -1 : 0}
+                            aria-label={`Switch to ${tab.label} tab`}
+                            disabled={tab.disabled}
+                          >
+                            <span className="flex items-center gap-2">
+                              {tab.label}
+                            </span>
+                          </button>
+                          {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
+                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 m-auto">
+                              <Zap className="w-4 h-4 !text-white" />
+                            </span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" align="center">
+                        <p>Sign in to access {tab.label} tool</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <button
+                    onClick={() => handleTabClick(tab.id)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleTabClick(tab.id)}
+                    className={`px-4 py-3 text-sm font-medium transition-colors duration-200 border-b-2 hover:text-gray-200 focus:text-white focus:border-white focus:border-b-2 focus:bg-[#3A3D44FF] focus:rounded-t-md
+                      ${activeTab === tab.id
+                        ? 'text-white border-white border-b-2 bg-[#3A3D44FF] rounded-t-md'
+                        : 'text-gray-400 border-transparent hover:border-gray-500'
+                      }`}
+                    tabIndex={0}
+                    aria-label={`Switch to ${tab.label} tab`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {tab.label}
+                      {(tab.id === 'sample-images' || tab.id === 'sample-backgrounds') && (
+                        <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto">
+                          <Zap className="w-4 h-4 !text-white" />
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </DialogHeader>
+
+        {/* Mockups Tab */}
+        {activeTab === "mockups" && (
+          <div className="flex flex-col p-6 pb-0 flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto max-h-[calc(80vh-12rem)] pr-4 custom-scroll">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {projectTemplates.map((template) => (
+                  <Card
+                    key={template.id}
+                    onClick={() => handleTemplateImageSelect(template)}
+                    tabIndex={0}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleTemplateImageSelect(template)}
+                    className={`group cursor-pointer transition-all duration-200 bg-[#3A3D44FF] border-2 rounded-lg overflow-hidden hover:bg-[#4A4D54FF] p-0 
+                               ${selectedTemplateImage?.id === template.id ? "border-blue-500" : "border-[#4A4D54FF] hover:border-gray-600"}`}
+                  >
+                    <CardContent className="p-0">
+                      <div className="aspect-square overflow-hidden">
+                        <img
+                          src={template.imagePath}
+                          alt={template.title}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200 p-1"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="p-2">
+                        <div className="text-xs text-gray-300 truncate" title={template.title}>
+                          {template.title}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {template.dimensionsText}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sample Images Tab */}
         {activeTab === "sample-images" && (
@@ -1252,15 +1502,23 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
         {/* Footer */}
         <div className="flex justify-end items-center gap-4 px-6 py-4 bg-[#2D2F34FF] rounded-b-lg border-t border-[#4A4D54FF]">
           {/* Set as background checkbox */}
-          {(selectedPixabayImageId || selectedUnsplashImageId) && (
+          {(selectedPixabayImageId || selectedUnsplashImageId || selectedTemplateImage) && (
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="setAsBackground"
-                checked={activeTab === "sample-images" ? setPixabayAsBackground : setUnsplashAsBackground}
+                checked={
+                  activeTab === "sample-images" 
+                    ? setPixabayAsBackground 
+                    : activeTab === "sample-backgrounds"
+                    ? setUnsplashAsBackground
+                    : setTemplateAsBackground
+                }
                 onCheckedChange={
                   activeTab === "sample-images"
                     ? handlePixabayBackgroundCheckboxChange
-                    : handleUnsplashBackgroundCheckboxChange
+                    : activeTab === "sample-backgrounds"
+                    ? handleUnsplashBackgroundCheckboxChange
+                    : handleTemplateBackgroundCheckboxChange
                 }
                 className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
               />
@@ -1274,8 +1532,8 @@ const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, 
             <Button
               variant="ghost"
               onClick={handleAddSelectedImage}
-              disabled={!selectedPixabayImageId && !selectedUnsplashImageId}
-              className={`px-3 py-2 ${selectedPixabayImageId || selectedUnsplashImageId
+              disabled={!selectedPixabayImageId && !selectedUnsplashImageId && !selectedTemplateImage}
+              className={`px-3 py-2 ${selectedPixabayImageId || selectedUnsplashImageId || selectedTemplateImage
                 ? "bg-blue-500 hover:bg-blue-600 text-white"
                 : "bg-gray-600 text-gray-400 cursor-not-allowed"
                 }`}
