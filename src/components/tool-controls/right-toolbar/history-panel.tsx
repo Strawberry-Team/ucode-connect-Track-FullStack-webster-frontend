@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTool } from '@/context/tool-context';
 import { toast } from 'sonner';
 import { 
@@ -23,6 +23,18 @@ interface HistoryPanelProps {
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) => {
   const heightClass = isSharedHeight ? 'h-2/3' : 'h-full';
   const { history, revertToHistoryState, currentHistoryIndex, undo, redo, canUndo, canRedo } = useTool();
+  const historyListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (historyListRef.current && currentHistoryIndex !== null) {
+      const activeItemElement = historyListRef.current.querySelector(
+        `[data-history-index="${currentHistoryIndex}"]`
+      );
+      if (activeItemElement) {
+        activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [currentHistoryIndex, history.length]);
 
   const showUndoWarningToast = () => {
     toast.warning("Attention", {
@@ -108,7 +120,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
       </div>
 
    
-      <div className="flex-1 py-2 space-y-1 custom-scroll overflow-y-auto">
+      <div className="flex-1 py-2 space-y-1 custom-scroll overflow-y-auto" ref={historyListRef}>
         {history.length === 0 ? (
           <p className="px-4 text-sm text-[#C1C1C1FF]">The action history is empty</p>
         ) : (
@@ -128,6 +140,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
                 onKeyDown={(e) => e.key === 'Enter' && handleHistoryItemClick(entry.id, index)}
                 role="button"
                 tabIndex={0}
+                data-history-index={index}
               >
                 <span className="flex items-center mr-2">{getActionIcon(entry.type)}</span>
                 <span className="flex-1">{entry.description}</span>
