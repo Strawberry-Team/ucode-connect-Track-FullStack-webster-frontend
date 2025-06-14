@@ -273,7 +273,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                   return newBox;
                 });
 
-            // Force redraw
+            // Force redraw and update transformer position
+            tr.forceUpdate();
             tr.getLayer()?.batchDraw();
 
             const handleContinuousTransform = () => {
@@ -319,6 +320,16 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         }
     }, [isSelected, isHovered, element, shouldShowTransformer]); // element contains fontSize, type etc.
 
+    // Add a separate useEffect to handle position updates for transformer
+    useEffect(() => {
+        if (transformerRef.current && nodeRef.current && (isSelected || isHovered) && shouldShowTransformer()) {
+            const tr = transformerRef.current;
+            // Force update transformer position when element position changes
+            tr.forceUpdate();
+            tr.getLayer()?.batchDraw();
+        }
+    }, [element.x, element.y, element.width, element.height, element.rotation]);
+
     const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
         const node = e.target as Konva.Node;
         const type = element.type;
@@ -341,8 +352,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             newDesignWidth = node.width() * node.scaleX();
             newDesignHeight = node.height() * node.scaleY();
             
-            // For custom-image elements, node.x() and node.y() are center coordinates due to offsetX/Y
-            // Keep them as center coordinates since custom images use center positioning
+            // For custom-image elements using direct KonvaImage with offsetX/offsetY,
+            // node.x() and node.y() are center coordinates - store them as center coordinates
             newElementX = node.x();
             newElementY = node.y();
         } else if (type === 'line' || type === 'arrow') {
@@ -360,16 +371,16 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             // For line and arrow, coordinates are top-left based
             newElementX = node.x();
             newElementY = node.y();
-        } else if (type === 'circle' || type === 'triangle' || type === 'pentagon' || type === 'hexagon' || type === 'star') {
+        } else if (type === 'circle' || type === 'triangle' || type === 'pentagon' || type === 'hexagon' || type === 'star' || type === 'heart') {
             newDesignWidth = Math.abs(node.width() * node.scaleX());
             newDesignHeight = Math.abs(node.height() * node.scaleY());
             
-            // For centered shapes (circle, polygon, star), convert from center to top-left
+            // For centered shapes (circle, polygon, star, heart), convert from center to top-left
             // These shapes are positioned with center coordinates in Konva but stored as top-left in ElementData
             newElementX = node.x() - newDesignWidth / 2;
             newElementY = node.y() - newDesignHeight / 2;
         } else {
-            // For rectangle, square, rounded-rectangle, squircle (top-left positioned shapes)
+            // For rectangle, square, rounded-rectangle, squircle, line, arrow (top-left positioned shapes)
             newDesignWidth = Math.abs(node.width() * node.scaleX());
             newDesignHeight = Math.abs(node.height() * node.scaleY());
             // These use top-left coordinates directly
@@ -496,6 +507,12 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragStart: () => {
             if (canInteractWithElement()) {
                 setActiveSnapLines([]);
+                
+                // Initialize transformer for drag
+                if (transformerRef.current) {
+                    transformerRef.current.forceUpdate();
+                }
+                
                 // Set grabbing cursor during drag when using the correct tool
                 const canShowGrabbingCursor = activeTool?.type !== 'hand' && isSelected &&
                     ((activeTool?.type === 'text' && element.type === 'text') || 
@@ -519,35 +536,51 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             }
 
             const node = e.target;
-            const designWidth = node.width();
-            const designHeight = node.height();
             
-            // Get top-left coordinates for snapping
-            let topLeftX = node.x();
-            let topLeftY = node.y();
-            
-            // Convert coordinates depending on element type
-            if (node.offsetX() > 0 || node.offsetY() > 0) {
-                // Element is centered (text, images)
-                const elementWidth = element.width || 0;
-                const elementHeight = element.height || 0;
-                topLeftX = node.x() - elementWidth / 2;
-                topLeftY = node.y() - elementHeight / 2;
-            } else if (element.type === 'circle' || element.type === 'triangle' || 
-                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                // Elements positioned centrally without offsetX/Y
-                const elementWidth = element.width || 0;
-                const elementHeight = element.height || 0;
-                topLeftX = node.x() - elementWidth / 2;
-                topLeftY = node.y() - elementHeight / 2;
+            // Force update transformer position during drag
+            if (transformerRef.current) {
+                transformerRef.current.forceUpdate();
             }
+            
+            // Simplified coordinate handling - let Konva handle positioning naturally
+            const currentX = node.x();
+            const currentY = node.y();
+            
+            // Get element dimensions for snapping calculations
+            const elementWidth = element.width || 0;
+            const elementHeight = element.height || 0;
+            
+            // Calculate top-left coordinates for snapping (universal approach)
+            let topLeftX = currentX;
+            let topLeftY = currentY;
+            
+            // Adjust for centered elements
+            if (node.offsetX() > 0 || node.offsetY() > 0) {
+                // Text and custom-image use offsetX/Y for centering
+                if (element.type === 'text') {
+                    // Text needs conversion from center to top-left for snapping
+                    topLeftX = currentX - elementWidth / 2;
+                    topLeftY = currentY - elementHeight / 2;
+                } else if (element.type === 'custom-image') {
+                    // Custom-image also needs conversion from center to top-left for snapping
+                    topLeftX = currentX - elementWidth / 2;
+                    topLeftY = currentY - elementHeight / 2;
+                }
+            } else if (element.type === 'circle' || element.type === 'triangle' || 
+                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
+                      element.type === 'heart') {
+                // These shapes are centered but don't use offsetX/Y
+                topLeftX = currentX - elementWidth / 2;
+                topLeftY = currentY - elementHeight / 2;
+            }
+            // All other elements (rectangle, square, rounded-rectangle, squircle, line, arrow) use top-left coordinates
 
             const draggingBox: BoxProps = {
                 id: element.id,
                 x: topLeftX,
                 y: topLeftY,
-                width: designWidth * Math.abs(node.scaleX()),
-                height: designHeight * Math.abs(node.scaleY()),
+                width: elementWidth,
+                height: elementHeight,
                 rotation: node.rotation(),
             };
 
@@ -560,19 +593,21 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     // Convert center coordinates to top-left for snapping for certain element types
                     if (el.type === 'custom-image' || el.type === 'text' || 
                         el.type === 'circle' || el.type === 'triangle' || 
-                        el.type === 'pentagon' || el.type === 'hexagon' || el.type === 'star') {
+                        el.type === 'pentagon' || el.type === 'hexagon' || el.type === 'star' || 
+                        el.type === 'heart') {
                         const elWidth = el.width ?? 0;
                         const elHeight = el.height ?? 0;
                         elementX = elementX - elWidth / 2;
                         elementY = elementY - elHeight / 2;
                     }
+                    // Rectangle, square, rounded-rectangle, squircle, line, arrow use top-left coordinates
                     
                     return {
                         id: el.id,
                         x: elementX,
                         y: elementY,
-                        width: (el.width ?? 0) * Math.abs(el.scaleX ?? 1),
-                        height: (el.height ?? 0) * Math.abs(el.scaleY ?? 1),
+                        width: el.width ?? 0,
+                        height: el.height ?? 0,
                         rotation: el.rotation ?? 0,
                     };
                 });
@@ -586,30 +621,42 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
             setActiveSnapLines(snapLines);
 
+            // Apply snapping if position changed
             let targetX = snappedPosition.x;
             let targetY = snappedPosition.y;
             
+            // Convert back to node coordinates
             if (node.offsetX() > 0 || node.offsetY() > 0) {
-                // For centered elements, convert back to center
-                const elementWidth = element.width || 0;
-                const elementHeight = element.height || 0;
-                targetX = snappedPosition.x + elementWidth / 2;
-                targetY = snappedPosition.y + elementHeight / 2;
+                // Text and custom-image use offsetX/Y for centering
+                if (element.type === 'text') {
+                    targetX = snappedPosition.x + elementWidth / 2;
+                    targetY = snappedPosition.y + elementHeight / 2;
+                } else if (element.type === 'custom-image') {
+                    targetX = snappedPosition.x + elementWidth / 2;
+                    targetY = snappedPosition.y + elementHeight / 2;
+                }
             } else if (element.type === 'circle' || element.type === 'triangle' || 
-                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                // For elements positioned centrally
-                const elementWidth = element.width || 0;
-                const elementHeight = element.height || 0;
+                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
+                      element.type === 'heart') {
                 targetX = snappedPosition.x + elementWidth / 2;
                 targetY = snappedPosition.y + elementHeight / 2;
             }
+            // Rectangle, square, rounded-rectangle, squircle, line, arrow use snappedPosition directly
 
-            if (node.x() !== targetX || node.y() !== targetY) {
+            // Only update position if there's a significant change to avoid micro-movements
+            const threshold = 0.5;
+            if (Math.abs(node.x() - targetX) > threshold || Math.abs(node.y() - targetY) > threshold) {
                node.position({ x: targetX, y: targetY });
             }
         },
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
+            
+            // Force final transformer update
+            if (transformerRef.current) {
+                transformerRef.current.forceUpdate();
+                transformerRef.current.getLayer()?.batchDraw();
+            }
             
             // Reset cursor after drag ends, considering tool type
             if (activeTool?.type !== 'hand') {
@@ -631,29 +678,34 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 let newX = node.x();
                 let newY = node.y();
                 
-                // Convert coordinates depending on element type
-                // For elements with offsetX/Y (text, images) node.x() returns center
+                // Simplified coordinate conversion
+                const elementWidth = element.width || 0;
+                const elementHeight = element.height || 0;
+                
+                // Convert coordinates based on element positioning system
                 if (node.offsetX() > 0 || node.offsetY() > 0) {
-                    // For text elements, convert to top-left. For custom-image, keep center coordinates
+                    // For text and custom-image elements with offsetX/Y
                     if (element.type === 'text') {
-                        const elementWidth = element.width || 0;
-                        const elementHeight = element.height || 0;
+                        // Text stores top-left in ElementData but renders with center coordinates
                         newX = node.x() - elementWidth / 2;
                         newY = node.y() - elementHeight / 2;
                     } else if (element.type === 'custom-image') {
-                        // Keep center coordinates for custom-image
+                        // Custom-image now uses direct KonvaImage with offsetX/offsetY
+                        // node.x() and node.y() are center coordinates due to offsetX/offsetY
+                        // Element data stores center coordinates, so use them directly
                         newX = node.x();
                         newY = node.y();
                     }
                 } else if (element.type === 'circle' || element.type === 'triangle' || 
-                          element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star') {
-                    // Elements positioned centrally without offsetX/Y
-                    const elementWidth = element.width || 0;
-                    const elementHeight = element.height || 0;
+                          element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
+                          element.type === 'heart') {
+                    // Elements positioned centrally without offsetX/Y - convert to top-left
                     newX = node.x() - elementWidth / 2;
                     newY = node.y() - elementHeight / 2;
                 }
-                // For rectangles, lines and other elements node.x() already returns top-left
+                // For rectangles, squares, rounded-rectangles, squircles, lines and arrows node.x() already returns top-left
+                
+                console.log(`ElementRenderer: ${element.type} drag ended, hasOffset: ${node.offsetX() > 0 || node.offsetY() > 0}, nodePos: [${node.x()}, ${node.y()}], finalPos: [${newX}, ${newY}]`);
                 
                 onDragEnd(element.id, newX, newY);
             }
@@ -918,10 +970,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x + (element.width ?? 0) / 2}
-                        y={element.y + (element.height ?? 0) / 2}
-                        offsetX={(element.width ?? 0) / 2}
-                        offsetY={(element.height ?? 0) / 2}
+                        x={element.x}
+                        y={element.y}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -934,10 +984,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x + (element.width ?? 0) / 2}
-                        y={element.y + (element.height ?? 0) / 2}
-                        offsetX={(element.width ?? 0) / 2}
-                        offsetY={(element.height ?? 0) / 2}
+                        x={element.x}
+                        y={element.y}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -949,10 +997,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x + (element.width ?? 0) / 2}
-                        y={element.y + (element.height ?? 0) / 2}
-                        offsetX={(element.width ?? 0) / 2}
-                        offsetY={(element.height ?? 0) / 2}
+                        x={element.x}
+                        y={element.y}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -965,10 +1011,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Rect
                         ref={nodeRef as React.Ref<Konva.Rect>}
-                        x={element.x + (element.width ?? 0) / 2}
-                        y={element.y + (element.height ?? 0) / 2}
-                        offsetX={(element.width ?? 0) / 2}
-                        offsetY={(element.height ?? 0) / 2}
+                        x={element.x}
+                        y={element.y}
                         width={element.width}
                         height={element.height}
                         fill={convertColorToRGBA(element.fillColor, element.fillColorOpacity)}
@@ -993,11 +1037,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 return (
                     <Line
                         ref={nodeRef as React.Ref<Konva.Line>}
-                        x={element.x + (element.width ?? 0) / 2}
+                        x={element.x}
                         y={element.y + (element.height ?? 0) / 2}
-                        offsetX={0}
-                        offsetY={0}
-                        points={[-(element.width ?? 0) / 2, 0, (element.width ?? 0) / 2, 0]}
+                        points={[0, 0, element.width ?? 0, 0]}
                         closed={false}
                         {...commonProps}
                         {...strokeStyleProps}
@@ -1061,25 +1103,23 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             case "heart":
                 const heartW = element.width ?? 0;
                 const heartH = element.height ?? 0;
-                // Adjust path points to center-based coordinates
+                // Adjust path points to top-left based coordinates
                 const heartPath = [
-                    0, -heartH * 2 / 5,         // Start point
-                    -heartW / 4, -heartH / 2,    // Left top
-                    -heartW / 2, -heartH / 4,    // Left mid
-                    -heartW / 2, 0,              // Left bottom 
-                    0, heartH / 2,               // Bottom point
-                    heartW / 2, 0,               // Right bottom
-                    heartW / 2, -heartH / 4,     // Right mid
-                    heartW / 4, -heartH / 2,     // Right top
-                    0, -heartH * 2 / 5           // Close path
+                    heartW / 2, heartH * 1 / 5,         // Start point
+                    heartW / 4, 0,                      // Left top
+                    0, heartH / 4,                      // Left mid
+                    0, heartH / 2,                      // Left bottom 
+                    heartW / 2, heartH,                 // Bottom point
+                    heartW, heartH / 2,                 // Right bottom
+                    heartW, heartH / 4,                 // Right mid
+                    heartW * 3 / 4, 0,                  // Right top
+                    heartW / 2, heartH * 1 / 5          // Close path
                 ];
                 return (
                     <Group
                         ref={nodeRef as React.RefObject<Konva.Group>}
                         x={element.x + heartW / 2}
                         y={element.y + heartH / 2}
-                        offsetX={0}
-                        offsetY={0}
                         width={heartW} // Set group width/height for transformer
                         height={heartH}
                         {...commonProps} // Includes draggable, rotation, scale, events
@@ -1090,27 +1130,27 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             closed={true}
                             {...strokeStyleProps} // Includes stroke, strokeWidth, dash, etc.
                             // commonProps from Group are not needed here again, opacity is on Group
+                            x={-heartW / 2}
+                            y={-heartH / 2}
                         />
                     </Group>
                 );
             case "arrow":
                 const arrowW = element.width ?? 0;
                 const arrowH = element.height ?? 0;
-                // Arrow body (line) - adjusted to center-based coordinates
-                const arrowBodyPoints = [-arrowW / 2, 0, arrowW * 0.3, 0];
-                // Arrow head (filled triangle) - adjusted to center-based coordinates
+                // Arrow body (line) - using top-left based coordinates
+                const arrowBodyPoints = [0, arrowH / 2, arrowW * 0.7, arrowH / 2];
+                // Arrow head (filled triangle) - using top-left based coordinates
                 const arrowHeadPoints = [
-                    arrowW * 0.3, -arrowH * 0.3,
-                    arrowW / 2, 0,
-                    arrowW * 0.3, arrowH * 0.3
+                    arrowW * 0.7, arrowH * 0.2,
+                    arrowW, arrowH / 2,
+                    arrowW * 0.7, arrowH * 0.8
                 ];
                 return (
                     <Group
                         ref={nodeRef as React.RefObject<Konva.Group>}
-                        x={element.x + arrowW / 2}
-                        y={element.y + arrowH / 2}
-                        offsetX={0}
-                        offsetY={0}
+                        x={element.x}
+                        y={element.y}
                         width={arrowW}
                         height={arrowH}
                         {...commonProps}
@@ -1135,11 +1175,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     </Group>
                 );
             case "custom-image":
-                // Custom Image coordinates are center-based, use offset for proper positioning
+                // Custom Image coordinates should be handled consistently with other elements
+                // Convert from ElementData center coordinates to Konva center coordinates
                 const imgCenterX = element.x;
                 const imgCenterY = element.y;
-                const imgOffsetX = (element.width ?? 0) / 2;
-                const imgOffsetY = (element.height ?? 0) / 2;
                 
                 const [imageLoaded, setImageLoaded] = useState(false);
                 const [imageInstance, setImageInstance] = useState<HTMLImageElement | null>(null);
@@ -1219,8 +1258,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         filters.push(Konva.Filters.Contrast);
                     }
                     
-                    // Create custom props for image without scaleX/scaleY to avoid conflicts
-                    const imageCommonProps = {
+                    // Create custom props for image without scaleX/scaleY conflicts
+                    const imageProps = {
                         id: element.id,
                         draggable: canInteractWithElement() && isSelected,
                         opacity: element.opacity ?? 1,
@@ -1238,78 +1277,50 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     };
                     
                     return (
-                        <Group
-                            ref={nodeRef as React.RefObject<Konva.Group>}
+                        <KonvaImage
+                            image={imageInstance}
                             x={imgCenterX}
                             y={imgCenterY}
-                            offsetX={imgOffsetX}
-                            offsetY={imgOffsetY}
                             width={element.width}
                             height={element.height}
-                            {...commonProps}
-                        >
-                            <KonvaImage
-                                ref={(node) => {
-                                    if (node) {
-                                        // Clear existing cache before applying new filters
-                                        node.clearCache();
-                                        
-                                        // Apply brightness filter
-                                        if (element.brightness && element.brightness !== 0) {
-                                            node.brightness(element.brightness / 100); // Convert from -100/100 to -1/1 range
-                                        } else {
-                                            node.brightness(0); // Reset brightness if 0
-                                        }
-                                        
-                                        // Apply contrast filter
-                                        if (element.contrast && element.contrast !== 0) {
-                                            node.contrast(element.contrast); // Contrast uses the same range
-                                        } else {
-                                            node.contrast(0); // Reset contrast if 0
-                                        }
-                                        
-                                        // Cache the filtered result only if filters are applied
-                                        if (filters.length > 0) {
-                                            node.cache();
-                                        }
+                            offsetX={(element.width ?? 0) / 2}
+                            offsetY={(element.height ?? 0) / 2}
+                            scaleX={elementTransforms.scaleX}
+                            scaleY={elementTransforms.scaleY}
+                            filters={filters}
+                            {...imageProps}
+                            {...strokeStyleProps}
+                            ref={(node) => {
+                                if (node) {
+                                    // Set the nodeRef for drag handling
+                                    if (nodeRef) {
+                                        (nodeRef as any).current = node;
                                     }
-                                }}
-                                image={imageInstance}
-                                width={element.width}
-                                height={element.height}
-                                scaleX={elementTransforms.scaleX}
-                                scaleY={elementTransforms.scaleY}
-                                filters={filters}
-                                x={0}
-                                y={0}
-                                {...imageCommonProps}
-                                {...strokeStyleProps} // Borders for image
-                            />
-                            {/* Show subtle loading overlay when new image is loading */}
-                            {isLoadingNewImage && (
-                                <Rect
-                                    width={element.width}
-                                    height={element.height}
-                                    fill="rgba(255, 255, 255, 0.7)"
-                                    x={0}
-                                    y={0}
-                                />
-                            )}
-                            {isLoadingNewImage && (
-                                <Text
-                                    width={element.width}
-                                    height={element.height}
-                                    text="Loading..."
-                                    fontSize={12}
-                                    fontFamily="Arial"
-                                    fill="#666"
-                                    align="center"
-                                    verticalAlign="middle"
-                                    x={0}
-                                    y={0}
-                                />
-                            )}
-                        </Group>
+                                    
+                                    // Clear existing cache before applying new filters
+                                    node.clearCache();
+                                    
+                                    // Apply brightness filter
+                                    if (element.brightness && element.brightness !== 0) {
+                                        node.brightness(element.brightness / 100); // Convert from -100/100 to -1/1 range
+                                    } else {
+                                        node.brightness(0); // Reset brightness if 0
+                                    }
+                                    
+                                    // Apply contrast filter
+                                    if (element.contrast && element.contrast !== 0) {
+                                        node.contrast(element.contrast); // Contrast uses the same range
+                                    } else {
+                                        node.contrast(0); // Reset contrast if 0
+                                    }
+                                    
+                                    // Cache the filtered result only if filters are applied
+                                    if (filters.length > 0) {
+                                        node.cache();
+                                    }
+                                }
+                            }}
+                        />
                     );
                 } else if (element.src && !imageLoaded) {
                     // Show placeholder only for initial loading (no previous image)
@@ -1318,10 +1329,10 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             ref={nodeRef as React.RefObject<Konva.Group>}
                             x={imgCenterX}
                             y={imgCenterY}
-                            offsetX={imgOffsetX}
-                            offsetY={imgOffsetY}
                             width={element.width}
                             height={element.height}
+                            offsetX={(element.width ?? 0) / 2}
+                            offsetY={(element.height ?? 0) / 2}
                             {...commonProps}
                         >
                             <Rect

@@ -15,7 +15,8 @@ import {
   RotateCw,
   RotateCcw as TwirlLeft,
   Image as ImageIcon,
-  MousePointerClick
+  MousePointerClick,
+  Repeat
 } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -171,7 +172,7 @@ const LiquifyOptions: React.FC = () => {
               className="flex items-center justify-center px-2 min-w-7 min-h-7 hover:bg-[#3F434AFF] text-[#D4D4D5FF] hover:text-white rounded cursor-pointer border-2 border-[#44474AFF]"
               onClick={handleSelectDifferentImage}
             >
-              <MousePointerClick size={14} />
+              <Repeat size={14} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
