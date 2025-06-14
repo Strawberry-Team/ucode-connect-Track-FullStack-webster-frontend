@@ -24,14 +24,25 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
   const heightClass = isSharedHeight ? 'h-2/3' : 'h-full';
   const { history, revertToHistoryState, currentHistoryIndex, undo, redo, canUndo, canRedo } = useTool();
 
+  const showUndoWarningToast = () => {
+    toast.warning("Attention", {
+      description: "You have undone some actions. New changes will overwrite the ability to undo.",
+      duration: 5000,
+    });
+  };
+
   const handleHistoryItemClick = (id: string, index: number) => {
     revertToHistoryState(id);
     
     if (index < currentHistoryIndex) {
-      toast.warning("Attention", {
-        description: "You have undone some actions. New changes will overwrite the ability to undo.",
-        duration: 5000,
-      });
+      showUndoWarningToast();
+    }
+  };
+
+  const handleUndoClick = () => {
+    if (canUndo) {
+      undo();
+      showUndoWarningToast();
     }
   };
 
@@ -66,14 +77,14 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
       <div className="flex items-center bg-[#24262BFF] p-1">
         <div className="flex-1 flex items-center gap-1">
           <button 
-            onClick={undo} 
+            onClick={handleUndoClick} 
             disabled={!canUndo}
             className={`p-1 rounded transition-colors ${
               canUndo 
                 ? 'text-[#E8E8E8FF] hover:bg-[#414448FF] cursor-pointer' 
-                : 'text-gray-600 cursor-not-allowed'
+                : 'text-gray-600'
             }`}
-            title={`Undo ${canUndo ? '(⌘Z)' : '- нет доступных действий'}`}
+            title={`Undo ${canUndo ? '(⌘Z)' : ''}`}
           >
             <Undo size={14} />
           </button>
@@ -83,9 +94,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, isSharedHeight }) 
             className={`p-1 rounded transition-colors ${
               canRedo 
                 ? 'text-[#E8E8E8FF] hover:bg-[#414448FF] cursor-pointer' 
-                : 'text-gray-600 cursor-not-allowed'
+                : 'text-gray-600'
             }`}
-            title={`Redo ${canRedo ? '(⌘⇧Z)' : '- нет доступных действий'}`}
+            title={`Redo ${canRedo ? '(⌘⇧Z)' : ''}`}
           >
             <Redo size={14} />
           </button>

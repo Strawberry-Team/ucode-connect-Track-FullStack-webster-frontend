@@ -1093,7 +1093,7 @@ const TextOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] 
+              className={`flex h-7 gap-1 p-2 text-xs rounded hover:bg-[#3F434AFF] -ml-1
                 ${activeElement?.type === "text" && isAddModeActive && currentAddToolType === "text"
                   ? 'bg-[#3F434AFF] text-white'
                   : 'text-[#D4D4D5FF]'}`}
@@ -1108,6 +1108,8 @@ const TextOptions: React.FC = () => {
         </Tooltip>
       </TooltipProvider>
       
+      <div className="h-6 border-l border-[#44474AFF]"></div>
+
       <FontSelector value={fontFamily} onChange={setFontFamily} fonts={fonts} onMenuWillOpen={closeOtherPickers} />
 
       <NumberInputWithPopover

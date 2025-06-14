@@ -77,7 +77,7 @@ const BlurOptions: React.FC = () => {
   if (!selectedBlurImageId || !selectedImage) {
     return (
       <div className="flex items-center space-x-4">
-        <span className="text-xs text-[#A8AAACFF]">
+        <span className="text-xs text-[#A8AAACFF] ml-1">
           Select an image object to start blurring.
         </span>
         <DropdownMenu>

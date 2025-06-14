@@ -12,7 +12,8 @@ import {
   HandOptions,
   LiquifyOptions,
   BlurOptions,
-  ImageTransformOptions
+  ImageTransformOptions,
+  BackgroundOptions
 } from "./option-panels"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -49,6 +50,8 @@ const PropertiesPanel: React.FC = () => {
         return <BlurOptions />
       case "image-transform":
         return <ImageTransformOptions />
+      case "background":
+        return <BackgroundOptions />
       case "crop":
         return <CropOptions />
       case "hand":
@@ -58,7 +61,7 @@ const PropertiesPanel: React.FC = () => {
     }
   };
 
-  const showProjectName = !activeTool && !hasEverSelectedTool && currentProjectName;
+  const showProjectName = !activeTool && currentProjectName;
   const showToolOptions = activeTool;
 
   return (
@@ -69,7 +72,7 @@ const PropertiesPanel: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <House
-                  className="cursor-pointer !w-5 !h-5 ml-2.5 text-[#A8AAACFF] hover:text-white"
+                  className="cursor-pointer !w-5 !h-5 ml-2.5 text-[#A8AAACFF] hover:text-white shrink-0"
                   onClick={handleNavigateHome}
                 />
               </TooltipTrigger>
@@ -79,8 +82,8 @@ const PropertiesPanel: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
           <div className="border-l-2 border-[#44474AFF] h-8 mx-5"></div>
-          
-        
+
+
           {showToolOptions && (
             <div className="flex items-center">
               {renderToolOptions()}

@@ -18,6 +18,7 @@ import {
     Facebook,
     Instagram,
     Send,
+    BrickWall
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
@@ -136,9 +137,17 @@ const Toolbar: React.FC = () => {
         },
         {
             id: "image-transform",
-            name: "Image & Background",
+            name: "Image",
             type: "image-transform",
             icon: Image,
+            description: "Edit images, layer, resize, and adjust backgrounds.",
+            imageUrl: "/tooltips/option-tooltips/landscape.jpg"
+        },
+        {
+            id: "background",
+            name: "Background",
+            type: "background",
+            icon: BrickWall ,
             description: "Edit images, layer, resize, and adjust backgrounds.",
             imageUrl: "/tooltips/option-tooltips/landscape.jpg"
         },
@@ -180,6 +189,17 @@ const Toolbar: React.FC = () => {
         if (tool.hasDropdown) {
             // For tools with dropdowns, don't change the active tool
             return;
+        }
+
+        // If the clicked tool is already active, deactivate it
+        if (activeTool?.id === tool.id) {
+            setActiveTool(null);
+            setActiveElement(null); // Clear active element when deactivating a tool
+            if (isCropping) {
+                setIsCropping(false);
+                setCropRect(null);
+            }
+            return; // Exit the function after deactivation
         }
 
         const previousToolType = activeTool?.type;

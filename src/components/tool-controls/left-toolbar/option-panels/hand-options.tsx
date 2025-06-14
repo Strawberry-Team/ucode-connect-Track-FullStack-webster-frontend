@@ -75,7 +75,7 @@ const HandOptions: React.FC = () => {
     return (
         <div className="flex flex-col space-y-3">
             <div className="flex items-center space-x-3">
-                <span className="text-xs text-[#D4D4D5FF]">Scale:</span>
+                <span className="text-xs text-[#D4D4D5FF] ml-1">Scale:</span>
             <Button
                 onClick={handleSet100Percent}
                 variant="ghost"

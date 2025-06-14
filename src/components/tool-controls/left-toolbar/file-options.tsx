@@ -160,10 +160,11 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <Image className="mr-2 h-4 w-4" />
                                                             <span>WEBP</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
-                                                        <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
-                                                            <Zap className="w-4 h-4 !text-white" />
-                                                        </span>
+
                                                     </div>
                                                 </TooltipTrigger>
                                                 {!loggedInUser && (
@@ -182,10 +183,11 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <FileImage className="mr-2 h-4 w-4" />
                                                             <span>SVG</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
-                                                        <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
-                                                            <Zap className="w-4 h-4 !text-white" />
-                                                        </span>
+
                                                     </div>
                                                 </TooltipTrigger>
                                                 {!loggedInUser && (
@@ -198,16 +200,17 @@ const FileOptions: React.FC = () => {
                                                 <TooltipTrigger asChild>
                                                     <div className="w-full flex items-center">
                                                         <DropdownMenuItem
-                                                            className="!text-gray-200 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer"
+                                                            className="!text-gray-200 hover:bg-[#414448FF] focus:bg-[#3F434AFF] cursor-pointer w-full"
                                                             onClick={(event) => handleFormatSelect('PDF', event)}
                                                             disabled={!loggedInUser}
                                                         >
                                                             <FileImage className="mr-2 h-4 w-4" />
                                                             <span>PDF</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
-                                                        <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
-                                                            <Zap className="w-4 h-4 !text-white" />
-                                                        </span>
+
                                                     </div>
                                                 </TooltipTrigger>
                                                 {!loggedInUser && (
@@ -226,10 +229,11 @@ const FileOptions: React.FC = () => {
                                                         >
                                                             <FileJson className="mr-2 h-4 w-4" />
                                                             <span>JSON</span>
+                                                            <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
+                                                                <Zap className="w-4 h-4 !text-white" />
+                                                            </span>
                                                         </DropdownMenuItem>
-                                                        <span className="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20 ml-auto mr-2">
-                                                            <Zap className="w-4 h-4 !text-white" />
-                                                        </span>
+
                                                     </div>
                                                 </TooltipTrigger>
                                                 {!loggedInUser && (

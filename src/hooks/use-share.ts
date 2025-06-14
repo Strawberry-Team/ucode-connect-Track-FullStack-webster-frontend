@@ -4,6 +4,8 @@ import { useTool } from '@/context/tool-context';
 import { uploadToImgBB } from '@/lib/api/imgbb';
 import { copyToClipboard, generateImageName } from '@/utils/imgbb-uploader';
 import type Konva from 'konva';
+import { useUser } from '@/context/user-context';
+import { addWatermark } from '@/utils/watermark';
 
 interface UseShareProps {
     stageRef: React.MutableRefObject<Konva.Stage | null> | null;
@@ -13,6 +15,7 @@ interface UseShareProps {
 export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
     const { projectId, projectName } = useTool();
     const [isSharing, setIsSharing] = useState(false);
+    const { loggedInUser } = useUser();
 
     /**
      * Export canvas as PNG in base64 without UI elements
@@ -97,7 +100,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
         return new Promise((resolve, reject) => {
             const stageImage = new Image();
 
-            stageImage.onload = () => {
+            stageImage.onload = async () => {
                 const exportCanvas = document.createElement('canvas');
                 exportCanvas.width = stageSize.width;
                 exportCanvas.height = stageSize.height;
@@ -106,7 +109,15 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                 // Draw clean content of stage
                 exportCtx.drawImage(stageImage, 0, 0);
 
-                resolve(exportCanvas.toDataURL("image/png", 1));
+                const finalDataURL = exportCanvas.toDataURL("image/png", 1);
+
+                // Add watermark if user is not logged in
+                if (!loggedInUser) {
+                    const watermarkedDataURL = await addWatermark(finalDataURL, stageSize.width, stageSize.height, "png");
+                    resolve(watermarkedDataURL);
+                } else {
+                    resolve(finalDataURL);
+                }
             };
 
             stageImage.onerror = () => {
@@ -115,7 +126,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
 
             stageImage.src = cleanDataURL;
         });
-    }, [stageRef, stageSize]);
+    }, [loggedInUser, stageRef, stageSize]);
 
     /**
      * Copy link function - uploads to ImgBB and copies link to clipboard

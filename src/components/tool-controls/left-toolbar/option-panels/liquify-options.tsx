@@ -115,7 +115,7 @@ const LiquifyOptions: React.FC = () => {
   if (!selectedLiquifyImageId || !selectedImage) {
     return (
       <div className="flex items-center space-x-4">
-        <span className="text-xs text-[#A8AAACFF]">
+        <span className="text-xs text-[#A8AAACFF] ml-1">
           Select an image object to start liquifying.
         </span>
         <DropdownMenu>

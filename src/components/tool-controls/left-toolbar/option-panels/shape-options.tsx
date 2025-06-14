@@ -751,7 +751,7 @@ const ShapeOptions: React.FC = () => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className={`flex h-7 gap-1 p-2 text-white text-xs hover:bg-[#3F434AFF] rounded ${activeTool?.type === "shape" && isAddModeActive && currentAddToolType === shapeType
+              className={`flex h-7 gap-1 p-2 text-white text-xs -ml-1 hover:bg-[#3F434AFF] rounded ${activeTool?.type === "shape" && isAddModeActive && currentAddToolType === shapeType
                 ? "bg-[#3F434AFF] text-white"
                 : "text-[#D4D4D5FF]"
                 }`}
