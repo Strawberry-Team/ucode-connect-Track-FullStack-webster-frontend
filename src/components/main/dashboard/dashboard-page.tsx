@@ -179,7 +179,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
     }
   };
 
-  const handleCreateNewProject = (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => {
+  const handleCreateNewProject = (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean, imageFileName?: string) => {
     console.log('DashboardPage: handleCreateNewProject called', {
       name,
       width,
@@ -248,7 +248,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
           width: imageWidth,
           height: imageHeight,
           src: backgroundImage,
-          fileName: `Template - ${name}`,
+          fileName: imageFileName || `Project Background - ${name}`,
           borderColor: "#000000",
           borderColorOpacity: 100,
           borderWidth: 0,
@@ -407,7 +407,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
             width: imageWidth,
             height: imageHeight,
             src: e.target?.result as string,
-            fileName: file.name, // Add original file name
+            fileName: file.name, // Use original file name including extension
             borderColor: "#000000",
             borderColorOpacity: 100,
             borderWidth: 0,
@@ -432,8 +432,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
             linesSnapshot: [imageElement as ElementData]
           });
           
-          const fileName = file.name.replace(/\.[^/.]+$/, "");
-          navigate(`/canvas?name=${encodeURIComponent(fileName)}`);
+          // Use original file name including extension for navigation
+          navigate(`/canvas?name=${encodeURIComponent(file.name)}`);
         };
         img.onerror = () => {
           console.error("Error loading image for size determination.");

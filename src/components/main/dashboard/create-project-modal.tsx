@@ -48,6 +48,26 @@ interface ProjectTemplate {
   dimensionsText: string;
 }
 
+// Helper to extract file extension from a URL
+const getFileExtensionFromUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    const lastDotIndex = pathname.lastIndexOf('.');
+    if (lastDotIndex !== -1) {
+      const extension = pathname.substring(lastDotIndex + 1).toLowerCase();
+      // Basic validation for common image extensions
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) {
+        return extension;
+      }
+    }
+  } catch (e) {
+    // URL parsing might fail for data URLs or malformed URLs
+    console.warn("Invalid URL for extension extraction, defaulting to jpg:", url);
+  }
+  return 'png'; // Default to jpg if no valid extension found
+};
+
 // Project templates from assets folder
 const projectTemplates: ProjectTemplate[] = [
   {
@@ -225,7 +245,7 @@ const allTemplates: Record<string, Template[]> = {
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean) => void;
+  onCreate: (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean, imageFileName?: string) => void;
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose, onCreate }) => {
@@ -468,6 +488,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     const width = parseInt(canvasWidth, 10) || 1000;
     const height = parseInt(canvasHeight, 10) || 1000;
 
+    let backgroundImage: string | undefined = undefined;
+    let shouldSetAsBackground = false;
+    let imageFileName: string | undefined = undefined;
+
     console.log('CreateProjectModal: handleCreateWithDefaults called', {
       selectedTemplateImage: selectedTemplateImage ? {
         id: selectedTemplateImage.id,
@@ -478,83 +502,40 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       activeTab
     });
 
-    let backgroundImage: string | undefined;
-    let shouldSetAsBackground = false;
-
-    // If user selected an image from Pixabay and wants it as background
-    if (selectedImageId && setAsBackground) {
+    // Determine background image, its type, and file name based on selection
+    if (selectedImageId) {
       const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
       if (selectedImage) {
         backgroundImage = selectedImage.webformatURL;
-        shouldSetAsBackground = true;
+        shouldSetAsBackground = setAsBackground;
+        const baseName = selectedImage.tags.split(',')[0].trim();
+        const extension = getFileExtensionFromUrl(selectedImage.webformatURL);
+        imageFileName = `${baseName}.${extension}`;
       }
-    }
-
-    // If user selected an image from Unsplash and wants it as background
-    if (selectedUnsplashImageId && setUnsplashAsBackground) {
+    } else if (selectedUnsplashImageId) {
       const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
       if (selectedImage) {
         backgroundImage = selectedImage.urls.regular;
-        shouldSetAsBackground = true;
+        shouldSetAsBackground = setUnsplashAsBackground;
+        const baseName = selectedImage.alt_description || selectedImage.user.name + ' image';
+        const extension = getFileExtensionFromUrl(selectedImage.urls.regular);
+        imageFileName = `${baseName}.${extension}`;
       }
-    }
-
-    // If user selected an image from Pixabay but doesn't want it as background
-    if (selectedImageId && !setAsBackground) {
-      const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
-      if (selectedImage) {
-        backgroundImage = selectedImage.webformatURL;
-        shouldSetAsBackground = false;
-      }
-    }
-
-    // If user selected an image from Unsplash but doesn't want it as background
-    if (selectedUnsplashImageId && !setUnsplashAsBackground) {
-      const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
-      if (selectedImage) {
-        backgroundImage = selectedImage.urls.regular;
-        shouldSetAsBackground = false;
-      }
-    }
-
-    // If user selected an AI image and wants it as background
-    if (selectedAIImageId && setAIAsBackground) {
+    } else if (selectedAIImageId) {
       const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
       if (selectedImage) {
         backgroundImage = selectedImage.url;
-        shouldSetAsBackground = true;
+        shouldSetAsBackground = setAIAsBackground;
+        const baseName = `AI Generated: ${selectedImage.prompt.slice(0, 30)}`;
+        const extension = getFileExtensionFromUrl(selectedImage.url);
+        imageFileName = `${baseName}.${extension}`;
       }
-    }
-
-    // If user selected an AI image but doesn't want it as background
-    if (selectedAIImageId && !setAIAsBackground) {
-      const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
-      if (selectedImage) {
-        backgroundImage = selectedImage.url;
-        shouldSetAsBackground = false;
-      }
-    }
-
-    // If user selected a template image and wants it as background
-    if (selectedTemplateImage && setTemplateAsBackground) {
+    } else if (selectedTemplateImage) {
       backgroundImage = selectedTemplateImage.imagePath;
-      shouldSetAsBackground = true;
-      console.log('CreateProjectModal: Template image set as background (defaults)', {
-        templateId: selectedTemplateImage.id,
-        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
-        shouldSetAsBackground
-      });
-    }
-
-    // If user selected a template image but doesn't want it as background
-    if (selectedTemplateImage && !setTemplateAsBackground) {
-      backgroundImage = selectedTemplateImage.imagePath;
-      shouldSetAsBackground = false;
-      console.log('CreateProjectModal: Template image set as element (defaults)', {
-        templateId: selectedTemplateImage.id,
-        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
-        shouldSetAsBackground
-      });
+      shouldSetAsBackground = setTemplateAsBackground;
+      const baseName = selectedTemplateImage.title;
+      const extension = getFileExtensionFromUrl(selectedTemplateImage.imagePath);
+      imageFileName = `${baseName}.${extension}`;
     }
 
     console.log('CreateProjectModal: Final backgroundImage (defaults)', {
@@ -562,7 +543,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       shouldSetAsBackground
     });
 
-    onCreate(name, width, height, backgroundImage, shouldSetAsBackground);
+    onCreate(name, width, height, backgroundImage, shouldSetAsBackground, imageFileName);
     onClose();
   };
 
@@ -917,6 +898,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     const widthNum = parseInt(canvasWidth, 10);
     const heightNum = parseInt(canvasHeight, 10);
 
+    let backgroundImage: string | undefined = undefined;
+    let shouldSetAsBackground = false;
+    let imageFileName: string | undefined = undefined;
+
     console.log('CreateProjectModal: handleCreate called', {
       selectedTemplateImage: selectedTemplateImage ? {
         id: selectedTemplateImage.id,
@@ -928,91 +913,48 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     });
 
     if (projectName.trim() && widthNum > 0 && heightNum > 0) {
-      let backgroundImage: string | undefined;
-      let shouldSetAsBackground = false;
-
-      // If user selected an image from Pixabay and wants it as background
-      if (selectedImageId && setAsBackground) {
+      // Determine background image, its type, and file name based on selection
+      if (selectedImageId) {
         const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
         if (selectedImage) {
           backgroundImage = selectedImage.webformatURL;
-          shouldSetAsBackground = true;
+          shouldSetAsBackground = setAsBackground;
+          const baseName = selectedImage.tags.split(',')[0].trim();
+          const extension = getFileExtensionFromUrl(selectedImage.webformatURL);
+          imageFileName = `${baseName}.${extension}`;
         }
-      }
-
-      // If user selected an image from Unsplash and wants it as background
-      if (selectedUnsplashImageId && setUnsplashAsBackground) {
+      } else if (selectedUnsplashImageId) {
         const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
         if (selectedImage) {
           backgroundImage = selectedImage.urls.regular;
-          shouldSetAsBackground = true;
+          shouldSetAsBackground = setUnsplashAsBackground;
+          const baseName = selectedImage.alt_description || selectedImage.user.name + ' image';
+          const extension = getFileExtensionFromUrl(selectedImage.urls.regular);
+          imageFileName = `${baseName}.${extension}`;
         }
-      }
-
-      // If user selected an image from Pixabay but doesn't want it as background
-      if (selectedImageId && !setAsBackground) {
-        const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
-        if (selectedImage) {
-          backgroundImage = selectedImage.webformatURL;
-          shouldSetAsBackground = false;
-        }
-      }
-
-      // If user selected an image from Unsplash but doesn't want it as background
-      if (selectedUnsplashImageId && !setUnsplashAsBackground) {
-        const selectedImage = unsplashImages.find(img => img.id === selectedUnsplashImageId);
-        if (selectedImage) {
-          backgroundImage = selectedImage.urls.regular;
-          shouldSetAsBackground = false;
-        }
-      }
-
-      // If user selected an AI image and wants it as background
-      if (selectedAIImageId && setAIAsBackground) {
+      } else if (selectedAIImageId) {
         const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
         if (selectedImage) {
           backgroundImage = selectedImage.url;
-          shouldSetAsBackground = true;
+          shouldSetAsBackground = setAIAsBackground;
+          const baseName = `AI Generated: ${selectedImage.prompt.slice(0, 30)}`;
+          const extension = getFileExtensionFromUrl(selectedImage.url);
+          imageFileName = `${baseName}.${extension}`;
         }
+      } else if (selectedTemplateImage) {
+        backgroundImage = selectedTemplateImage.imagePath;
+        shouldSetAsBackground = setTemplateAsBackground;
+        const baseName = selectedTemplateImage.title;
+        const extension = getFileExtensionFromUrl(selectedTemplateImage.imagePath);
+        imageFileName = `${baseName}.${extension}`;
       }
-
-      // If user selected an AI image but doesn't want it as background
-      if (selectedAIImageId && !setAIAsBackground) {
-        const selectedImage = generatedImages.find(img => img.id === selectedAIImageId);
-        if (selectedImage) {
-          backgroundImage = selectedImage.url;
-          shouldSetAsBackground = false;
-        }
-      }
-
-          // If user selected a template image and wants it as background
-    if (selectedTemplateImage && setTemplateAsBackground) {
-      backgroundImage = selectedTemplateImage.imagePath;
-      shouldSetAsBackground = true;
-      console.log('CreateProjectModal: Template image set as background', {
-        templateId: selectedTemplateImage.id,
-        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
-        shouldSetAsBackground
-      });
-    }
-
-    // If user selected a template image but doesn't want it as background
-    if (selectedTemplateImage && !setTemplateAsBackground) {
-      backgroundImage = selectedTemplateImage.imagePath;
-      shouldSetAsBackground = false;
-      console.log('CreateProjectModal: Template image set as element', {
-        templateId: selectedTemplateImage.id,
-        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
-        shouldSetAsBackground
-      });
-    }
 
       console.log('CreateProjectModal: Final backgroundImage', {
         backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
         shouldSetAsBackground
       });
 
-      onCreate(projectName.trim(), widthNum, heightNum, backgroundImage, shouldSetAsBackground);
+      onCreate(projectName.trim(), widthNum, heightNum, backgroundImage, shouldSetAsBackground, imageFileName);
       onClose();
     } else {
       alert('Please fill in all fields correctly.');

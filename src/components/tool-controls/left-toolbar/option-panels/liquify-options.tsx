@@ -142,7 +142,6 @@ const LiquifyOptions: React.FC = () => {
                     <ImageIcon size={14} />
                     <div className="flex flex-col items-start">
                       <span className="text-xs">{image.fileName || `Image ${image.id.slice(-6)}`}</span>
-                      <span className="text-xs text-gray-400">ID: {image.id.slice(-6)}</span>
                     </div>
                   </DropdownMenuItem>
                 ))}
