@@ -216,6 +216,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
             }
 
             window.open(mailtoUrl, '_blank');
+            console.log('Gmail URL:', mailtoUrl);
 
         } catch (error) {
             console.error('Error sharing to Gmail:', error);
@@ -273,6 +274,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
             // Use Facebook sharing URL with image URL and quote text
             const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}&quote=${encodeURIComponent(bodyShort)}`;
             window.open(facebookUrl, '_blank');
+            console.log('Facebook URL:', facebookUrl);
             
         } catch (error) {
             console.error('Error sharing to Facebook:', error);
@@ -323,6 +325,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
             // Try to open Instagram app or website with create post intent
             const instagramUrl = 'https://www.instagram.com/';
             window.open(instagramUrl, '_blank');
+            console.log('Instagram URL:', instagramUrl);
             
         } catch (error) {
             console.error('Error sharing to Instagram:', error);
@@ -418,6 +421,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                     console.log('Desktop Telegram app not detected, opening web version');
                     const webUrl = `https://web.telegram.org/k/#777000?text=${encodeURIComponent(`${bodyShort}\n\n${imageUrl}`)}`;
                     window.open(webUrl, '_blank');
+                    console.log('Telegram Web URL:', webUrl);
                     
                     toast.info('Opening Telegram Web...', {
                         description: 'Desktop app not found, using web version',
