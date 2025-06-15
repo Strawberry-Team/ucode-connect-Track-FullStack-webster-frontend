@@ -608,10 +608,7 @@ const scrollbarStyles = `
     setSelectedUnsplashImageId(null) // Clear unsplash selection
     setSetTemplateAsBackground(false) // Reset background checkbox
     
-    toast.success("Template selected", { 
-      description: `${template.title} is ready to be added to canvas`,
-      duration: 3000 
-    })
+    
   }
 
   const handleTemplateBackgroundCheckboxChange = (checked: boolean) => {

@@ -298,7 +298,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                     // Add to history for non-background images
                     addHistoryEntry({
                         type: "elementAdded",
-                        description: `Added AI generated image: ${imageName}`,
+                        description: `Added AI-generated image: ${imageName}`,
                         linesSnapshot: [...renderableObjects, imageElement], // Include the newly added element
                     })
                 }
