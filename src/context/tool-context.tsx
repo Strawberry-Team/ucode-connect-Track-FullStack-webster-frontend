@@ -760,7 +760,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                             // Add to history (this will trigger immediate save)
                             addHistoryEntry({
                                 type: 'elementAdded',
-                                description: `Imported image111: ${file.name}`,
+                                description: `Imported image: ${file.name}`,
                                 linesSnapshot: [...renderableObjects, imageElement]
                             });
                         }, 500); // Wait 500ms for image to load and render

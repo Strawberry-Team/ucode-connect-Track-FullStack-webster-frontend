@@ -19,7 +19,7 @@ export const addWatermark = async (
 
             // Set watermark style
             ctx!.save()
-            ctx!.globalAlpha = 0.1
+            ctx!.globalAlpha = 0.2
             ctx!.fillStyle = format === "png" ? "#C4C4C4" : "#C4C4C4"
             ctx!.font = `${Math.max(20, Math.min(canvasWidth, canvasHeight) * 0.05)}px Arial` // Responsive font size
             ctx!.textAlign = "center"
