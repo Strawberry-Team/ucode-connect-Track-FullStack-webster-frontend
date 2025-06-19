@@ -160,7 +160,6 @@ const ShapeSelector: React.FC<{
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      console.log("Uploading image:", file.name);
                       onChange("custom-image");
                     }
                   }}
@@ -244,18 +243,12 @@ const ShapeOptions: React.FC = () => {
     setIsAddModeActive,
     currentAddToolType,
     setCurrentAddToolType,
-    setActiveTool: setContextActiveTool,
   } = useTool();
 
   const {
     selectedElementId,
-    duplicateSelectedElement,
-    removeSelectedElement,
     getElementDataFromRenderables,
     updateSelectedElementStyle,
-    flipSelectedElementHorizontal,
-    flipSelectedElementVertical,
-    rotateSelectedElement,
     bringElementToFront,
     sendElementToBackground
   } = useElementsManager();
@@ -323,7 +316,6 @@ const ShapeOptions: React.FC = () => {
           setShapeType(selectedElement.type as ShapeType);
         } else if (selectedElement.type === "custom-image") {
           // Don't set shapeType for custom-image elements, keep current shape selection
-          console.log('ImageTransform: Custom image selected, keeping current shape type:', shapeType);
         }
 
       }
@@ -355,7 +347,6 @@ const ShapeOptions: React.FC = () => {
     // Reset shapeType to rectangle if it's set to custom-image (which shouldn't be selectable)
     if (shapeType === "custom-image") {
       setShapeType("rectangle");
-      console.log('ShapeOptions: Reset shapeType from custom-image to rectangle');
     }
   }, [activeTool?.type, selectedElementId, shapeType, setShapeType]);
 
@@ -399,7 +390,6 @@ const ShapeOptions: React.FC = () => {
   const handleShapeSelect = (type: ShapeType) => {
     setShapeType(type);
     if (type === "custom-image") {
-      console.log("Custom image selected, awaiting upload through ShapeSelector");
     }
   };
 
@@ -482,20 +472,12 @@ const ShapeOptions: React.FC = () => {
 
   const handleBringToFront = () => {
     if (selectedElementId) {
-      console.log('ShapeOptions: Bringing shape to front', {
-        elementId: selectedElementId.slice(-6),
-        elementType: selectedElementData?.type
-      });
       bringElementToFront(selectedElementId);
     }
   };
 
   const handleSendToBackground = () => {
     if (selectedElementId) {
-      console.log('ShapeOptions: Sending shape to background', {
-        elementId: selectedElementId.slice(-6),
-        elementType: selectedElementData?.type
-      });
       sendElementToBackground(selectedElementId);
     }
   };
@@ -626,7 +608,7 @@ const ShapeOptions: React.FC = () => {
               <Button
                 variant="ghost"
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
-                onClick={(e) => {
+                onClick={(_e) => {
                   // e.stopPropagation();
                   setFillColor('#ffffff');
                   setFillColorOpacity(0);
@@ -708,7 +690,7 @@ const ShapeOptions: React.FC = () => {
               <Button
                 variant="ghost"
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
-                onClick={(e) => {
+                onClick={(_e) => {
                   // e.stopPropagation();
                   setBorderColor('#ffffff');
                   setBorderColorOpacity(0);

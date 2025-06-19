@@ -137,19 +137,7 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
         setIsSharing(true);
 
         try {
-            // Export canvas as PNG base64
-            // toast.info('Preparing image...', {
-            //     description: 'Exporting your project',
-            //     duration: 2000,
-            // });
-
             const base64Image = await exportCanvasAsPNG();
-
-            // Upload to ImgBB
-            // toast.info('Uploading...', {
-            //     description: 'Uploading image to server',
-            //     duration: 3000,
-            // });
 
             const imageName = generateImageName(projectId || 'project');
             const expirationTime = 1209600; // 14 days
@@ -191,7 +179,6 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
 
             const subject = `Check out my project '${projectTitle}' created on Flowy ✨`;
             const body = `Hi! 👋\n\nI'd like to share my '${projectTitle}' project. 🎉\n\nI created it using a powerful online design tool 'Flowy'. 🪄 Hope you like it! 🤩\n\nBest regards 😊`;
-            const bodyShort = `I'd like to share my '${projectTitle}' project. 🎉\nI created it using a powerful online design tool 'Flowy'. 🪄 Hope you like it! 😊`;
 
             // Gmail doesn't support base64 attachments directly via mailto, so we'll include a note about the image
             const mailtoUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}&ui=2&tf=1`;
@@ -211,13 +198,10 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                         duration: 3000,
                     });
                 } catch (clipboardError) {
-                    console.warn('Failed to copy image to clipboard:', clipboardError);
                 }
             }
 
             window.open(mailtoUrl, '_blank');
-            console.log('Gmail URL:', mailtoUrl);
-
         } catch (error) {
             console.error('Error sharing to Gmail:', error);
             toast.error('Error sharing to Gmail', {
@@ -267,15 +251,12 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                         duration: 3000,
                     });
                 } catch (clipboardError) {
-                    console.warn('Failed to copy image to clipboard:', clipboardError);
                 }
             }
             
             // Use Facebook sharing URL with image URL and quote text
             const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}&quote=${encodeURIComponent(bodyShort)}`;
             window.open(facebookUrl, '_blank');
-            console.log('Facebook URL:', facebookUrl);
-            
         } catch (error) {
             console.error('Error sharing to Facebook:', error);
             toast.error('Error sharing to Facebook', {
@@ -311,7 +292,6 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                         duration: 4000,
                     });
                 } catch (clipboardError) {
-                    console.warn('Failed to copy image to clipboard:', clipboardError);
                 }
             }
             
@@ -319,14 +299,11 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
             try {
                 await navigator.clipboard.writeText(bodyShort);
             } catch (textClipboardError) {
-                console.warn('Failed to copy caption to clipboard:', textClipboardError);
             }
             
             // Try to open Instagram app or website with create post intent
             const instagramUrl = 'https://www.instagram.com/';
             window.open(instagramUrl, '_blank');
-            console.log('Instagram URL:', instagramUrl);
-            
         } catch (error) {
             console.error('Error sharing to Instagram:', error);
             toast.error('Error sharing to Instagram', {
@@ -376,7 +353,6 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                         duration: 3000,
                     });
                 } catch (clipboardError) {
-                    console.warn('Failed to copy image to clipboard:', clipboardError);
                 }
             }
             
@@ -418,10 +394,8 @@ export const useShare = ({ stageRef, stageSize }: UseShareProps) => {
                 
                 // Only open web version if desktop app didn't open
                 if (!desktopAppOpened) {
-                    console.log('Desktop Telegram app not detected, opening web version');
                     const webUrl = `https://web.telegram.org/k/#777000?text=${encodeURIComponent(`${bodyShort}\n\n${imageUrl}`)}`;
                     window.open(webUrl, '_blank');
-                    console.log('Telegram Web URL:', webUrl);
                     
                     toast.info('Opening Telegram Web...', {
                         description: 'Desktop app not found, using web version',

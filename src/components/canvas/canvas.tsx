@@ -41,7 +41,6 @@ const Canvas: React.FC = () => {
     const { hoveredElementId } = useElementsManager()
     const {
         activeTool,
-        setActiveTool: setContextActiveTool,
         activeElement,
         isAddModeActive,
         currentAddToolType,
@@ -69,8 +68,6 @@ const Canvas: React.FC = () => {
         setSelectedAspectRatio,
         triggerApplyCrop,
         setIsCanvasManuallyResized,
-        initialImage,
-        setInitialImage,
         cursorPositionOnCanvas,
         setCursorPositionOnCanvas,
         setMiniMapDataURL,
@@ -140,7 +137,7 @@ const Canvas: React.FC = () => {
     const [showLiquifyCursor, setShowLiquifyCursor] = useState(false)
     const [showBlurCursor, setShowBlurCursor] = useState(false)
     const zoomStep = 20
-    const [miniMapDataURLState, setMiniMapDataURLState] = useState<string | null>(null)
+    const [_miniMapDataURLState, setMiniMapDataURLState] = useState<string | null>(null)
     const isManuallyDragging = useRef(false)
 
     const [activeSnapLines, setActiveSnapLines] = useState<SnapLineType[]>([])
@@ -149,7 +146,7 @@ const Canvas: React.FC = () => {
     const [isCreatingElement, setIsCreatingElement] = useState(false)
     const [creationStartPoint, setCreationStartPoint] = useState<{ x: number; y: number } | null>(null)
     const [previewElement, setPreviewElement] = useState<ElementData | null>(null)
-    const [isExporting, setIsExporting] = useState(false)
+    const [_isExporting, setIsExporting] = useState(false)
 
     const croppingManager = useCropping({
         cropRect: cropRect,
@@ -175,12 +172,11 @@ const Canvas: React.FC = () => {
         setStagePosition,
     })
 
-    const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null)
-    const [originalBackgroundImage, setOriginalBackgroundImage] = useState<HTMLImageElement | null>(null)
+    const [backgroundImage] = useState<HTMLImageElement | null>(null)
     const backgroundImageNodeRef = useRef<Konva.Image | null>(null)
 
     // State to store imported image dimensions and position
-    const [backgroundImageParams, setBackgroundImageParams] = useState<{
+    const [backgroundImageParams] = useState<{
         x: number
         y: number
         width: number
@@ -355,7 +351,7 @@ const Canvas: React.FC = () => {
                     const svgFileName = `project_${Date.now()}.svg`
                     downloadURL(url, svgFileName)
                     URL.revokeObjectURL(url)
-                    
+
                     toast.success("Success", {
                         description: `Project saved as "${svgFileName}"`,
                         duration: 5000,
@@ -412,7 +408,7 @@ const Canvas: React.FC = () => {
                         const canvas = document.createElement('canvas')
                         const ctx = canvas.getContext('2d')
                         const img = new Image()
-                        
+
                         await new Promise<void>((resolve) => {
                             img.onload = () => {
                                 canvas.width = contextStageSize.width
@@ -465,19 +461,19 @@ const Canvas: React.FC = () => {
         // Find and temporarily hide UI elements that shouldn't be in export
         const backgroundNode = stage.findOne(".background-pattern") as Konva.Rect | null
         const wasBackgroundVisible = backgroundNode?.visible()
-        
+
         // Find and hide all transformers specifically
         const transformers = stage.find('Transformer')
         const transformersVisibility: boolean[] = []
         transformers.forEach((transformer) => {
             transformersVisibility.push(transformer.visible())
         })
-        
+
         // Find UI layers that contain selection borders, transformers, snap lines, etc.
         const layers = stage.find('Layer')
         const uiLayers: Konva.Layer[] = []
         const uiLayersVisibility: boolean[] = []
-        
+
         // Hide layers that contain UI elements (typically the last 2-3 layers)
         // We'll hide layers that don't contain actual content (brush lines, elements)
         if (layers.length >= 2) {
@@ -488,30 +484,30 @@ const Canvas: React.FC = () => {
                 uiLayersVisibility.push(layer.visible())
             })
         }
-        
+
         let cleanDataURL: string
-        
+
         try {
             // Hide background pattern very briefly (won't be visible to user due to RAF timing)
             if (backgroundNode) {
                 backgroundNode.visible(false)
             }
-            
+
             // Hide all transformers specifically
             transformers.forEach((transformer) => {
                 transformer.visible(false)
             })
-            
+
             // Hide UI layers (transformers, snap lines, crop tools, etc.)
             uiLayers.forEach((layer) => {
                 layer.visible(false)
             })
-            
+
             stage.batchDraw() // Force immediate redraw
 
             // Get clean stage content without background pattern and UI elements
             const mimeType = format === "webp" ? "image/webp" : format === "jpg" ? "image/jpeg" : "image/png"
-            cleanDataURL = stage.toDataURL({ 
+            cleanDataURL = stage.toDataURL({
                 mimeType: mimeType,
                 quality: format === "webp" ? 0.9 : 1
             })
@@ -520,24 +516,24 @@ const Canvas: React.FC = () => {
             if (backgroundNode && wasBackgroundVisible) {
                 backgroundNode.visible(true)
             }
-            
+
             // Restore transformers visibility
             transformers.forEach((transformer, index) => {
                 transformer.visible(transformersVisibility[index])
             })
-            
+
             // Restore UI layers visibility
             uiLayers.forEach((layer, index) => {
                 layer.visible(uiLayersVisibility[index])
             })
-            
+
             stage.batchDraw() // Force immediate redraw
         }
 
         // Create final export canvas
         return new Promise((resolve, reject) => {
             const stageImage = new Image()
-            
+
             stageImage.onload = () => {
                 const exportCanvas = document.createElement('canvas')
                 exportCanvas.width = contextStageSize.width
@@ -552,16 +548,16 @@ const Canvas: React.FC = () => {
 
                 // Draw the clean stage content
                 exportCtx.drawImage(stageImage, 0, 0)
-                
+
                 const outputMimeType = format === "webp" ? "image/webp" : format === "jpg" ? "image/jpeg" : "image/png"
                 const quality = format === "webp" ? 0.9 : format === "jpg" ? 0.9 : 1
                 resolve(exportCanvas.toDataURL(outputMimeType, quality))
             }
-            
+
             stageImage.onerror = () => {
                 reject(new Error("Failed to load stage image for export"))
             }
-            
+
             stageImage.src = cleanDataURL
         })
     }, [contextStageSize])
@@ -573,11 +569,7 @@ const Canvas: React.FC = () => {
         }
 
         const { width, height } = contextStageSize
-        
-        // Debug info - can be removed in production
-        console.log('SVG Export: Starting with canvas size:', width, 'x', height)
-        console.log('SVG Export: Renderable objects count:', renderableObjects.length)
-        
+
         // Create SVG content with transparent background
         let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background-color: transparent;">
@@ -590,13 +582,13 @@ const Canvas: React.FC = () => {
             if (!color || color === 'transparent') return 'transparent'
             if (opacity === undefined || opacity === null || opacity === 0) return 'transparent'
             if (opacity === 100) return color
-            
+
             // Ensure opacity is between 0 and 100, if it's already between 0 and 1, convert to 0-100 range
             let normalizedOpacity = opacity
             if (opacity <= 1 && opacity > 0) {
                 normalizedOpacity = opacity * 100
             }
-            
+
             // Simple RGB extraction for hex colors
             if (color.startsWith('#')) {
                 const hex = color.substring(1)
@@ -605,7 +597,7 @@ const Canvas: React.FC = () => {
                 const b = parseInt(hex.substring(4, 6), 16)
                 return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity / 100})`
             }
-            
+
             // Handle rgb/rgba colors
             if (color.startsWith('rgb')) {
                 // Extract RGB values from rgb(r,g,b) or rgba(r,g,b,a) format
@@ -617,7 +609,7 @@ const Canvas: React.FC = () => {
                     return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity / 100})`
                 }
             }
-            
+
             // For named colors, try to use them as-is with opacity
             if (normalizedOpacity !== 100) {
                 // For named colors, we'll have to use a fallback
@@ -633,7 +625,7 @@ const Canvas: React.FC = () => {
                     'gray': '#808080',
                     'grey': '#808080'
                 }
-                
+
                 const hexColor = colorMap[color.toLowerCase()]
                 if (hexColor) {
                     const hex = hexColor.substring(1)
@@ -643,7 +635,7 @@ const Canvas: React.FC = () => {
                     return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity / 100})`
                 }
             }
-            
+
             return color
         }
 
@@ -668,7 +660,7 @@ const Canvas: React.FC = () => {
                 if (line.tool === 'brush') {
                     lineCount++
                     // Debug: Processing brush line
-                    
+
                     const points = line.points
                     if (points.length >= 4) {
                         let pathData = `M ${points[0]} ${points[1]}`
@@ -677,17 +669,15 @@ const Canvas: React.FC = () => {
                                 pathData += ` L ${points[i]} ${points[i + 1]}`
                             }
                         }
-                        
+
                         const lineAny = line as any
                         const hasTransform = lineAny.x || lineAny.y || lineAny.rotation || lineAny.scaleX !== 1 || lineAny.scaleY !== 1
                         const transform = hasTransform
-                            ? `transform="translate(${lineAny.x || 0}, ${lineAny.y || 0}) rotate(${lineAny.rotation || 0}) scale(${lineAny.scaleX || 1}, ${lineAny.scaleY || 1})"` 
+                            ? `transform="translate(${lineAny.x || 0}, ${lineAny.y || 0}) rotate(${lineAny.rotation || 0}) scale(${lineAny.scaleX || 1}, ${lineAny.scaleY || 1})"`
                             : ''
-                        
-                        // Debug: Brush line details
+
                         const strokeColor = colorWithOpacity(line.color, line.opacity)
-                        console.log('SVG Export: Brush line color:', line.color, 'opacity:', line.opacity, 'result:', strokeColor)
-                        
+
                         svgContent += `
 <path d="${pathData}" 
       stroke="${strokeColor}" 
@@ -703,14 +693,7 @@ const Canvas: React.FC = () => {
                 // Handle elements (shapes, text, images)
                 const element = obj as ElementData
                 elementCount++
-                // Debug: Processing element
-                console.log('SVG Export: Processing element:', element.type, 'opacity:', element.opacity, 'colors:', {
-                    fillColor: element.fillColor,
-                    fillColorOpacity: element.fillColorOpacity,
-                    borderColor: element.borderColor,
-                    borderColorOpacity: element.borderColorOpacity
-                })
-                
+
                 // Ensure element opacity is properly handled (0-100 range converted to 0-1 for SVG)
                 let elementOpacity = element.opacity
                 if (elementOpacity === undefined || elementOpacity === null) {
@@ -721,7 +704,7 @@ const Canvas: React.FC = () => {
                     elementOpacity = elementOpacity * 100
                 }
                 const commonAttrs = `opacity="${Math.max(0.01, elementOpacity / 100)}"`
-                
+
                 // Calculate transform
                 const centerX = element.x + (element.width || 0) / 2
                 const centerY = element.y + (element.height || 0) / 2
@@ -741,7 +724,7 @@ const Canvas: React.FC = () => {
       stroke-width="${element.borderWidth || 0}" 
       ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'rounded-rectangle':
                         svgContent += `
 <rect x="${element.x}" y="${element.y}" 
@@ -752,7 +735,7 @@ const Canvas: React.FC = () => {
       stroke-width="${element.borderWidth || 0}" 
       ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'squircle':
                         const squircleRadius = Math.min(element.width || 0, element.height || 0) / 4
                         svgContent += `
@@ -764,7 +747,7 @@ const Canvas: React.FC = () => {
       stroke-width="${element.borderWidth || 0}" 
       ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'circle':
                         const radius = Math.min(element.width || 0, element.height || 0) / 2
                         // In ElementRenderer, circles are positioned with center coordinates (x + width/2)
@@ -779,7 +762,7 @@ const Canvas: React.FC = () => {
         stroke-width="${element.borderWidth || 0}" 
         ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'triangle':
                         const triRadius = Math.min(element.width || 0, element.height || 0) / 2
                         const triCx = element.x + (element.width || 0) / 2
@@ -797,7 +780,7 @@ const Canvas: React.FC = () => {
          stroke-width="${element.borderWidth || 0}" 
          ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'pentagon':
                         const pentRadius = Math.min(element.width || 0, element.height || 0) / 2
                         const pentCx = element.x + (element.width || 0) / 2
@@ -816,7 +799,7 @@ const Canvas: React.FC = () => {
          stroke-width="${element.borderWidth || 0}" 
          ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'hexagon':
                         const hexRadius = Math.min(element.width || 0, element.height || 0) / 2
                         const hexCx = element.x + (element.width || 0) / 2
@@ -835,7 +818,7 @@ const Canvas: React.FC = () => {
          stroke-width="${element.borderWidth || 0}" 
          ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'star':
                         const starRadius = Math.min(element.width || 0, element.height || 0) / 2
                         const starCx = element.x + (element.width || 0) / 2
@@ -856,7 +839,7 @@ const Canvas: React.FC = () => {
          stroke-width="${element.borderWidth || 0}" 
          ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'heart':
                         const heartCx = element.x + (element.width || 0) / 2
                         const heartCy = element.y + (element.height || 0) / 2
@@ -875,11 +858,10 @@ const Canvas: React.FC = () => {
       stroke-width="${element.borderWidth || 0}" 
       ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'arrow':
                         const arrowBodyY = element.y + (element.height || 0) / 2
                         const arrowHeadWidth = (element.width || 0) * 0.2
-                        const arrowHeadHeight = (element.height || 0) * 0.6
                         const arrowPath = `M ${element.x} ${arrowBodyY} 
                                          L ${element.x + (element.width || 0) - arrowHeadWidth} ${arrowBodyY}
                                          L ${element.x + (element.width || 0) - arrowHeadWidth} ${element.y + (element.height || 0) * 0.2}
@@ -893,13 +875,13 @@ const Canvas: React.FC = () => {
       stroke-width="${element.borderWidth || 0}" 
       ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'text':
                         const textX = element.x + (element.width || 0) / 2
                         const textY = element.y + (element.height || 0) / 2
                         const fontSize = element.fontSize || 16
                         let textContent = element.text || ''
-                        
+
                         // Apply text case
                         switch (element.textCase) {
                             case 'uppercase':
@@ -909,14 +891,14 @@ const Canvas: React.FC = () => {
                                 textContent = textContent.toLowerCase()
                                 break
                             case 'capitalize':
-                                textContent = textContent.split(' ').map(word => 
+                                textContent = textContent.split(' ').map(word =>
                                     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                                 ).join(' ')
                                 break
                         }
-                        
+
                         // Debug: Text element
-                        
+
                         // Add background rectangle if background color is set
                         if (element.backgroundColor && element.backgroundColor !== 'transparent' && element.backgroundOpacity && element.backgroundOpacity > 0) {
                             svgContent += `
@@ -925,7 +907,7 @@ const Canvas: React.FC = () => {
       fill="${colorWithOpacity(element.backgroundColor, element.backgroundOpacity)}" 
       ${commonAttrs} ${transform} />`
                         }
-                        
+
                         svgContent += `
 <text x="${textX}" y="${textY}" 
       font-size="${fontSize}" 
@@ -937,7 +919,7 @@ const Canvas: React.FC = () => {
       ${element.fontStyles?.italic ? 'font-style="italic"' : ''} 
       ${commonAttrs} ${transform}>${escapeXml(textContent)}</text>`
                         break
-                        
+
                     case 'line':
                         const x2 = element.x + (element.width || 0)
                         const y2 = element.y
@@ -948,7 +930,7 @@ const Canvas: React.FC = () => {
       stroke-width="${element.borderWidth || 1}" 
       ${commonAttrs} ${transform} />`
                         break
-                        
+
                     case 'custom-image':
                         if (element.src) {
                             // Custom images use center positioning, so convert to top-left for SVG
@@ -967,10 +949,7 @@ const Canvas: React.FC = () => {
         }
 
         svgContent += '\n</svg>'
-        
-        console.log('SVG Export: Completed. Total elements:', elementCount, 'Total lines:', lineCount)
-        console.log('SVG Export: Final SVG length:', svgContent.length)
-        
+
         return svgContent
     }, [contextStageSize, renderableObjects])
 
@@ -1061,7 +1040,7 @@ const Canvas: React.FC = () => {
             }
         }
 
-        const handleGlobalMouseUp = (e: MouseEvent) => {
+        const handleGlobalMouseUp = (_e: MouseEvent) => {
             if (isDragging.current && activeTool?.type === "hand") {
                 isDragging.current = false
                 isManuallyDragging.current = false
@@ -1095,7 +1074,7 @@ const Canvas: React.FC = () => {
                 if (isInTextInput) {
                     return;
                 }
-                
+
                 // Check if we have a selected brush/eraser line to delete
                 if (selectedLineId && isBrushTransformModeActive && (activeTool?.type === "brush" || activeTool?.type === "eraser")) {
                     const success = drawingManager.removeSelectedLine(selectedLineId);
@@ -1109,7 +1088,7 @@ const Canvas: React.FC = () => {
             } else if ((e.metaKey || e.ctrlKey) && e.key === "d") {
                 // Handle Command+D (or Ctrl+D on Windows/Linux) for duplication
                 e.preventDefault() // Prevent browser's bookmark dialog
-                
+
                 // Check if we have a selected brush line to duplicate
                 if (selectedLineId && isBrushTransformModeActive && activeTool?.type === "brush") {
                     const newLineId = drawingManager.duplicateSelectedLine(selectedLineId)
@@ -1123,7 +1102,7 @@ const Canvas: React.FC = () => {
             } else if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
                 // Handle Ctrl+Alt+Arrow (or Cmd+Alt+Arrow on Mac) for rotation
                 if (isInTextInput) {
-                    return 
+                    return
                 }
 
                 e.preventDefault() // Prevent browser shortcuts
@@ -1148,12 +1127,12 @@ const Canvas: React.FC = () => {
                     elementsManager.rotateSelectedElement(rotationDegrees)
                 }
             } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
-                
+
                 if (isInTextInput) {
-                    return 
+                    return
                 }
 
-                e.preventDefault() 
+                e.preventDefault()
 
                 const distance = e.shiftKey ? 10 : 1
 
@@ -1714,7 +1693,6 @@ const Canvas: React.FC = () => {
 
                 liquifyManager.startLiquify(e)
             } else if (evt.button === 0) {
-                console.warn("Liquify: No image")
             }
         }
 
@@ -1742,7 +1720,6 @@ const Canvas: React.FC = () => {
 
                 blurManager.startBlurring(e)
             } else if (evt.button === 0) {
-                console.warn("Blur: No image")
             }
         }
 
@@ -2046,7 +2023,6 @@ const Canvas: React.FC = () => {
                     height: relHeight,
                 })
             } catch (error) {
-                console.warn("Error updating minimap viewport position:", error)
                 setVisibleCanvasRectOnMiniMap(null)
             }
         } else {

@@ -239,7 +239,6 @@ const useLiquify = ({
     isLiquifyingRef.current = true;
     lastMousePositionRef.current = imagePos;
     
-    // console.log(`Liquify Start: Mode=${mode}, Size=${brushSize}, Strength=${strength}`, imagePos);
   }, [selectedImageId, stageRef, isInitialized, initializeOffscreenCanvas, getMousePosOnCanvas, getMousePosOnImage]);
 
   const processLiquify = useCallback((konvaEvent: KonvaEventObject<MouseEvent>) => {
@@ -299,8 +298,6 @@ const useLiquify = ({
           displacementMapRef.current.set(key, newDisplacement);
           displacementChanged = true;
         } else if (mode === 'twirl') {
-          const centerX = currentMousePos.x;
-          const centerY = currentMousePos.y;
           const angle = (twirlDirection === 'left' ? -1 : 1) * effectStrength * 0.2; // Twirl angle
           const distToCenter = Math.sqrt(distX * distX + distY * distY);
           
@@ -324,8 +321,6 @@ const useLiquify = ({
             displacementChanged = true;
           }
         } else if (mode === 'pinch') {
-          const centerX = currentMousePos.x;
-          const centerY = currentMousePos.y;
           const distToCenter = Math.sqrt(distX * distX + distY * distY);
           
           if (distToCenter > 0.1) { // Avoid division by zero
@@ -346,8 +341,6 @@ const useLiquify = ({
             displacementChanged = true;
           }
         } else if (mode === 'expand') {
-          const centerX = currentMousePos.x;
-          const centerY = currentMousePos.y;
           const distToCenter = Math.sqrt(distX * distX + distY * distY);
           
           if (distToCenter > 0.1) { // Avoid division by zero
@@ -368,8 +361,6 @@ const useLiquify = ({
             displacementChanged = true;
           }
         } else if (mode === 'crystals') {
-          const centerX = currentMousePos.x;
-          const centerY = currentMousePos.y;
           const distToCenter = Math.sqrt(distX * distX + distY * distY);
           
           if (distToCenter > 0.1) { // Avoid division by zero
@@ -392,9 +383,6 @@ const useLiquify = ({
             displacementChanged = true;
           }
         } else if (mode === 'edge') {
-          const centerX = currentMousePos.x;
-          const centerY = currentMousePos.y;
-          
           // Create folding effect along a line (vertical fold)
           const distanceFromEdge = Math.abs(distX); // Distance from vertical edge line
           const edgeStrength = effectStrength * 0.4;
@@ -469,7 +457,6 @@ const useLiquify = ({
       });
     }
     
-    // console.log("Liquify End");
   }, [selectedImageId, stageRef, mode, strength, addHistoryEntry, renderableObjects, renderLiquifiedImageToKonva]);
 
   const getIsLiquifying = () => isLiquifyingRef.current;

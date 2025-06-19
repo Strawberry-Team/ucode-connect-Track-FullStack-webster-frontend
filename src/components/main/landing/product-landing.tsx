@@ -586,7 +586,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
         },
         {
             name: "Andrew Laskevych",
-            role: ["Backend Developer", "Product Manager"],
+            role: ["Backend Engineer", "Product Manager"],
             avatar: "/teams/andrew.webp",
             social: { github: "https://github.com/laskevych" }
         },
@@ -690,7 +690,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                         </p>
                     </motion.div>
 
-                    {/* Сетка карточек фичей */}
+                    {/* Features cards grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
                         {features.map((feature, index) => (
                             <motion.div
@@ -702,7 +702,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                 viewport={{ once: true }}
                                 whileHover={{ scale: 1.05, transition: { duration: 0.3 } }}
                             >
-                                {/* Превью изображения */}
+                                {/* Image preview */}
                                 <div className="relative mb-6 overflow-hidden rounded-2xl bg-gray-800/50">
                                     <img
                                         src={feature.preview}
@@ -712,7 +712,7 @@ const ProductLanding: React.FC<ProductLandingProps> = ({ toggleView }) => {
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </div>
 
-                                {/* Иконка и заголовок */}
+                                {/* Icon and title */}
                                 <div className="flex gap-4 items-start">
                                     <div className="flex-shrink-0 p-3 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white">
                                         {feature.icon}

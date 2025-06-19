@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Template } from '@/types/dashboard';
-import { SearchIcon, ChevronDownIcon, ChevronUpIcon, Settings2, FunnelPlus, Square, RectangleHorizontal, RectangleVertical, X, Loader2, Sparkles, ImageIcon, Zap } from 'lucide-react';
+import { SearchIcon, ChevronDownIcon, ChevronUpIcon, FunnelPlus, Square, RectangleHorizontal, RectangleVertical, X, Loader2, Sparkles, ImageIcon, Zap } from 'lucide-react';
 import { useUser } from "@/context/user-context"
 import {
   Tooltip,
@@ -21,9 +21,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 // API imports
-import { searchPixabayImages, type PixabayImage, type PixabayResponse } from '@/lib/api/pixabay';
-import { searchUnsplashImages, isUnsplashConfigured, type UnsplashImage, type UnsplashResponse } from '@/lib/api/unsplash';
-import { generateImage, generateMultipleImages, type GenerateImageOptions, type GeneratedImage } from '@/lib/api/pollinations-ai';
+import { searchPixabayImages, type PixabayImage } from '@/lib/api/pixabay';
+import { searchUnsplashImages, type UnsplashImage } from '@/lib/api/unsplash';
+import { type GenerateImageOptions, type GeneratedImage } from '@/lib/api/pollinations-ai';
 
 // Template image imports
 import template1 from '@/assets/project-templates/template_1_macbook.png';
@@ -63,7 +63,6 @@ const getFileExtensionFromUrl = (url: string): string => {
     }
   } catch (e) {
     // URL parsing might fail for data URLs or malformed URLs
-    console.warn("Invalid URL for extension extraction, defaulting to jpg:", url);
   }
   return 'png'; // Default to jpg if no valid extension found
 };
@@ -351,7 +350,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
 
   // AI Image generation function - copied from ai-image-generator-modal.tsx
   const generateImage = async (options: GenerateImageOptions): Promise<GeneratedImage> => {
-    const { prompt, backgroundType = "none", width = 1024, height = 1024, noLogo = true } = options;
+    const { prompt, backgroundType = "none", width = 1024, height = 1024} = options;
 
     if (!prompt.trim()) {
       throw new Error("Please enter an image description");
@@ -492,16 +491,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     let shouldSetAsBackground = false;
     let imageFileName: string | undefined = undefined;
 
-    console.log('CreateProjectModal: handleCreateWithDefaults called', {
-      selectedTemplateImage: selectedTemplateImage ? {
-        id: selectedTemplateImage.id,
-        title: selectedTemplateImage.title,
-        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
-      } : null,
-      setTemplateAsBackground,
-      activeTab
-    });
-
     // Determine background image, its type, and file name based on selection
     if (selectedImageId) {
       const selectedImage = pixabayImages.find(img => img.id === selectedImageId);
@@ -537,11 +526,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
       const extension = getFileExtensionFromUrl(selectedTemplateImage.imagePath);
       imageFileName = `${baseName}.${extension}`;
     }
-
-    console.log('CreateProjectModal: Final backgroundImage (defaults)', {
-      backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
-      shouldSetAsBackground
-    });
 
     onCreate(name, width, height, backgroundImage, shouldSetAsBackground, imageFileName);
     onClose();
@@ -610,25 +594,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     return colorMap[colorValue] || 'text-gray-300';
   };
 
-  // Function to get background color class based on color value
-  const getColorBgStyle = (colorValue: string) => {
-    const colorMap: Record<string, string> = {
-      'black_and_white': 'bg-gray-400',
-      'black': 'bg-gray-900',
-      'white': 'bg-gray-100',
-      'yellow': 'bg-yellow-400',
-      'orange': 'bg-orange-400',
-      'red': 'bg-red-400',
-      'purple': 'bg-purple-400',
-      'magenta': 'bg-pink-400',
-      'green': 'bg-green-400',
-      'teal': 'bg-teal-400',
-      'blue': 'bg-blue-400'
-    };
-
-    return colorMap[colorValue] || 'bg-gray-300';
-  };
-
   // Function to get Pixabay color styles
   const getPixabayColorStyle = (colorValue: string) => {
     const colorMap: Record<string, string> = {
@@ -649,27 +614,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     };
 
     return colorMap[colorValue] || 'text-gray-300';
-  };
-
-  const getPixabayColorBgStyle = (colorValue: string) => {
-    const colorMap: Record<string, string> = {
-      'grayscale': 'bg-gray-400',
-      'transparent': 'bg-gray-300',
-      'red': 'bg-red-400',
-      'orange': 'bg-orange-400',
-      'yellow': 'bg-yellow-400',
-      'green': 'bg-green-400',
-      'turquoise': 'bg-teal-400',
-      'blue': 'bg-blue-400',
-      'lilac': 'bg-purple-400',
-      'pink': 'bg-pink-400',
-      'white': 'bg-gray-100',
-      'gray': 'bg-gray-400',
-      'black': 'bg-gray-900',
-      'brown': 'bg-amber-600'
-    };
-
-    return colorMap[colorValue] || 'bg-gray-300';
   };
 
   const resetFormStates = () => {
@@ -902,16 +846,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
     let shouldSetAsBackground = false;
     let imageFileName: string | undefined = undefined;
 
-    console.log('CreateProjectModal: handleCreate called', {
-      selectedTemplateImage: selectedTemplateImage ? {
-        id: selectedTemplateImage.id,
-        title: selectedTemplateImage.title,
-        imagePath: selectedTemplateImage.imagePath.substring(0, 50) + '...',
-      } : null,
-      setTemplateAsBackground,
-      activeTab
-    });
-
     if (projectName.trim() && widthNum > 0 && heightNum > 0) {
       // Determine background image, its type, and file name based on selection
       if (selectedImageId) {
@@ -948,11 +882,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
         const extension = getFileExtensionFromUrl(selectedTemplateImage.imagePath);
         imageFileName = `${baseName}.${extension}`;
       }
-
-      console.log('CreateProjectModal: Final backgroundImage', {
-        backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
-        shouldSetAsBackground
-      });
 
       onCreate(projectName.trim(), widthNum, heightNum, backgroundImage, shouldSetAsBackground, imageFileName);
       onClose();
@@ -1190,23 +1119,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
   };
 
   const AspectRatioPreview: React.FC<{ width: number; height: number; iconUrl?: string; title?: string, className?: string }> = ({ width, height, iconUrl, title, className }) => {
-    const containerHeight = 128;
-    const containerPadding = 16;
-    const availableHeight = containerHeight - containerPadding;
-
-    let previewW, previewH;
     const aspectRatio = width / height;
-
-    if (width > height) {
-      previewH = availableHeight * 0.8;
-      previewW = previewH * aspectRatio;
-    } else {
-      previewW = availableHeight * 0.8 * aspectRatio;
-      previewH = availableHeight * 0.8;
-      if (aspectRatio === 1) {
-        previewW = previewH;
-      }
-    }
 
     let innerWidthPercent = '80%';
     let innerHeightPercent = '80%';

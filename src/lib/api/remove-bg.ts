@@ -10,8 +10,6 @@ export const removeImageBackground = async (
     formData.append('size', 'auto'); 
     formData.append('format', 'auto'); 
 
-    console.log('ImageAPI: Sending image to remove.bg API...');
-
     const response = await axios.post('https://api.remove.bg/v1.0/removebg', formData, {
       headers: {
         'X-Api-Key': apiKey,
@@ -24,7 +22,7 @@ export const removeImageBackground = async (
     return new Blob([response.data], { type: response.headers['content-type'] });
   } catch (error) {
     
-    // Обработка ошибок axios
+    // Handle axios errors
     if (axios.isAxiosError(error) && error.response) {
       console.error('ImageAPI: remove.bg API error details:', {
         status: error.response.status,

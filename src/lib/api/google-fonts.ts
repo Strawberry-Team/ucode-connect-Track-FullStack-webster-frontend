@@ -36,7 +36,6 @@ export const loadGoogleFonts = async (): Promise<GoogleFont[]> => {
   const apiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
   
   if (!apiKey) {
-    console.warn('Google Fonts API key not configured. Using empty fonts list.');
     return [];
   }
 

@@ -1,5 +1,4 @@
 import { useRef, useCallback } from 'react';
-import { useTool } from '@/context/tool-context';
 
 export interface HandHookProps {
   containerRef: React.RefObject<HTMLDivElement | null>;

@@ -175,56 +175,41 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
   const toggleAuthVisibility = () => {
     if (!loggedInUser) {
       setIsAuthVisible(!isAuthVisible);
-      console.log("Toggling auth visibility to:", !isAuthVisible);
+
     }
   };
 
   const handleCreateNewProject = (name: string, width: number, height: number, backgroundImage?: string, setAsBackground?: boolean, imageFileName?: string) => {
-    console.log('DashboardPage: handleCreateNewProject called', {
-      name,
-      width,
-      height,
-      backgroundImage: backgroundImage ? backgroundImage.substring(0, 50) + '...' : undefined,
-      setAsBackground
-    });
 
     resetAllToolSettings();
     setInitialImage(null);
     setStageSize({ width, height });
     setIsCanvasManuallyResized(true);
 
-    // Якщо є backgroundImage, створюємо custom-image елемент
+    // If backgroundImage exists, create custom-image element
     if (backgroundImage) {
-      console.log('DashboardPage: Creating image element for background', {
-        imageUrl: backgroundImage.substring(0, 50) + '...',
-        setAsBackground
-      });
 
       const img = new window.Image();
       img.onload = () => {
-        console.log('DashboardPage: Background image loaded successfully', {
-          naturalWidth: img.naturalWidth,
-          naturalHeight: img.naturalHeight
-        });
 
-        // Вираховуємо розміри зображення для canvas
+        // Calculate image size for canvas
         let imageWidth, imageHeight;
         
         if (setAsBackground) {
-          // Якщо встановлено як фон, покриваємо весь canvas зберігаючи пропорції
+          // If set as background, cover the entire canvas preserving proportions
           const scaleX = width / img.naturalWidth;
           const scaleY = height / img.naturalHeight;
-          const scale = Math.max(scaleX, scaleY); // Використовуємо більший scale щоб покрити весь canvas
+          const scale = Math.max(scaleX, scaleY); // Use larger scale to cover the entire canvas
           
           imageWidth = img.naturalWidth * scale;
           imageHeight = img.naturalHeight * scale;
         } else {
-          // Якщо не фон, зберігаємо пропорції та масштабуємо при потребі
+          // If not background, preserve proportions and scale if needed
           imageWidth = img.naturalWidth;
           imageHeight = img.naturalHeight;
           
-          // Масштабуємо зображення, якщо воно більше за canvas
-          const maxSize = Math.min(width * 0.9, height * 0.9); // 90% від розміру canvas
+          // Scale image if it's larger than canvas
+          const maxSize = Math.min(width * 0.9, height * 0.9); // 90% of canvas size
           if (img.naturalWidth > maxSize || img.naturalHeight > maxSize) {
             const scaleX = maxSize / img.naturalWidth;
             const scaleY = maxSize / img.naturalHeight;
@@ -235,11 +220,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
           }
         }
         
-        // Центруємо зображення на canvas
+        // Center image on canvas
         const imageCenterX = width / 2;
         const imageCenterY = height / 2;
         
-        // Створюємо елемент зображення
+        // Create image element
         const imageElement: ElementData = {
           id: `template-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: "custom-image",
@@ -262,34 +247,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
           preserveAspectRatio: true,
         };
 
-        console.log('DashboardPage: Template element created', {
-          id: imageElement.id,
-          type: imageElement.type,
-          x: imageElement.x,
-          y: imageElement.y,
-          width: imageElement.width,
-          height: imageElement.height,
-          src: imageElement.src ? imageElement.src.substring(0, 50) + '...' : 'undefined',
-          fileName: imageElement.fileName
-        });
-        
-        // Додаємо елемент до renderableObjects
+        // Add element to renderableObjects
         setRenderableObjects([imageElement]);
         
-        // Додаємо до історії
+        // Add to history 
         clearHistory();
         addHistoryEntry({
           type: 'elementAdded',
           description: `Template added: ${name}`,
           linesSnapshot: [imageElement]
         });
-
-        console.log('DashboardPage: Template element added to renderableObjects successfully');
       };
       
       img.onerror = () => {
         console.error("DashboardPage: Error loading background image", {
-          imageUrl: backgroundImage.substring(0, 50) + '...'
+          imageUrl: backgroundImage!.substring(0, 50) + '...'
         });
         toast.error("Image Error", {
           description: "Could not load the background image",
@@ -455,7 +427,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ googleAuthSuccess = false
   };
 
   const handleAuthSuccess = (user: import('@/types/auth').User) => {
-    console.log('User successfully authorized in DashboardPage, updating context:', user);
     loginUserContext(user);
     setIsAuthVisible(false);
     

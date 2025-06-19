@@ -267,7 +267,7 @@ const useCropping = ({
     });
   };
 
-  const handleCropRectTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
+  const handleCropRectTransformEnd = (_e: Konva.KonvaEventObject<Event>) => {
     const node = cropRectRef.current;
     if (node && cropRect) {
       const newWidth = Math.max(5, node.width() * node.scaleX());

@@ -15,7 +15,6 @@ import {
   RotateCw,
   RotateCcw as TwirlLeft,
   Image as ImageIcon,
-  MousePointerClick,
   Repeat
 } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
@@ -62,7 +61,6 @@ const LiquifyOptions: React.FC = () => {
     if (resetLiquifyFunction) {
       resetLiquifyFunction();
     } else {
-      console.warn("resetLiquifyFunction is not available");
     }
   };
 

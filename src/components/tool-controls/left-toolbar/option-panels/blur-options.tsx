@@ -2,7 +2,7 @@ import React from "react";
 import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, ChevronDown, Droplet, Image as ImageIcon, MousePointer, MousePointerClick, Repeat } from "lucide-react";
+import { RotateCcw, ChevronDown, Image as ImageIcon, Repeat } from "lucide-react";
 import NumberInputWithPopover from "@/components/ui/number-input-with-popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { resetBlurFunction } from "@/components/canvas/canvas";
@@ -43,7 +43,6 @@ const BlurOptions: React.FC = () => {
     if (resetBlurFunction) {
       resetBlurFunction();
     } else {
-      console.warn("resetBlurFunction is not available");
     }
   };
 

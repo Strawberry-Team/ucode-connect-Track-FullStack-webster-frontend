@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import type { ElementData, LineData, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType, RenderableObject } from "@/types/canvas";
+import type { ElementData, FontStyles, TextAlignment, TextCase, BorderStyle, ShapeType } from "@/types/canvas";
 import type Konva from "konva";
 import { useTool } from "@/context/tool-context";
 
@@ -36,7 +36,7 @@ export interface ElementsManagementProps {
 
 const useElementsManagement = ({
   color: defaultPropColor,
-  secondaryColor: defaultPropSecondaryColor,
+  secondaryColor: _defaultPropSecondaryColor,
   opacity: defaultPropOpacity,
   fontSize: defaultFontSize = 16,
   fontFamily: defaultFontFamily = "Arial",
@@ -54,7 +54,7 @@ const useElementsManagement = ({
   borderWidth: defaultBorderWidth = 2,
   borderStyle: defaultBorderStyle = "solid",
   cornerRadius: defaultCornerRadius = 0,
-  shapeTransform: defaultShapeTransform = { rotate: 0, scaleX: 1, scaleY: 1 },
+  shapeTransform: _defaultShapeTransform = { rotate: 0, scaleX: 1, scaleY: 1 },
   textColorOpacity: defaultTextColorOpacity = 100,
   borderColorOpacity: defaultBorderColorOpacity = 100
 }: ElementsManagementProps) => {
@@ -98,12 +98,12 @@ const useElementsManagement = ({
     return renderableObjects.filter(obj => !('tool' in obj)) as ElementData[];
   }, [renderableObjects]);
 
-  const getElementById = useCallback((id: string): {element: ElementData, indexInRenderables: number} | null => {
+  const getElementById = useCallback((id: string): { element: ElementData, indexInRenderables: number } | null => {
     const indexInRenderables = renderableObjects.findIndex(obj => ('id' in obj && obj.id === id) && !('tool' in obj));
     if (indexInRenderables === -1) return null;
     const foundObject = renderableObjects[indexInRenderables];
     if (!('tool' in foundObject)) {
-        return {element: foundObject as ElementData, indexInRenderables};
+      return { element: foundObject as ElementData, indexInRenderables };
     }
     return null;
   }, [renderableObjects]);
@@ -131,9 +131,9 @@ const useElementsManagement = ({
 
         // Only deselect if switching to a conflicting tool
         if (!canBeSelected && (
-          activeTool.type === "shape" || 
-          activeTool.type === "text" || 
-          activeTool.type === "cursor" || 
+          activeTool.type === "shape" ||
+          activeTool.type === "text" ||
+          activeTool.type === "cursor" ||
           activeTool.type === "image-transform"
         )) {
           setSelectedElementId(null);
@@ -191,22 +191,22 @@ const useElementsManagement = ({
         borderStyle: "hidden",
       };
     } else if (type === "custom-image") {
-        newElementToAdd = {
-            ...baseElement,
-            type: "custom-image",
-            src: settings?.src,
-            fileName: settings?.fileName,
-            borderColor: settings?.borderColor ?? toolShapeBorderColor ?? "#000000",
-            borderColorOpacity: settings?.borderColorOpacity ?? toolBorderColorOpacity ?? defaultBorderColorOpacity,
-            borderWidth: settings?.borderWidth ?? 0,
-            borderStyle: settings?.borderStyle ?? "hidden",
-            color: settings?.color ?? defaultPropColor,
-            // Image transform properties
-            flipHorizontal: settings?.flipHorizontal ?? false,
-            flipVertical: settings?.flipVertical ?? false,
-            brightness: settings?.brightness ?? 0,
-            contrast: settings?.contrast ?? 0,
-        };
+      newElementToAdd = {
+        ...baseElement,
+        type: "custom-image",
+        src: settings?.src,
+        fileName: settings?.fileName,
+        borderColor: settings?.borderColor ?? toolShapeBorderColor ?? "#000000",
+        borderColorOpacity: settings?.borderColorOpacity ?? toolBorderColorOpacity ?? defaultBorderColorOpacity,
+        borderWidth: settings?.borderWidth ?? 0,
+        borderStyle: settings?.borderStyle ?? "hidden",
+        color: settings?.color ?? defaultPropColor,
+        // Image transform properties
+        flipHorizontal: settings?.flipHorizontal ?? false,
+        flipVertical: settings?.flipVertical ?? false,
+        brightness: settings?.brightness ?? 0,
+        contrast: settings?.contrast ?? 0,
+      };
     } else {
       const shapeFillColor = settings?.fillColor ?? (toolFillColor === 'transparent' ? undefined : toolFillColor) ?? defaultFillColor;
       const shapeFillOpacity = settings?.fillColorOpacity ?? toolFillColorOpacity ?? defaultFillColorOpacity;
@@ -224,30 +224,30 @@ const useElementsManagement = ({
         cornerRadius: type === "rounded-rectangle" ? (settings?.cornerRadius ?? toolShapeCornerRadius ?? defaultCornerRadius) : undefined,
       };
     }
-    
+
     addRenderableObjectToContext(newElementToAdd);
     setSelectedElementId(newElementToAdd.id);
 
     // Create a descriptive message for adding elements
     const elementTypeName = getElementTypeName(type);
     let addDescription = `Added ${elementTypeName}`;
-    
+
     // Add specific information for text elements
     if (type === 'text' && text) {
-        const truncatedText = text.length > 20 
-            ? `${text.substring(0, 20)}...` 
-            : text;
-        addDescription = `Added text: "${truncatedText}"`;
+      const truncatedText = text.length > 20
+        ? `${text.substring(0, 20)}...`
+        : text;
+      addDescription = `Added text: "${truncatedText}"`;
     }
 
     addHistoryEntry({
-        type: 'elementAdded',
-        description: addDescription,
-        linesSnapshot: [...renderableObjects, newElementToAdd],
-        metadata: {
-            elementId: newElementToAdd.id,
-            elementType: type
-        }
+      type: 'elementAdded',
+      description: addDescription,
+      linesSnapshot: [...renderableObjects, newElementToAdd],
+      metadata: {
+        elementId: newElementToAdd.id,
+        elementType: type
+      }
     });
 
     // Call the onAdded callback if provided
@@ -255,21 +255,21 @@ const useElementsManagement = ({
       onAdded(newElementToAdd.id);
     }
   },
-  [
-    addRenderableObjectToContext, 
-    toolMainColor, toolSecondaryMainColor, toolOpacity,
-    toolTextColor, toolTextBgColor, toolTextBgOpacity, toolHighlightColor, toolHighlightOpacity,
-    toolFontSize, toolFontFamily, toolFontStyles, toolTextCase, toolTextAlign, toolLineHeight,
-    toolFillColor, toolFillColorOpacity, toolShapeBorderColor, toolShapeBorderWidth, toolShapeBorderStyle,
-    toolShapeCornerRadius, currentToolShapeType, toolShapeTransform,
-    toolTextColorOpacity, toolBorderColorOpacity,
-    defaultPropColor, defaultFontSize, defaultFontFamily, defaultFontStyles, defaultTextCase, defaultTextAlignment,
-    defaultLineHeight, defaultBackgroundColor, defaultBackgroundOpacity, defaultHighlightColor, defaultHighlightOpacity,
-    defaultFillColor, defaultFillColorOpacity, defaultBorderColor, defaultBorderWidth, defaultBorderStyle, defaultCornerRadius,
-    defaultTextColorOpacity, defaultBorderColorOpacity,
-    addHistoryEntry
-  ]
-);
+    [
+      addRenderableObjectToContext,
+      toolMainColor, toolSecondaryMainColor, toolOpacity,
+      toolTextColor, toolTextBgColor, toolTextBgOpacity, toolHighlightColor, toolHighlightOpacity,
+      toolFontSize, toolFontFamily, toolFontStyles, toolTextCase, toolTextAlign, toolLineHeight,
+      toolFillColor, toolFillColorOpacity, toolShapeBorderColor, toolShapeBorderWidth, toolShapeBorderStyle,
+      toolShapeCornerRadius, currentToolShapeType, toolShapeTransform,
+      toolTextColorOpacity, toolBorderColorOpacity,
+      defaultPropColor, defaultFontSize, defaultFontFamily, defaultFontStyles, defaultTextCase, defaultTextAlignment,
+      defaultLineHeight, defaultBackgroundColor, defaultBackgroundOpacity, defaultHighlightColor, defaultHighlightOpacity,
+      defaultFillColor, defaultFillColorOpacity, defaultBorderColor, defaultBorderWidth, defaultBorderStyle, defaultCornerRadius,
+      defaultTextColorOpacity, defaultBorderColorOpacity,
+      addHistoryEntry
+    ]
+  );
 
   const updateElement = useCallback((id: string, newData: Partial<ElementData>) => {
     const updatedObjects = renderableObjects.map(obj => {
@@ -278,11 +278,11 @@ const useElementsManagement = ({
       }
       return obj;
     });
-    
+
     setRenderableObjects(updatedObjects);
 
     const changedKeys = Object.keys(newData);
-    const isSignificantChange = changedKeys.some(key => 
+    const isSignificantChange = changedKeys.some(key =>
       !['x', 'y'].includes(key) || // All changes except position
       (changedKeys.includes('x') && changedKeys.includes('y') && changedKeys.length === 2) // Or only position if this is the final move
     );
@@ -290,7 +290,7 @@ const useElementsManagement = ({
     if (isSignificantChange) {
       const element = renderableObjects.find(obj => !('tool' in obj) && obj.id === id) as ElementData;
       const elementTypeName = element ? getElementTypeName(element.type) : 'element';
-      
+
       addHistoryEntry({
         type: 'elementModified',
         description: `Modified ${elementTypeName}`,
@@ -317,28 +317,28 @@ const useElementsManagement = ({
 
     // Custom images can only be selected with image-transform tool
     if (clickedElement.type === "custom-image") {
-        canBeSelectedBasedOnToolAndElementType = activeTool?.type === "image-transform";
+      canBeSelectedBasedOnToolAndElementType = activeTool?.type === "image-transform";
     }
     // Text elements can be selected with cursor or text tool
     else if (clickedElement.type === "text") {
-        canBeSelectedBasedOnToolAndElementType = activeTool?.type === "cursor" || activeTool?.type === "text";
+      canBeSelectedBasedOnToolAndElementType = activeTool?.type === "cursor" || activeTool?.type === "text";
     }
     // Shape elements can only be selected with shape tool
     else {
-        const isShapeElement = clickedElement.type !== "text" && clickedElement.type !== "custom-image";
-        if (isShapeElement) {
-            canBeSelectedBasedOnToolAndElementType = activeTool?.type === "shape";
-        }
+      const isShapeElement = clickedElement.type !== "text" && clickedElement.type !== "custom-image";
+      if (isShapeElement) {
+        canBeSelectedBasedOnToolAndElementType = activeTool?.type === "shape";
+      }
     }
 
     if (canBeSelectedBasedOnToolAndElementType) {
-        setSelectedElementId(id);
+      setSelectedElementId(id);
     } else {
-        // Only deselect if using the wrong tool for this element type
-        // Don't deselect when clicking with other tools to preserve selection
-        if (activeTool?.type === "shape" || activeTool?.type === "text" || activeTool?.type === "cursor" || activeTool?.type === "image-transform") {
-            setSelectedElementId(null);
-        }
+      // Only deselect if using the wrong tool for this element type
+      // Don't deselect when clicking with other tools to preserve selection
+      if (activeTool?.type === "shape" || activeTool?.type === "text" || activeTool?.type === "cursor" || activeTool?.type === "image-transform") {
+        setSelectedElementId(null);
+      }
     }
   }, [activeTool, getElementById, setSelectedElementId]);
 
@@ -349,17 +349,17 @@ const useElementsManagement = ({
       }
       return obj;
     });
-    
+
     setRenderableObjects(updatedObjects);
 
     const element = renderableObjects.find(obj => !('tool' in obj) && obj.id === id) as ElementData;
     if (element && element.text !== newText && newText.trim() !== "") {
       // Create a descriptive message for text updates
-      const truncatedNewText = newText.length > 20 
-          ? `${newText.substring(0, 20)}...` 
-          : newText;
+      const truncatedNewText = newText.length > 20
+        ? `${newText.substring(0, 20)}...`
+        : newText;
       const textUpdateDescription = `Updated text: "${truncatedNewText}"`;
-      
+
       addHistoryEntry({
         type: 'elementModified',
         description: textUpdateDescription,
@@ -390,43 +390,43 @@ const useElementsManagement = ({
 
   const removeSelectedElement = useCallback(() => {
     if (!selectedElementId) return;
-    
+
     const elementToRemove = renderableObjects.find(obj => !('tool' in obj) && obj.id === selectedElementId) as ElementData;
     const updatedObjects = renderableObjects.filter(obj => {
-        if ('tool' in obj) return true;
-        return obj.id !== selectedElementId;
+      if ('tool' in obj) return true;
+      return obj.id !== selectedElementId;
     });
-    
+
     setRenderableObjects(updatedObjects);
     setSelectedElementId(null);
 
     if (elementToRemove) {
-        const elementTypeName = getElementTypeName(elementToRemove.type);
-        
-        // Create a more descriptive removal message
-        let removeDescription = `Removed ${elementTypeName}`;
-        
-        // Add specific information for text elements
-        if (elementToRemove.type === 'text' && elementToRemove.text) {
-            const truncatedText = elementToRemove.text.length > 20 
-                ? `${elementToRemove.text.substring(0, 20)}...` 
-                : elementToRemove.text;
-            removeDescription = `Removed text: "${truncatedText}"`;
+      const elementTypeName = getElementTypeName(elementToRemove.type);
+
+      // Create a more descriptive removal message
+      let removeDescription = `Removed ${elementTypeName}`;
+
+      // Add specific information for text elements
+      if (elementToRemove.type === 'text' && elementToRemove.text) {
+        const truncatedText = elementToRemove.text.length > 20
+          ? `${elementToRemove.text.substring(0, 20)}...`
+          : elementToRemove.text;
+        removeDescription = `Removed text: "${truncatedText}"`;
+      }
+      // Add specific information for images
+      else if (elementToRemove.type === 'custom-image' && elementToRemove.fileName) {
+        removeDescription = `Removed image: ${elementToRemove.fileName}`;
+      }
+
+      addHistoryEntry({
+        type: 'elementRemoved',
+        description: removeDescription,
+        linesSnapshot: updatedObjects,
+        metadata: {
+          elementId: selectedElementId,
+          elementType: elementToRemove.type
         }
-        // Add specific information for images
-        else if (elementToRemove.type === 'custom-image' && elementToRemove.fileName) {
-            removeDescription = `Removed image: ${elementToRemove.fileName}`;
-        }
-        
-        addHistoryEntry({
-            type: 'elementRemoved',
-            description: removeDescription,
-            linesSnapshot: updatedObjects,
-            metadata: {
-                elementId: selectedElementId,
-                elementType: elementToRemove.type
-            }
-        });
+      });
     }
   }, [selectedElementId, renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
@@ -450,13 +450,13 @@ const useElementsManagement = ({
 
   const rotateSelectedElement = useCallback((degrees = 15) => {
     if (!selectedElementId) return;
-    
+
     const elementResult = getElementById(selectedElementId);
     if (!elementResult) return;
-    
+
     const element = elementResult.element;
     const newRotation = (element.rotation ?? 0) + degrees;
-    
+
     // Update element with new rotation
     const updatedObjects = renderableObjects.map(obj => {
       if (!('tool' in obj) && obj.id === selectedElementId) {
@@ -464,25 +464,25 @@ const useElementsManagement = ({
       }
       return obj;
     });
-    
+
     setRenderableObjects(updatedObjects);
-    
+
     // Create descriptive rotation message for history
     const elementTypeName = getElementTypeName(element.type);
     let rotationDescription = `Rotated ${elementTypeName} ${degrees > 0 ? '+' : ''}${degrees}°`;
-    
+
     // Add specific information for text elements
     if (element.type === 'text' && element.text) {
-        const truncatedText = element.text.length > 15 
-            ? `${element.text.substring(0, 15)}...` 
-            : element.text;
-        rotationDescription = `Rotated text "${truncatedText}" ${degrees > 0 ? '+' : ''}${degrees}°`;
+      const truncatedText = element.text.length > 15
+        ? `${element.text.substring(0, 15)}...`
+        : element.text;
+      rotationDescription = `Rotated text "${truncatedText}" ${degrees > 0 ? '+' : ''}${degrees}°`;
     }
     // Add specific information for images
     else if (element.type === 'custom-image' && element.fileName) {
-        rotationDescription = `Rotated image ${element.fileName} ${degrees > 0 ? '+' : ''}${degrees}°`;
+      rotationDescription = `Rotated image ${element.fileName} ${degrees > 0 ? '+' : ''}${degrees}°`;
     }
-    
+
     addHistoryEntry({
       type: 'elementModified',
       description: rotationDescription,
@@ -496,63 +496,63 @@ const useElementsManagement = ({
 
   const duplicateSelectedElement = useCallback(() => {
     if (!selectedElementId) return;
-    
+
     const elementToDuplicate = renderableObjects.find(obj => !('tool' in obj) && obj.id === selectedElementId) as ElementData | undefined;
     if (!elementToDuplicate) return;
-    
+
     const newElement: ElementData = {
-        ...elementToDuplicate,
-        id: crypto.randomUUID(),
-        x: (elementToDuplicate.x ?? 0) + 20,
-        y: (elementToDuplicate.y ?? 0) + 20,
+      ...elementToDuplicate,
+      id: crypto.randomUUID(),
+      x: (elementToDuplicate.x ?? 0) + 20,
+      y: (elementToDuplicate.y ?? 0) + 20,
     };
-    
+
     const updatedObjects = [...renderableObjects, newElement];
     setRenderableObjects(updatedObjects);
     setSelectedElementId(newElement.id);
 
     const elementTypeName = getElementTypeName(elementToDuplicate.type);
-    
+
     // Create a more descriptive duplication message
     let duplicateDescription = `Duplicated ${elementTypeName}`;
-    
+
     // Add specific information for text elements
     if (elementToDuplicate.type === 'text' && elementToDuplicate.text) {
-        const truncatedText = elementToDuplicate.text.length > 20 
-            ? `${elementToDuplicate.text.substring(0, 20)}...` 
-            : elementToDuplicate.text;
-        duplicateDescription = `Duplicated text: "${truncatedText}"`;
+      const truncatedText = elementToDuplicate.text.length > 20
+        ? `${elementToDuplicate.text.substring(0, 20)}...`
+        : elementToDuplicate.text;
+      duplicateDescription = `Duplicated text: "${truncatedText}"`;
     }
     // Add specific information for images
     else if (elementToDuplicate.type === 'custom-image' && elementToDuplicate.fileName) {
-        duplicateDescription = `Duplicated image: ${elementToDuplicate.fileName}`;
+      duplicateDescription = `Duplicated image: ${elementToDuplicate.fileName}`;
     }
-    
+
     addHistoryEntry({
-        type: 'elementDuplicated',
-        description: duplicateDescription,
-        linesSnapshot: updatedObjects,
-        metadata: {
-            elementId: newElement.id,
-            elementType: elementToDuplicate.type
-        }
+      type: 'elementDuplicated',
+      description: duplicateDescription,
+      linesSnapshot: updatedObjects,
+      metadata: {
+        elementId: newElement.id,
+        elementType: elementToDuplicate.type
+      }
     });
   }, [selectedElementId, renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
   const clearElements = useCallback(() => {
     const elementsToRemove = renderableObjects.filter(obj => !('tool' in obj));
-    
-    if (elementsToRemove.length > 0) {
-        const onlyLines = renderableObjects.filter(obj => 'tool' in obj);
-        setRenderableObjects(onlyLines);
-        setSelectedElementId(null);
 
-        addHistoryEntry({
-            type: 'elementRemoved',
-            description: `All elements removed (${elementsToRemove.length})`,
-            linesSnapshot: onlyLines,
-            metadata: {}
-        });
+    if (elementsToRemove.length > 0) {
+      const onlyLines = renderableObjects.filter(obj => 'tool' in obj);
+      setRenderableObjects(onlyLines);
+      setSelectedElementId(null);
+
+      addHistoryEntry({
+        type: 'elementRemoved',
+        description: `All elements removed (${elementsToRemove.length})`,
+        linesSnapshot: onlyLines,
+        metadata: {}
+      });
     }
   }, [renderableObjects, setRenderableObjects, setSelectedElementId, addHistoryEntry]);
 
@@ -585,7 +585,6 @@ const useElementsManagement = ({
   const sendElementToBack = useCallback((elementId: string) => {
     const elementResult = getElementById(elementId);
     if (!elementResult) {
-      console.warn('ElementsManagement: Element not found for sendElementToBack:', elementId);
       return;
     }
 
@@ -598,22 +597,7 @@ const useElementsManagement = ({
 
     // Add the element after lines but before other elements (back)
     const updatedObjects = [...lines, elementToMove, ...otherElements];
-    
-    // Log the reordering operation
-    const beforeOrder = renderableObjects
-      .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
-    const afterOrder = updatedObjects
-      .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
-    
-    console.log('ElementsManagement: Sending element to back', {
-      elementId: elementId.slice(-6),
-      elementType: elementToMove.type,
-      beforeOrder,
-      afterOrder
-    });
-    
+
     setRenderableObjects(updatedObjects);
 
     const elementTypeName = getElementTypeName(elementToMove.type);
@@ -631,7 +615,6 @@ const useElementsManagement = ({
   const sendElementToBackground = useCallback((elementId: string) => {
     const elementResult = getElementById(elementId);
     if (!elementResult) {
-      console.warn('ElementsManagement: Element not found for sendElementToBackground:', elementId);
       return;
     }
 
@@ -643,22 +626,7 @@ const useElementsManagement = ({
 
     // Add the element at the very beginning (true background - before everything including lines)
     const updatedObjects = [elementToMove, ...otherObjects];
-    
-    // Log the reordering operation
-    const beforeOrder = renderableObjects
-      .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
-    const afterOrder = updatedObjects
-      .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ index, type: (obj as ElementData).type, id: obj.id.slice(-6) }));
-    
-    console.log('ElementsManagement: Setting element as true background', {
-      elementId: elementId.slice(-6),
-      elementType: elementToMove.type,
-      beforeOrder,
-      afterOrder
-    });
-    
+
     setRenderableObjects(updatedObjects);
 
     const elementTypeName = getElementTypeName(elementToMove.type);
@@ -675,14 +643,14 @@ const useElementsManagement = ({
 
   const moveSelectedElement = useCallback((direction: 'up' | 'down' | 'left' | 'right', distance: number = 1) => {
     if (!selectedElementId) return;
-    
+
     const elementResult = getElementById(selectedElementId);
     if (!elementResult) return;
-    
+
     const element = elementResult.element;
     let deltaX = 0;
     let deltaY = 0;
-    
+
     switch (direction) {
       case 'up':
         deltaY = -distance;
@@ -697,22 +665,20 @@ const useElementsManagement = ({
         deltaX = distance;
         break;
     }
-    
+
     const newX = (element.x || 0) + deltaX;
     const newY = (element.y || 0) + deltaY;
-    
+
     updateElement(selectedElementId, { x: newX, y: newY });
   }, [selectedElementId, getElementById, updateElement]);
 
   const adjustImageToCanvas = useCallback((imageId: string) => {
     if (!contextStageSize) {
-      console.warn('ElementsManagement: No canvas size available for adjust operation');
       return;
     }
 
     const elementResult = getElementById(imageId);
     if (!elementResult || elementResult.element.type !== 'custom-image') {
-      console.warn('ElementsManagement: Element not found or not an image for adjust operation');
       return;
     }
 
@@ -736,17 +702,6 @@ const useElementsManagement = ({
     const newX = canvasCenterX; // Image x,y represents the center, not top-left
     const newY = canvasCenterY; // Image x,y represents the center, not top-left
 
-    console.log('ElementsManagement: Adjusting image to canvas', {
-      imageId: imageId.slice(-6),
-      originalSize: { width: imageWidth, height: imageHeight },
-      canvasSize: { width: canvasWidth, height: canvasHeight },
-      canvasCenter: { x: canvasCenterX, y: canvasCenterY },
-      scale,
-      newSize: { width: newWidth, height: newHeight },
-      newPosition: { x: newX, y: newY },
-      imageCenter: { x: newX, y: newY } // x,y IS the center for center-based coordinates
-    });
-
     updateElement(imageId, {
       x: newX,
       y: newY,
@@ -760,13 +715,11 @@ const useElementsManagement = ({
 
   const fitImageToCanvas = useCallback((imageId: string) => {
     if (!contextStageSize) {
-      console.warn('ElementsManagement: No canvas size available for fit operation');
       return;
     }
 
     const elementResult = getElementById(imageId);
     if (!elementResult || elementResult.element.type !== 'custom-image') {
-      console.warn('ElementsManagement: Element not found or not an image for fit operation');
       return;
     }
 
@@ -790,23 +743,6 @@ const useElementsManagement = ({
     const newX = canvasCenterX; // Image x,y represents the center, not top-left
     const newY = canvasCenterY; // Image x,y represents the center, not top-left
 
-    console.log('ElementsManagement: Fitting image to canvas', {
-      imageId: imageId.slice(-6),
-      originalSize: { width: imageWidth, height: imageHeight },
-      canvasSize: { width: canvasWidth, height: canvasHeight },
-      canvasCenter: { x: canvasCenterX, y: canvasCenterY },
-      scale,
-      newSize: { width: newWidth, height: newHeight },
-      newPosition: { x: newX, y: newY },
-      imageCenter: { x: newX, y: newY }, // x,y IS the center for center-based coordinates
-      extendsCanvas: { 
-        right: (newX + newWidth / 2) > canvasWidth, 
-        bottom: (newY + newHeight / 2) > canvasHeight,
-        left: (newX - newWidth / 2) < 0,
-        top: (newY - newHeight / 2) < 0
-      }
-    });
-
     updateElement(imageId, {
       x: newX,
       y: newY,
@@ -819,10 +755,6 @@ const useElementsManagement = ({
   }, [contextStageSize, getElementById, updateElement]);
 
   const setImageAsBackground = useCallback((imageId: string) => {
-    console.log('ElementsManagement: Setting image as background', {
-      imageId: imageId.slice(-6)
-    });
-
     // Send element to background using existing functionality
     sendElementToBackground(imageId);
 
@@ -831,20 +763,12 @@ const useElementsManagement = ({
       fitImageToCanvas(imageId);
     }
 
-    console.log('ElementsManagement: Image successfully set as background');
   }, [sendElementToBackground, fitImageToCanvas, contextStageSize]);
 
   const setCanvasBackground = useCallback((color: string, opacity: number) => {
     if (!contextStageSize) {
-      console.warn('ElementsManagement: No canvas size available for background operation');
       return;
     }
-
-    console.log('ElementsManagement: Setting canvas background', {
-      color,
-      opacity,
-      canvasSize: { width: contextStageSize.width, height: contextStageSize.height }
-    });
 
     // Remove any existing background elements first
     const otherObjects = renderableObjects.filter(obj => {
@@ -878,7 +802,7 @@ const useElementsManagement = ({
 
     // Add background element at the very beginning (true background - before everything including lines)
     const newRenderableObjects = [backgroundElement, ...otherObjects];
-    
+
     setRenderableObjects(newRenderableObjects);
 
     // Add to history
@@ -887,32 +811,10 @@ const useElementsManagement = ({
       description: `Set canvas background color`,
       linesSnapshot: newRenderableObjects
     });
-
-    // Log the final element order for debugging
-    const finalOrder = newRenderableObjects
-      .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ 
-        index, 
-        type: (obj as ElementData).type, 
-        id: obj.id.slice(-6),
-        isBackground: obj.id.startsWith('background-')
-      }));
-
-    console.log('ElementsManagement: Canvas background successfully set', {
-      backgroundElement: {
-        id: backgroundElement.id.slice(-6),
-        position: { x: backgroundElement.x, y: backgroundElement.y },
-        size: { width: backgroundElement.width, height: backgroundElement.height },
-        color: backgroundElement.fillColor,
-        opacity: backgroundElement.fillColorOpacity
-      },
-      finalElementOrder: finalOrder,
-      totalObjects: newRenderableObjects.length
-    });
   }, [contextStageSize, renderableObjects, setRenderableObjects, addHistoryEntry]);
 
   const removeCanvasBackground = useCallback(() => {
-    console.log('ElementsManagement: Removing canvas background');
+
 
     // Remove all background elements
     const newRenderableObjects = renderableObjects.filter(obj => {
@@ -927,20 +829,6 @@ const useElementsManagement = ({
       type: 'elementRemoved',
       description: `Removed canvas background`,
       linesSnapshot: newRenderableObjects
-    });
-
-    // Log the final element order for debugging
-    const finalOrder = newRenderableObjects
-      .filter(obj => !('tool' in obj))
-      .map((obj, index) => ({ 
-        index, 
-        type: (obj as ElementData).type, 
-        id: obj.id.slice(-6) 
-      }));
-
-    console.log('ElementsManagement: Canvas background successfully removed', {
-      finalElementOrder: finalOrder,
-      totalObjects: newRenderableObjects.length
     });
   }, [renderableObjects, setRenderableObjects, addHistoryEntry]);
 
@@ -980,7 +868,7 @@ const getElementTypeName = (type: string): string => {
   const typeNames: Record<string, string> = {
     'text': 'text element',
     'rectangle': 'rectangle',
-    'square': 'square', 
+    'square': 'square',
     'rounded-rectangle': 'rounded rectangle',
     'squircle': 'squircle',
     'circle': 'circle',

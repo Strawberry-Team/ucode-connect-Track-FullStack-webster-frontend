@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTool } from "@/context/tool-context";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Brush, ChevronDown, Move as MoveIcon } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   Popover,
   PopoverContent,

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { Rect, Circle, RegularPolygon, Star, Line, Text, Group, Transformer, Image as KonvaImage } from "react-konva";
-import type { ElementData, TextCase, BorderStyle, ShapeType } from "@/types/canvas";
+import type { ElementData, TextCase, BorderStyle } from "@/types/canvas";
 import Konva from "konva";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useTool } from "@/context/tool-context";
 import { getSnappingGuides, type BoxProps, type SnapLine as SnapLineType } from "@/hooks/use-snapping.ts";
 
@@ -109,7 +108,6 @@ const convertColorToRGBA = (color: string | undefined, opacityPercent: number | 
         // Consider a more robust color parsing library if Konva.Util is not guaranteed.
         if (r === 0 && g === 0 && b === 0 && !color.startsWith('#')) {
             // Could be a named color, return as is with warning or try to use a canvas context to parse
-            console.warn("Basic color parser cannot derive RGB from named color without Konva: ", color);
             return color; // Or apply opacity if it's a CSS context that understands it.
         }
         return `rgba(${r},${g},${b},${opacity})`;
@@ -117,21 +115,21 @@ const convertColorToRGBA = (color: string | undefined, opacityPercent: number | 
 };
 
 const ElementRenderer: React.FC<ElementRendererProps> = ({
-                                                             element,
-                                                             onDragEnd,
-                                                             onClick,
-                                                             onTextEdit,
-                                                             onTransform,
-                                                             isSelected,
-                                                             isHovered,
-                                                             allElements,
-                                                             stageSize,
-                                                             setActiveSnapLines,
-                                                             onHoverInteractiveElement
-                                                         }) => {
+    element,
+    onDragEnd,
+    onClick,
+    onTextEdit,
+    onTransform,
+    isSelected,
+    isHovered,
+    allElements,
+    stageSize,
+    setActiveSnapLines,
+    onHoverInteractiveElement
+}) => {
     const { activeTool } = useTool();
     const [isEditing, setIsEditing] = useState(false);
-    const [editText, setEditText] = useState(element.text || "");
+    const [_editText, setEditText] = useState(element.text || "");
 
     // Consolidate refs
     const nodeRef = useRef<Konva.Shape | Konva.Group | Konva.Text | null>(null);
@@ -252,7 +250,6 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             tr.rotateAnchorOffset(30);
 
             // Set minimum size and handle aspect ratio in boundBoxFunc if keepRatio is true
-            const currentKeepRatio = tr.keepRatio();
             tr.boundBoxFunc((oldBox, newBox) => {
                 newBox.width = Math.max(20, newBox.width);
                 newBox.height = Math.max(20, newBox.height);
@@ -261,17 +258,17 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     const size = Math.max(newBox.width, newBox.height);
                     newBox.width = size;
                     newBox.height = size;
-                  } else if (tr.keepRatio()) {
+                } else if (tr.keepRatio()) {
                     const aspectRatio = oldBox.width / oldBox.height;
                     const widthChangedMore = Math.abs(newBox.width - oldBox.width) > Math.abs(newBox.height - oldBox.height);
                     if (widthChangedMore) {
-                      newBox.height = newBox.width / aspectRatio;
+                        newBox.height = newBox.width / aspectRatio;
                     } else {
-                      newBox.width = newBox.height * aspectRatio;
+                        newBox.width = newBox.height * aspectRatio;
                     }
-                  }
-                  return newBox;
-                });
+                }
+                return newBox;
+            });
 
             // Force redraw and update transformer position
             tr.forceUpdate();
@@ -343,7 +340,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         if (type === 'text') {
             newDesignWidth = node.width() * node.scaleX();
             newDesignHeight = node.height() * node.scaleY();
-            
+
             // For text elements, convert from center coordinates (node.x/y) to top-left coordinates (ElementData)
             // Since text uses offsetX/Y for centering, node.x/y are center coordinates
             newElementX = node.x() - newDesignWidth / 2;
@@ -351,7 +348,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         } else if (type === 'custom-image') {
             newDesignWidth = node.width() * node.scaleX();
             newDesignHeight = node.height() * node.scaleY();
-            
+
             // For custom-image elements using direct KonvaImage with offsetX/offsetY,
             // node.x() and node.y() are center coordinates - store them as center coordinates
             newElementX = node.x();
@@ -374,7 +371,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         } else if (type === 'circle' || type === 'triangle' || type === 'pentagon' || type === 'hexagon' || type === 'star' || type === 'heart') {
             newDesignWidth = Math.abs(node.width() * node.scaleX());
             newDesignHeight = Math.abs(node.height() * node.scaleY());
-            
+
             // For centered shapes (circle, polygon, star, heart), convert from center to top-left
             // These shapes are positioned with center coordinates in Konva but stored as top-left in ElementData
             newElementX = node.x() - newDesignWidth / 2;
@@ -402,24 +399,16 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         };
 
         if (onTransform) {
-            console.log(`Transform completed for ${element.id} (type: ${type}):`, {
-                newDesignWidth, newDesignHeight, newElementX, newElementY, newRotation,
-                nodePos: { x: node.x(), y: node.y() },
-                nodeOffsets: { x: node.offsetX(), y: node.offsetY() },
-                finalNodeScale: { x: node.scaleX(), y: node.scaleY() },
-                element: {...element}
-            });
-
             onTransform(element.id, newAttrs);
         }
-        
+
         // Reset cursor after transform ends, considering tool type
         if (activeTool?.type !== 'hand') {
             const stage = nodeRef.current?.getStage();
             const container = stage?.container();
             if (container) {
                 // For tools with custom cursors, hide system cursor
-                if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' ||
                     activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
                     container.style.cursor = 'none';
                 } else {
@@ -434,7 +423,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         if (element.type === 'custom-image') {
             let scaleX = element.scaleX || 1;
             let scaleY = element.scaleY || 1;
-            
+
             // Apply flip transformations
             if (element.flipHorizontal) {
                 scaleX *= -1;
@@ -442,7 +431,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             if (element.flipVertical) {
                 scaleY *= -1;
             }
-            
+
             return { scaleX, scaleY };
         }
         return { scaleX: element.scaleX ?? 1, scaleY: element.scaleY ?? 1 };
@@ -470,12 +459,12 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 onHoverInteractiveElement?.(true);
                 // Only change cursor to move when element is selected and using the correct tool
                 // Don't change cursor if Hand tool is active
-                const canShowMoveCursor = activeTool?.type !== 'hand' && isSelected && 
-                    ((activeTool?.type === 'text' && element.type === 'text') || 
-                     (activeTool?.type === 'shape' && element.type !== 'text' && element.type !== 'custom-image') ||
-                     (activeTool?.type === 'image-transform' && element.type === 'custom-image') ||
-                     (activeTool?.type === 'cursor' && element.type === 'text'));
-                
+                const canShowMoveCursor = activeTool?.type !== 'hand' && isSelected &&
+                    ((activeTool?.type === 'text' && element.type === 'text') ||
+                        (activeTool?.type === 'shape' && element.type !== 'text' && element.type !== 'custom-image') ||
+                        (activeTool?.type === 'image-transform' && element.type === 'custom-image') ||
+                        (activeTool?.type === 'cursor' && element.type === 'text'));
+
                 if (canShowMoveCursor) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
@@ -494,7 +483,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     const container = stage?.container();
                     if (container) {
                         // For tools with custom cursors, hide system cursor
-                        if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                        if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' ||
                             activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
                             container.style.cursor = 'none';
                         } else {
@@ -507,19 +496,19 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
         onDragStart: () => {
             if (canInteractWithElement()) {
                 setActiveSnapLines([]);
-                
+
                 // Initialize transformer for drag
                 if (transformerRef.current) {
                     transformerRef.current.forceUpdate();
                 }
-                
+
                 // Set grabbing cursor during drag when using the correct tool
                 const canShowGrabbingCursor = activeTool?.type !== 'hand' && isSelected &&
-                    ((activeTool?.type === 'text' && element.type === 'text') || 
-                     (activeTool?.type === 'shape' && element.type !== 'text' && element.type !== 'custom-image') ||
-                     (activeTool?.type === 'image-transform' && element.type === 'custom-image') ||
-                     (activeTool?.type === 'cursor' && element.type === 'text'));
-                     
+                    ((activeTool?.type === 'text' && element.type === 'text') ||
+                        (activeTool?.type === 'shape' && element.type !== 'text' && element.type !== 'custom-image') ||
+                        (activeTool?.type === 'image-transform' && element.type === 'custom-image') ||
+                        (activeTool?.type === 'cursor' && element.type === 'text'));
+
                 if (canShowGrabbingCursor) {
                     const stage = nodeRef.current?.getStage();
                     const container = stage?.container();
@@ -536,24 +525,24 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             }
 
             const node = e.target;
-            
+
             // Force update transformer position during drag
             if (transformerRef.current) {
                 transformerRef.current.forceUpdate();
             }
-            
+
             // Simplified coordinate handling - let Konva handle positioning naturally
             const currentX = node.x();
             const currentY = node.y();
-            
+
             // Get element dimensions for snapping calculations
             const elementWidth = element.width || 0;
             const elementHeight = element.height || 0;
-            
+
             // Calculate top-left coordinates for snapping (universal approach)
             let topLeftX = currentX;
             let topLeftY = currentY;
-            
+
             // Adjust for centered elements
             if (node.offsetX() > 0 || node.offsetY() > 0) {
                 // Text and custom-image use offsetX/Y for centering
@@ -566,9 +555,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     topLeftX = currentX - elementWidth / 2;
                     topLeftY = currentY - elementHeight / 2;
                 }
-            } else if (element.type === 'circle' || element.type === 'triangle' || 
-                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
-                      element.type === 'heart') {
+            } else if (element.type === 'circle' || element.type === 'triangle' ||
+                element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
+                element.type === 'heart') {
                 // These shapes are centered but don't use offsetX/Y
                 topLeftX = currentX - elementWidth / 2;
                 topLeftY = currentY - elementHeight / 2;
@@ -589,11 +578,11 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 .map(el => {
                     let elementX = el.x ?? 0;
                     let elementY = el.y ?? 0;
-                    
+
                     // Convert center coordinates to top-left for snapping for certain element types
-                    if (el.type === 'custom-image' || el.type === 'text' || 
-                        el.type === 'circle' || el.type === 'triangle' || 
-                        el.type === 'pentagon' || el.type === 'hexagon' || el.type === 'star' || 
+                    if (el.type === 'custom-image' || el.type === 'text' ||
+                        el.type === 'circle' || el.type === 'triangle' ||
+                        el.type === 'pentagon' || el.type === 'hexagon' || el.type === 'star' ||
                         el.type === 'heart') {
                         const elWidth = el.width ?? 0;
                         const elHeight = el.height ?? 0;
@@ -601,7 +590,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         elementY = elementY - elHeight / 2;
                     }
                     // Rectangle, square, rounded-rectangle, squircle, line, arrow use top-left coordinates
-                    
+
                     return {
                         id: el.id,
                         x: elementX,
@@ -624,7 +613,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             // Apply snapping if position changed
             let targetX = snappedPosition.x;
             let targetY = snappedPosition.y;
-            
+
             // Convert back to node coordinates
             if (node.offsetX() > 0 || node.offsetY() > 0) {
                 // Text and custom-image use offsetX/Y for centering
@@ -635,9 +624,9 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     targetX = snappedPosition.x + elementWidth / 2;
                     targetY = snappedPosition.y + elementHeight / 2;
                 }
-            } else if (element.type === 'circle' || element.type === 'triangle' || 
-                      element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
-                      element.type === 'heart') {
+            } else if (element.type === 'circle' || element.type === 'triangle' ||
+                element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
+                element.type === 'heart') {
                 targetX = snappedPosition.x + elementWidth / 2;
                 targetY = snappedPosition.y + elementHeight / 2;
             }
@@ -646,25 +635,25 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             // Only update position if there's a significant change to avoid micro-movements
             const threshold = 0.5;
             if (Math.abs(node.x() - targetX) > threshold || Math.abs(node.y() - targetY) > threshold) {
-               node.position({ x: targetX, y: targetY });
+                node.position({ x: targetX, y: targetY });
             }
         },
         onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
             setActiveSnapLines([]);
-            
+
             // Force final transformer update
             if (transformerRef.current) {
                 transformerRef.current.forceUpdate();
                 transformerRef.current.getLayer()?.batchDraw();
             }
-            
+
             // Reset cursor after drag ends, considering tool type
             if (activeTool?.type !== 'hand') {
                 const stage = nodeRef.current?.getStage();
                 const container = stage?.container();
                 if (container) {
                     // For tools with custom cursors, hide system cursor
-                    if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' || 
+                    if (activeTool?.type === 'brush' || activeTool?.type === 'eraser' ||
                         activeTool?.type === 'liquify' || activeTool?.type === 'blur') {
                         container.style.cursor = 'none';
                     } else {
@@ -672,16 +661,16 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                     }
                 }
             }
-            
+
             if (onDragEnd && canInteractWithElement()) {
                 const node = e.target;
                 let newX = node.x();
                 let newY = node.y();
-                
+
                 // Simplified coordinate conversion
                 const elementWidth = element.width || 0;
                 const elementHeight = element.height || 0;
-                
+
                 // Convert coordinates based on element positioning system
                 if (node.offsetX() > 0 || node.offsetY() > 0) {
                     // For text and custom-image elements with offsetX/Y
@@ -696,17 +685,15 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         newX = node.x();
                         newY = node.y();
                     }
-                } else if (element.type === 'circle' || element.type === 'triangle' || 
-                          element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
-                          element.type === 'heart') {
+                } else if (element.type === 'circle' || element.type === 'triangle' ||
+                    element.type === 'pentagon' || element.type === 'hexagon' || element.type === 'star' ||
+                    element.type === 'heart') {
                     // Elements positioned centrally without offsetX/Y - convert to top-left
                     newX = node.x() - elementWidth / 2;
                     newY = node.y() - elementHeight / 2;
                 }
                 // For rectangles, squares, rounded-rectangles, squircles, lines and arrows node.x() already returns top-left
-                
-                console.log(`ElementRenderer: ${element.type} drag ended, hasOffset: ${node.offsetX() > 0 || node.offsetY() > 0}, nodePos: [${node.x()}, ${node.y()}], finalPos: [${newX}, ${newY}]`);
-                
+
                 onDragEnd(element.id, newX, newY);
             }
         },
@@ -771,7 +758,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 onTextEdit(element.id, newText);
             }
         };
-        
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 textarea.style.display = 'none';
@@ -786,30 +773,30 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 }
             }
         };
-        
+
         // Function to update textarea position when stage scales or moves
         const updateTextareaPosition = () => {
             if (groupNodeForPositioning && textarea && textarea.style.display === 'block') {
                 positionTextarea(groupNodeForPositioning, textarea);
             }
         };
-        
+
         textarea.addEventListener('blur', handleBlur);
         textarea.addEventListener('keydown', handleKeyDown);
-        
+
         // Track stage changes to update textarea position
         const stage = groupNodeForPositioning?.getStage();
         if (stage) {
             stage.on('scaleChange', updateTextareaPosition);
             stage.on('positionChange', updateTextareaPosition);
         }
-        
+
         setTimeout(() => {
             if (groupNodeForPositioning && textarea) {
                 positionTextarea(groupNodeForPositioning, textarea); // Pass groupNode
             }
         }, 0);
-        
+
         return () => {
             textarea.removeEventListener('blur', handleBlur);
             textarea.removeEventListener('keydown', handleKeyDown);
@@ -828,12 +815,12 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
         const stageContainer = stage.container();
         const stageRect = stageContainer.getBoundingClientRect(); // Stage position on page
-        
+
         // Get stage scale and position from Canvas component
         const stageScaleX = stage.scaleX();
         const stageScaleY = stage.scaleY();
         const stagePosition = stage.position();
-        
+
         // Get Canvas container position
         const canvasContainer = stageContainer.parentElement;
         const canvasRect = canvasContainer ? canvasContainer.getBoundingClientRect() : stageRect;
@@ -871,13 +858,13 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
 
         const bgColor = element.backgroundColor || 'transparent';
         textarea.style.background = convertColorToRGBA(bgColor, element.backgroundOpacity);
-        
+
         // Apply highlight color effect using text-shadow
         if (element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0) {
-          const highlightRGBA = convertColorToRGBA(element.highlightColor, element.highlightOpacity);
-          textarea.style.textShadow = `0 0 8px ${highlightRGBA}, 0 0 16px ${highlightRGBA}`;
+            const highlightRGBA = convertColorToRGBA(element.highlightColor, element.highlightOpacity);
+            textarea.style.textShadow = `0 0 8px ${highlightRGBA}, 0 0 16px ${highlightRGBA}`;
         } else {
-          textarea.style.textShadow = 'none';
+            textarea.style.textShadow = 'none';
         }
 
         textarea.style.fontWeight = element.fontStyles?.bold ? 'bold' : 'normal';
@@ -894,7 +881,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
             case 'capitalize': textarea.style.textTransform = 'capitalize'; break;
             default: textarea.style.textTransform = 'none';
         }
-        
+
         // Add zIndex to display above all elements
         textarea.style.zIndex = '9999';
 
@@ -954,8 +941,8 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                             lineHeight={element.lineHeight || 1}
                             padding={5}
                             fill={convertColorToRGBA(element.color, element.textColorOpacity) || "#000000"}
-                            shadowColor={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0 
-                                ? convertColorToRGBA(element.highlightColor, element.highlightOpacity) 
+                            shadowColor={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0
+                                ? convertColorToRGBA(element.highlightColor, element.highlightOpacity)
                                 : undefined}
                             shadowBlur={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0 ? 8 : 0}
                             shadowOpacity={element.highlightColor && element.highlightOpacity && element.highlightOpacity > 0 ? 1 : 0}
@@ -1179,48 +1166,45 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                 // Convert from ElementData center coordinates to Konva center coordinates
                 const imgCenterX = element.x;
                 const imgCenterY = element.y;
-                
+
                 const [imageLoaded, setImageLoaded] = useState(false);
                 const [imageInstance, setImageInstance] = useState<HTMLImageElement | null>(null);
-                const [isLoadingNewImage, setIsLoadingNewImage] = useState(false);
+                const [_isLoadingNewImage, setIsLoadingNewImage] = useState(false);
                 const [currentImageSrc, setCurrentImageSrc] = useState<string | undefined>(undefined);
-                
+
                 useEffect(() => {
                     if (element.src) {
                         // If we already have an image and src changed, mark as loading new image
                         if (imageInstance && imageLoaded && currentImageSrc !== element.src) {
                             setIsLoadingNewImage(true);
                         }
-                        
+
                         // If this is the same src as current, no need to reload
                         if (currentImageSrc === element.src && imageLoaded) {
                             return;
                         }
-                        
+
                         const img = new window.Image();
-                        
+
                         // Try to load with crossOrigin first for CORS compliance
                         img.crossOrigin = 'anonymous';
-                        
+
                         let hasTriedFallback = false;
-                        
+
                         const handleLoad = () => {
                             setImageInstance(img);
                             setImageLoaded(true);
                             setIsLoadingNewImage(false);
                             setCurrentImageSrc(element.src);
-                            console.log('ElementRenderer: Image loaded successfully for element:', element.id);
                         };
-                        
+
                         const handleError = () => {
                             if (!hasTriedFallback && element.src) {
                                 // Try without crossOrigin as fallback
-                                console.warn('ElementRenderer: Image failed with CORS, trying without crossOrigin:', element.src);
                                 hasTriedFallback = true;
                                 img.crossOrigin = '';
                                 img.src = element.src;
                             } else {
-                                console.error('ElementRenderer: Failed to load image:', element.src);
                                 setIsLoadingNewImage(false);
                                 // Only reset if we don't have a previous image to show
                                 if (!imageInstance) {
@@ -1228,11 +1212,11 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                                 }
                             }
                         };
-                        
+
                         img.onload = handleLoad;
                         img.onerror = handleError;
                         img.src = element.src;
-                        
+
                         return () => {
                             // Don't reset imageInstance and imageLoaded on cleanup
                             // to preserve previous image state during loading
@@ -1245,19 +1229,19 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         setCurrentImageSrc(undefined);
                     }
                 }, [element.src, element.brightness, element.contrast, element.flipHorizontal, element.flipVertical]);
-                
+
                 if (element.src && imageLoaded && imageInstance) {
                     // Create image filters for brightness and contrast
                     const filters = [];
-                    
+
                     if (element.brightness && element.brightness !== 0) {
                         filters.push(Konva.Filters.Brighten);
                     }
-                    
+
                     if (element.contrast && element.contrast !== 0) {
                         filters.push(Konva.Filters.Contrast);
                     }
-                    
+
                     // Create custom props for image without scaleX/scaleY conflicts
                     const imageProps = {
                         id: element.id,
@@ -1275,7 +1259,7 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                         onTransformEnd: commonProps.onTransformEnd,
                         rotation: element.rotation || 0,
                     };
-                    
+
                     return (
                         <KonvaImage
                             image={imageInstance}
@@ -1296,24 +1280,24 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
                                     if (nodeRef) {
                                         (nodeRef as any).current = node;
                                     }
-                                    
+
                                     // Clear existing cache before applying new filters
                                     node.clearCache();
-                                    
+
                                     // Apply brightness filter
                                     if (element.brightness && element.brightness !== 0) {
                                         node.brightness(element.brightness / 100); // Convert from -100/100 to -1/1 range
                                     } else {
                                         node.brightness(0); // Reset brightness if 0
                                     }
-                                    
+
                                     // Apply contrast filter
                                     if (element.contrast && element.contrast !== 0) {
                                         node.contrast(element.contrast); // Contrast uses the same range
                                     } else {
                                         node.contrast(0); // Reset contrast if 0
                                     }
-                                    
+
                                     // Cache the filtered result only if filters are applied
                                     if (filters.length > 0) {
                                         node.cache();

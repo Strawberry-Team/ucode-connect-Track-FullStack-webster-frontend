@@ -19,7 +19,6 @@ import {
   Zap,
 } from "lucide-react"
 import { useTool } from "@/context/tool-context"
-import { useElementsManager } from "@/context/elements-manager-context"
 import { useUser } from "@/context/user-context"
 import { toast } from "sonner"
 import {
@@ -29,8 +28,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 // API imports
-import { searchPixabayImages, type PixabayImage, type PixabayResponse } from '@/lib/api/pixabay';
-import { searchUnsplashImages, isUnsplashConfigured, type UnsplashImage, type UnsplashResponse } from '@/lib/api/unsplash';
+import { searchPixabayImages, type PixabayImage } from '@/lib/api/pixabay';
+import { searchUnsplashImages, type UnsplashImage } from '@/lib/api/unsplash';
 
 // Template image imports
 import template1 from '@/assets/project-templates/template_1_macbook.png';
@@ -161,7 +160,7 @@ interface SampleAssetsModalProps {
 
 type TabType = "mockups" | "sample-images" | "sample-backgrounds"
 
-const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose, onAddToCanvas }) => {
+const SampleAssetsModal: React.FC<SampleAssetsModalProps> = ({ isOpen, onClose }) => {
   const { loggedInUser } = useUser()
   
   const tabs = [
@@ -188,7 +187,6 @@ const scrollbarStyles = `
 
   const [activeTab, setActiveTab] = useState<TabType>("mockups")
   const { stageSize, addRenderableObject, addHistoryEntry, renderableObjects, setRenderableObjects } = useTool()
-  const { setImageAsBackground } = useElementsManager()
 
   // Template states
   const [selectedTemplateImage, setSelectedTemplateImage] = useState<ProjectTemplate | null>(null)
@@ -387,15 +385,15 @@ const scrollbarStyles = `
     try {
       let imageUrl = ""
       let imageName = ""
-      let originalWidth = 0
-      let originalHeight = 0
+      // let originalWidth = 0
+      // let originalHeight = 0
       let shouldSetAsBackground = false
 
       if (selectedTemplateImage) {
         imageUrl = selectedTemplateImage.imagePath
         imageName = `${selectedTemplateImage.title}.png`
-        originalWidth = selectedTemplateImage.width
-        originalHeight = selectedTemplateImage.height
+        // originalWidth = selectedTemplateImage.width
+        // originalHeight = selectedTemplateImage.height
         shouldSetAsBackground = setTemplateAsBackground
       } else if (selectedPixabayImageId) {
         const selectedImage = pixabayImages.find((img) => img.id === selectedPixabayImageId)
@@ -403,8 +401,8 @@ const scrollbarStyles = `
 
         imageUrl = selectedImage.webformatURL
         imageName = `${selectedImage.tags.split(",")[0].trim()}.jpg`
-        originalWidth = selectedImage.webformatWidth
-        originalHeight = selectedImage.webformatHeight
+        // originalWidth = selectedImage.webformatWidth
+        // originalHeight = selectedImage.webformatHeight
         shouldSetAsBackground = setPixabayAsBackground
       } else if (selectedUnsplashImageId) {
         const selectedImage = unsplashImages.find((img) => img.id === selectedUnsplashImageId)
@@ -412,8 +410,8 @@ const scrollbarStyles = `
 
         imageUrl = selectedImage.urls.regular
         imageName = `${selectedImage.alt_description || "unsplash-image"}.jpg`
-        originalWidth = selectedImage.width
-        originalHeight = selectedImage.height
+        // originalWidth = selectedImage.width
+        // originalHeight = selectedImage.height
         shouldSetAsBackground = setUnsplashAsBackground
       } else {
         return
@@ -488,11 +486,6 @@ const scrollbarStyles = `
 
         // Add as renderable object
         if (shouldSetAsBackground) {
-          console.log("SampleAssets: Adding image directly as background and fitting to canvas", {
-            imageId: imageElement.id.slice(-6),
-            imageName: imageName,
-          })
-
           // Add the image directly as background (at the beginning of the array)
           const updatedObjects = [imageElement, ...renderableObjects]
           setRenderableObjects(updatedObjects)
@@ -541,14 +534,6 @@ const scrollbarStyles = `
                 ...renderableObjects.filter((obj) => obj.id !== imageElement.id),
               ]
               setRenderableObjects(finalUpdatedObjects)
-
-              console.log("SampleAssets: Background image fitted to canvas", {
-                originalSize: { width: imageWidth, height: imageHeight },
-                canvasSize: { width: canvasWidth, height: canvasHeight },
-                scale,
-                newSize: { width: newWidth, height: newHeight },
-                position: { x: canvasCenterX, y: canvasCenterY },
-              })
             }
           }, 100)
         } else {
@@ -568,7 +553,6 @@ const scrollbarStyles = `
           () => {
             // Note: History is already handled by setImageAsBackground and setRenderableObjects
             // No need to manually add history entry here since those functions handle it
-            console.log("SampleAssets: Image successfully added and processed")
           },
           shouldSetAsBackground ? 300 : 100,
         ) // Shorter wait since we don't use addRenderableObject for background

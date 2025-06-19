@@ -15,7 +15,6 @@ const useDrawing = ({
   canvasWidth,
   canvasHeight
 }: DrawingProps) => {
-  // const [lines, setLines] = useState<LineData[]>([]);
   const isDrawing = useRef(false);
 
     const {
@@ -277,7 +276,6 @@ const useDrawing = ({
                     const lineToUpdate = obj as LineData & { x?: number, y?: number, offsetX?: number, offsetY?: number };
                     // Ensure offsetX and offsetY are defined, meaning prepareLineForTransform has been called
                     if (lineToUpdate.offsetX === undefined || lineToUpdate.offsetY === undefined) {
-                        console.warn("updateLinePositionAndHistory called on a line not prepared for transform.");
                         return obj; // Return original object if not prepared
                     }
                     return {
@@ -315,7 +313,6 @@ const useDrawing = ({
             // Check if line is prepared for transform (has x, y, offsetX, offsetY)
             if (lineToMove.x === undefined || lineToMove.y === undefined || 
                 lineToMove.offsetX === undefined || lineToMove.offsetY === undefined) {
-                console.warn("Cannot move line that hasn't been prepared for transform");
                 return prev;
             }
             
@@ -379,7 +376,7 @@ const useDrawing = ({
 
         // Handle offset positioning for duplicated lines
         if ('x' in lineToDuplicate && 'y' in lineToDuplicate && 
-            lineToDuplicate.x !== undefined && lineToDuplicate.y !== undefined) {
+            typeof lineToDuplicate.x === 'number' && typeof lineToDuplicate.y === 'number') {
             // If line is prepared for transform (has x, y coordinates), offset the duplicate
             (newLine as any).x = lineToDuplicate.x + 20;
             (newLine as any).y = lineToDuplicate.y + 20;
@@ -414,7 +411,6 @@ const useDrawing = ({
             
             // Check if line is prepared for transform (has rotation property)
             if (lineToRotate.rotation === undefined) {
-                console.warn("Cannot rotate line that hasn't been prepared for transform");
                 return prev;
             }
             
@@ -438,7 +434,8 @@ const useDrawing = ({
             return { ...obj };
         });
 
-        const toolName = renderableObjects.find(obj => obj.id === lineId && 'tool' in obj)?.tool === 'brush' ? 'brush stroke' : 'eraser stroke';
+        const lineToRotate = renderableObjects.find(obj => obj.id === lineId && 'tool' in obj) as LineData | undefined;
+        const toolName = lineToRotate?.tool === 'brush' ? 'brush stroke' : 'eraser stroke';
         addHistoryEntry({
             type: 'elementModified',
             description: `Rotated ${toolName} ${degrees > 0 ? '+' : ''}${degrees}°`,

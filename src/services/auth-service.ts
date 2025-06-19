@@ -1,5 +1,5 @@
 import { loginUser, registerUser as apiRegisterUser, confirmEmail as apiConfirmEmail } from '@/lib/api/auth';
-import type { LoginCredentials, LoginResponse, RegisterCredentials, RegisterResponse, User } from '@/types/auth';
+import type { LoginCredentials, LoginResponse, RegisterCredentials, RegisterResponse } from '@/types/auth';
 import Cookies from 'js-cookie';
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';

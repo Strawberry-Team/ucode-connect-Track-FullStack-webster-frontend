@@ -64,7 +64,6 @@ export const loadProjectFonts = (renderableObjects: any[]): void => {
   const googleFonts = usedFonts.filter(isGoogleFont);
   
   if (googleFonts.length > 0) {
-    console.log('Loading Google Fonts for project:', googleFonts);
     loadGoogleFonts(googleFonts);
   }
 }; 

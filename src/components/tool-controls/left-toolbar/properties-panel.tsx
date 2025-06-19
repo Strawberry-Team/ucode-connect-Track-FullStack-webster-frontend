@@ -17,7 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const PropertiesPanel: React.FC = () => {
-  const { activeTool, hasEverSelectedTool, projectName } = useTool()
+  const { activeTool, projectName } = useTool()
   const navigate = useNavigate()
 
   // Get project name from URL or context, prioritizing context over URL

@@ -18,7 +18,6 @@ import {
     Facebook,
     Instagram,
     Send,
-    BrickWall
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CustomTooltip, CustomTooltipContent, CustomTooltipTrigger } from "@/components/ui/custom-tooltip"
@@ -406,6 +405,7 @@ const Toolbar: React.FC = () => {
                                 >
                                     <SwatchBook className="!w-4.5 !h-4.5 text-[#A8AAACFF] group-hover:text-white" />
                                 </Button>
+                                <span className="absolute -top-0 -right-0 flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20"></span>
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="center" sideOffset={12}>

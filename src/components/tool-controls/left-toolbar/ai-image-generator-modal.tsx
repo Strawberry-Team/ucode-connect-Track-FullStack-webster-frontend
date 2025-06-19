@@ -228,11 +228,6 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
 
                 // Add as renderable object
                 if (shouldSetAsBackground) {
-                    console.log("AIImageGenerator: Adding image directly as background and fitting to canvas", {
-                        imageId: imageElement.id.slice(-6),
-                        imageName: imageName,
-                    })
-
                     // Add the image directly as background (at the beginning of the array)
                     const updatedObjects = [imageElement, ...renderableObjects]
                     setRenderableObjects(updatedObjects)
@@ -281,14 +276,6 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                                 ...renderableObjects.filter((obj) => obj.id !== imageElement.id),
                             ]
                             setRenderableObjects(finalUpdatedObjects)
-
-                            console.log("AIImageGenerator: Background image fitted to canvas", {
-                                originalSize: { width: imageWidth, height: imageHeight },
-                                canvasSize: { width: canvasWidth, height: canvasHeight },
-                                scale,
-                                newSize: { width: newWidth, height: newHeight },
-                                position: { x: canvasCenterX, y: canvasCenterY },
-                            })
                         }
                     }, 100)
                 } else {
@@ -306,7 +293,7 @@ const AIImageGeneratorModal: React.FC<AIImageGeneratorModalProps> = ({ isOpen, o
                 // Wait a bit for image to render before adding to history
                 setTimeout(
                     () => {
-                        console.log("AIImageGenerator: Image successfully added and processed")
+
                     },
                     shouldSetAsBackground ? 300 : 100,
                 ) // Shorter wait since we don't use addRenderableObject for background

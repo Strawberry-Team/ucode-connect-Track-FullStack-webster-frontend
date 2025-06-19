@@ -9,19 +9,13 @@ import {
   RotateCcw,
   ChevronDown,
   Image as ImageIcon,
-  MousePointerClick,
-  Layers,
   Maximize2,
   Crop,
   Repeat,
-  MoveUp,
   SendToBack,
   BringToFront,
-  Palette,
-  Save,
   PaintBucket,
   BrushCleaning,
-  Eraser,
   Scissors,
   Sun,
   Contrast,
@@ -161,21 +155,15 @@ const ImageTransformOptions: React.FC = () => {
   }, [selectedElementId, getElementById]);
 
   const handleSelectImage = (imageId: string) => {
-    console.log('ImageTransform: Selecting image:', imageId);
     setSelectedImageId(imageId);
     setSelectedElementId(imageId);
   };
 
   const handleSelectDifferentImage = () => {
-    console.log('ImageTransform: Deselecting image');
     setSelectedImageId(null);
     setSelectedElementId(null);
   };
-
-  const handleCanvasBackgroundOpacityChange = (value: number) => {
-    setCanvasBackgroundOpacity(Math.max(0, Math.min(100, value)));
-  };
-
+  
   const handleCanvasBackgroundOpacityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTempCanvasBackgroundOpacityInput(value);
@@ -211,15 +199,8 @@ const ImageTransformOptions: React.FC = () => {
   };
 
   const handleSetCanvasBackground = () => {
-    console.log('ImageTransform: Setting canvas background', {
-      color: canvasBackgroundColor,
-      opacity: canvasBackgroundOpacity
-    });
-
     setCanvasBackground(canvasBackgroundColor, canvasBackgroundOpacity);
     setShowCanvasBackgroundPicker(false);
-
-    console.log('ImageTransform: Canvas background successfully set');
   };
 
   const renderColorPickers = () => (
@@ -426,37 +407,28 @@ const ImageTransformOptions: React.FC = () => {
 
   // Debug logging for opacity issues
   if (rawOpacity !== undefined && rawOpacity > 1) {
-    console.warn('ImageTransform: Found opacity value > 1:', {
-      rawOpacity,
-      displayOpacity: imageOpacity,
-      elementId: imageElement.id?.slice(-6)
-    });
   }
 
   const handleFlipHorizontal = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Toggling horizontal flip:', !flipHorizontal);
       updateElement(currentSelectedImageId, { flipHorizontal: !flipHorizontal });
     }
   };
 
   const handleFlipVertical = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Toggling vertical flip:', !flipVertical);
       updateElement(currentSelectedImageId, { flipVertical: !flipVertical });
     }
   };
 
   const handleBrightnessChange = (value: number) => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Setting brightness:', value);
       updateElement(currentSelectedImageId, { brightness: value });
     }
   };
 
   const handleContrastChange = (value: number) => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Setting contrast:', value);
       updateElement(currentSelectedImageId, { contrast: value });
     }
   };
@@ -464,52 +436,28 @@ const ImageTransformOptions: React.FC = () => {
   const handleOpacityChange = (value: number) => {
     if (currentSelectedImageId) {
       const opacityValue = Math.max(0, Math.min(1, value / 100)); // Convert from 0-100 to 0-1 and clamp
-      console.log('ImageTransform: Setting opacity:', {
-        inputValue: value,
-        normalizedOpacity: opacityValue,
-        elementId: currentSelectedImageId.slice(-6)
-      });
       updateElement(currentSelectedImageId, { opacity: opacityValue });
     }
   };
 
   const handleSetAsBackground = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Setting image as background', {
-        imageId: currentSelectedImageId.slice(-6),
-        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
-      });
-
       // Send element to background (this will trigger immediate save due to critical change detection)
       sendElementToBackground(currentSelectedImageId);
-
-      // Show success message
-      console.log('ImageTransform: Image successfully set as background');
     } else {
-      console.warn('ImageTransform: No image selected for background operation');
     }
   };
 
   const handleBringToFront = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Bringing image to front', {
-        imageId: currentSelectedImageId.slice(-6),
-        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
-      });
-
       // Bring element to front (this will trigger immediate save due to critical change detection)
       bringElementToFront(currentSelectedImageId);
-
-      // Show success message
-      console.log('ImageTransform: Image successfully brought to front');
     } else {
-      console.warn('ImageTransform: No image selected for bring to front operation');
     }
   };
 
   const handleResetTransforms = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Resetting all transforms');
       updateElement(currentSelectedImageId, {
         flipHorizontal: false,
         flipVertical: false,
@@ -522,25 +470,15 @@ const ImageTransformOptions: React.FC = () => {
 
   const handleAdjustToCanvas = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Adjusting image to canvas', {
-        imageId: currentSelectedImageId.slice(-6),
-        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
-      });
       adjustImageToCanvas(currentSelectedImageId);
     } else {
-      console.warn('ImageTransform: No image selected for adjust operation');
     }
   };
 
   const handleFitToCanvas = () => {
     if (currentSelectedImageId) {
-      console.log('ImageTransform: Fitting image to canvas', {
-        imageId: currentSelectedImageId.slice(-6),
-        imageName: imageElement?.fileName || `Image ${currentSelectedImageId.slice(-6)}`
-      });
       fitImageToCanvas(currentSelectedImageId);
     } else {
-      console.warn('ImageTransform: No image selected for fit operation');
     }
   };
 
@@ -703,8 +641,11 @@ const ImageTransformOptions: React.FC = () => {
       {/* Background Removal Control */}
       <div className="flex items-center space-x-4">
         <Label className="text-xs text-[#D4D4D5FF] flex flex-col leading-[1.2]">
-          <span>Remove</span>
-          <span>background</span>
+          <div className="relative">
+            <span>Remove</span><br/>
+            <span>background</span>
+            <span className="absolute -top-0 -right-0 flex items-center px-1 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm border border-blue-400/20"></span>
+          </div>
         </Label>
         <TooltipProvider>
           <Tooltip>
@@ -723,7 +664,7 @@ const ImageTransformOptions: React.FC = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Remove background</p>
+              <p>Remove background via <b>remove.bg</b></p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

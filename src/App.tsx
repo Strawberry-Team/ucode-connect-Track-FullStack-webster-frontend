@@ -9,14 +9,12 @@ import RightToolbar from "@/components/tool-controls/right-toolbar/right-toolbar
 import { Toaster } from "@/components/ui/sonner";
 import ConfirmEmailPage from '@/components/auth/confirm-email-page';
 import ProfilePage from '@/components/profile/profile-page';
-import { useUser } from '@/context/user-context';
 import PropertiesPanel from '@/components/tool-controls/left-toolbar/properties-panel';
 import MainPage from '@/components/main/main-page';
 
 const RedirectHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loggedInUser } = useUser();
 
   useEffect(() => {
     const isDirectPageLoad = !sessionStorage.getItem('navigationOccurred');

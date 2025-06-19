@@ -20,7 +20,7 @@ export interface GeneratedImage {
  * @returns Promise with generated image data
  */
 export const generateImage = async (options: GenerateImageOptions): Promise<GeneratedImage> => {
-  const { prompt, backgroundType = "none", width = 1024, height = 1024, noLogo = true } = options;
+  const { prompt, backgroundType = "none", width = 1024, height = 1024} = options;
 
   if (!prompt.trim()) {
     throw new Error("Please enter an image description");

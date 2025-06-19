@@ -38,7 +38,6 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
     try {
       const credentials: LoginCredentials = { email, password };
       const loginResponse = await authenticateUser(credentials);
-      console.log('Login successful in AuthContainer:', loginResponse);
       toast.success('Login Successful!', { 
         description: `Welcome back, ${loginResponse.user.firstName}!`,
         duration: 4000,
@@ -84,7 +83,7 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
     }
   };
 
-  const handleResetPassword = (email: string) => {
+  const handleResetPassword = () => {
     setIsLoading(true);
     setError(null);
 
@@ -139,7 +138,23 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
       animate={{ opacity: isAuthSuccessful ? 0 : 1 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-      {renderForm()}
+      {/* Display global error message if exists */}
+      {error && (
+        <div className="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+      
+      {/* Show loading overlay */}
+      {isLoading && (
+        <div className="hidden absolute inset-0 bg-black/20 flex items-center justify-center z-10 rounded-lg">
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+      
+      <div className="relative">
+        {renderForm()}
+      </div>
     </motion.div>
   );
 };

@@ -1,7 +1,6 @@
 import React from "react";
 import { useTool } from "@/context/tool-context";
 import { Button } from "@/components/ui/button";
-import { Hand } from "lucide-react";
 
 const HandOptions: React.FC = () => {
     const {

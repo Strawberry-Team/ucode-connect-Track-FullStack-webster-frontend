@@ -13,6 +13,7 @@ import type {
 } from "@/types/canvas"
 import { toast } from 'sonner';
 import { loadProjectFonts } from "@/utils/font-utils";
+import { getProjectName } from '@/utils/project-storage';
 
 
 export type MirrorMode = "None" | "Vertical" | "Horizontal" | "Four-way";
@@ -323,7 +324,6 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     // State for storing the function of updating from Canvas.tsx
     const [actualStagePositionUpdater, setActualStagePositionUpdater] =
         useState<(coords: { x: number; y: number }, type: 'center' | 'drag') => void>(() => () => {
-            console.warn("setStagePositionFromMiniMap called before Canvas has registered its updater function.");
         });
 
     // History state
@@ -384,12 +384,11 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         if (urlProjectId) {
             // If we have a project ID, set it and get the name from stored project data
             setProjectId(urlProjectId)
-            import('../utils/project-storage').then(({ getProjectName }) => {
-                const storedName = getProjectName(urlProjectId)
-                if (storedName) {
-                    setProjectName(storedName)
-                }
-            })
+            // Use static import to avoid the mixed import warning
+            const storedName = getProjectName(urlProjectId)
+            if (storedName) {
+                setProjectName(storedName)
+            }
         } else if (nameFromUrl && !projectName) {
             // If no project ID but URL has name, use it for new projects
             setProjectName(decodeURIComponent(nameFromUrl))
@@ -486,40 +485,21 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                  entryData.description?.toString().includes('as background'));
             
             if ((!hasUnsavedChanges || isCriticalChange) && projectSaverRef.current) {
-                const logMessage = isCriticalChange 
-                    ? 'ToolContext: Critical change detected (layer reordering), saving project immediately'
-                    : 'ToolContext: First change detected, saving project immediately';
-                console.log(logMessage, 'Entry type:', entryData.type, 'Description:', entryData.description);
-                
                 projectSaverRef.current().then((savedProjectId) => {
                     if (savedProjectId) {
-                        console.log('ToolContext: Project saved successfully with ID:', savedProjectId);
+              
                         // Set projectId if it's not already set (for new projects)
                         if (!projectId) {
                             setProjectId(savedProjectId);
                         }
                         setHasUnsavedChanges(true);
-                        
-                        // Log element order after critical changes
-                        if (isCriticalChange && entryData.linesSnapshot) {
-                            const elementOrder = entryData.linesSnapshot
-                                .filter(obj => !('tool' in obj))
-                                .map((obj, index) => {
-                                    const element = obj as ElementData;
-                                    return { index, type: element.type, id: element.id.slice(-6) };
-                                });
-                            console.log('ToolContext: Element order after save:', elementOrder);
-                        }
-                    } else {
-                        console.warn('ToolContext: Failed to save project immediately - no project ID returned');
                     }
                 }).catch((error) => {
                     console.error('ToolContext: Error saving project immediately:', error);
                 });
             } else if (hasUnsavedChanges && !isCriticalChange) {
-                console.log('ToolContext: Change detected but already has unsaved changes. Entry type:', entryData.type);
+          
             } else {
-                console.warn('ToolContext: Change detected but no project saver registered');
             }
             
             return finalHistory;
@@ -529,21 +509,17 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
     const revertToHistoryState = useCallback((historyId: string) => {
         const entryIndex = history.findIndex(entry => entry.id === historyId);
         if (entryIndex === -1) {
-            console.warn("History entry not found for ID:", historyId);
             return;
         }
 
         const targetEntry = history[entryIndex];
         if (!targetEntry.linesSnapshot) {
-            console.warn("Lines snapshot missing in history entry:", historyId);
             return;
         }
 
         if (renderableObjectsRestorerRef.current) {
             const deepCopiedSnapshot = targetEntry.linesSnapshot.map(obj => ({...obj}));
             renderableObjectsRestorerRef.current(deepCopiedSnapshot);
-        } else {
-            console.warn("RenderableObjects restorer not registered in ToolContext.");
         }
 
         setHistory(prevHistory =>
@@ -556,10 +532,10 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
         
         // Trigger immediate save after reverting to history state
         if (projectSaverRef.current) {
-            console.log('ToolContext: History reverted, saving project immediately');
+      
             projectSaverRef.current().then((savedProjectId) => {
                 if (savedProjectId) {
-                    console.log('ToolContext: Project saved successfully after history revert');
+          
                     // Set projectId if it's not already set
                     if (!projectId) {
                         setProjectId(savedProjectId);
@@ -863,12 +839,6 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
             } else if (canvasExporter) {
                 // Use canvas exporter for image formats (PNG, JPG, PDF, WEBP, SVG)
                 await canvasExporter(format);
-            } else {
-                console.warn('Canvas exporter not registered');
-                 toast.error("Error", {
-                    description: "Canvas not ready for export. Please try again.",
-                    duration: 5000,
-                  });
             }
         } catch (error) {
             console.error('Error exporting file:', error);
@@ -930,7 +900,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                     if (canRedo) {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Hotkey: Redo triggered via Command+Shift+Z');
+                  
                         redo();
                     }
                 } else {
@@ -938,7 +908,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                     if (canUndo) {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Hotkey: Undo triggered via Command+Z');
+                  
                         undo();
                     }
                 }
@@ -948,7 +918,7 @@ export const ToolProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 if (canRedo) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Hotkey: Redo triggered via Command+Y');
+              
                     redo();
                 }
             }

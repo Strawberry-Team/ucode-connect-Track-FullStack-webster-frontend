@@ -3,7 +3,7 @@ import { useTool } from "@/context/tool-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AlignCenter, AlignLeft, AlignRight, AlignJustify, Bold, Italic, Underline, Type, PlusCircle, Trash2, Copy, Strikethrough, Baseline, ChevronDown, CaseSensitive, CaseUpper, CaseLower, RotateCcw, Layers, MoveUp, Highlighter } from 'lucide-react';
+import { AlignCenter, AlignLeft, AlignRight, AlignJustify, Bold, Italic, Underline, Type, PlusCircle, Strikethrough, Baseline, ChevronDown, CaseSensitive, CaseUpper, CaseLower, RotateCcw } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +18,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ColorPicker from "@/components/color-picker/color-picker";
 import { Slider } from "@/components/ui/slider";
 import { colorToRGBA } from "./common";
-import { loadGoogleFont, isGoogleFont } from "@/utils/font-utils";
+import { loadGoogleFont } from "@/utils/font-utils";
 // API imports
-import { loadGoogleFonts as loadGoogleFontsAPI, type GoogleFont as GoogleFontAPI } from '@/lib/api/google-fonts';
+import { loadGoogleFonts as loadGoogleFontsAPI } from '@/lib/api/google-fonts';
 
 // Add types and interfaces for Google Fonts
 interface GoogleFont {
@@ -33,11 +33,6 @@ interface GoogleFont {
   category: string;
   kind: string;
   menu: string;
-}
-
-interface GoogleFontsResponse {
-  kind: string;
-  items: GoogleFont[];
 }
 
 // Adding styles for scrollbar
@@ -71,9 +66,6 @@ const FontSelector: React.FC<{
   const [maxLoadedCount, setMaxLoadedCount] = useState(10);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Your Google Fonts API key
-  const GOOGLE_FONTS_API_KEY = import.meta.env.VITE_GOOGLE_FONTS_API_KEY || '';  // Load fonts from Google Fonts API
   
   const loadGoogleFonts = async () => {
     if (isLoading || googleFonts.length > 0) return;
@@ -344,14 +336,11 @@ const TextOptions: React.FC = () => {
     setIsAddModeActive,
     currentAddToolType,
     setCurrentAddToolType,
-    setActiveTool: setContextActiveTool,
     activeTool,
   } = useTool();
 
   const {
     selectedElementId,
-    duplicateSelectedElement,
-    removeSelectedElement,
     getElementDataFromRenderables,
     updateSelectedElementStyle
   } = useElementsManager();
@@ -599,28 +588,6 @@ const TextOptions: React.FC = () => {
     preloadPopularFonts();
   }, []);
 
-  // Check if the selected element is a text element and the correct tool is active
-  const selectedElementData = selectedElementId ? getElementDataFromRenderables().find(el => el.id === selectedElementId) : null;
-  const isTextElementSelected = selectedElementId !== null &&
-    selectedElementData !== null &&
-    selectedElementData !== undefined &&
-    selectedElementData.type === "text" &&
-    (activeTool?.type === "text" || activeTool?.type === "cursor");
-
-  // Handle duplicate button click
-  const handleDuplicate = () => {
-    if (isTextElementSelected) {
-      duplicateSelectedElement();
-    }
-  };
-
-  // Handle delete button click
-  const handleDelete = () => {
-    if (isTextElementSelected) {
-      removeSelectedElement();
-    }
-  };
-
   const handleTextBgOpacitySliderValueChange = (value: number[]) => {
     const newTextBgOpacity = Math.round(value[0]);
     contextSetTextBgOpacity(newTextBgOpacity);
@@ -836,7 +803,7 @@ const TextOptions: React.FC = () => {
               <Button
                 variant="ghost"
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
-                onClick={(e) => {
+                onClick={(_e) => {
                   contextSetTextBgColor('#ffffff');
                   contextSetTextBgOpacity(0);
                   setTempTextBgOpacityInput("0");
@@ -914,7 +881,7 @@ const TextOptions: React.FC = () => {
               <Button
                 variant="ghost"
                 className="w-full mt-2 p-1 text-xs text-white border-1 border-[#44474AFF]"
-                onClick={(e) => {
+                onClick={(_e) => {
                   contextSetHighlightColor('#ffff00');
                   contextSetHighlightOpacity(0);
                   setTempHighlightOpacityInput("0");

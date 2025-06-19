@@ -45,7 +45,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({
     setHoveredMenuId(null); // Close menu when starting edit
     
     if (!onRenameProject) {
-      console.warn('onRenameProject function not provided - changes will be saved locally only');
     }
   };
 
