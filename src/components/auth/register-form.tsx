@@ -25,7 +25,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onLoginClick })
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8080/api/auth/google/login';
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/auth/google/login`;
   };
 
   return (

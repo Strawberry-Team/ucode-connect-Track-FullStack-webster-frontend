@@ -503,7 +503,7 @@ const Toolbar: React.FC = () => {
                         <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
                             <img
                                 src={loggedInUser.profilePictureName
-                                    ? `http://localhost:8080/uploads/user-avatars/${loggedInUser.profilePictureName}`
+                                    ? `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/${loggedInUser.profilePictureName}`
                                     : undefined}
                                 alt="User avatar"
                                 className="h-full w-full object-cover"

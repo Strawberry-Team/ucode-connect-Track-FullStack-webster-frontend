@@ -10,7 +10,7 @@ import { Save, Camera, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 
-const BASE_AVATAR_URL = 'http://localhost:8080/uploads/user-avatars/';
+const BASE_AVATAR_URL = `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`;
 
 const ProfilePage: React.FC = () => {
   const { loggedInUser, loginUserContext } = useUser();

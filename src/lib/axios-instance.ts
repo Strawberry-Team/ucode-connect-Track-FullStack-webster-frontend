@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { CsrfTokenResponse } from '@/types/auth';
 import Cookies from 'js-cookie'; 
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`;
 const ACCESS_TOKEN_KEY = 'accessToken'; 
 
 let csrfTokenCache: string | null = null;
