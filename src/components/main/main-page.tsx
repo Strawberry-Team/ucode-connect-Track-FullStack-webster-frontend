@@ -28,8 +28,10 @@ const HomePage: React.FC = () => {
       const refreshToken = params.get('refreshToken');
 
       if (accessToken && refreshToken) {
-        Cookies.set('accessToken', accessToken, { expires: 1, path: '/', sameSite: 'lax' });
-        Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/', sameSite: 'lax' });
+        // Cookies.set('accessToken', accessToken, { expires: 1, path: '/', sameSite: 'lax' });
+        // Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/', sameSite: 'lax' });
+        Cookies.set('accessToken', accessToken, { expires: 1, path: '/', sameSite: 'None', secure: true, domain: import.meta.env.VITE_COOKIE_DOMAIN });
+        Cookies.set('refreshToken', refreshToken, { expires: 7, path: '/', sameSite: 'None', secure: true, domain: import.meta.env.VITE_COOKIE_DOMAIN });
         
         // Clean URL from tokens
         window.history.replaceState(null, '', window.location.pathname);

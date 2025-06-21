@@ -14,8 +14,21 @@ const apiClient = axios.create({
 
 const fetchCsrfTokenInternal = async (): Promise<string> => {
   try {
-    const response = await axios.get<CsrfTokenResponse>(`${API_BASE_URL}/auth/csrf-token`, { withCredentials: true });
+    const response = await axios.get<CsrfTokenResponse>(`${API_BASE_URL}/auth/csrf-token`, { 
+      withCredentials: true,
+      // add proxy for the backend
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     console.log('CSRF token fetched internally (axios-instance):', response.data.csrfToken);
+    
+    // save CSRF token in localStorage as a backup
+    if (response.data.csrfToken) {
+      localStorage.setItem('csrf-token', response.data.csrfToken);
+    }
+    
     return response.data.csrfToken;
   } catch (error) {
     console.error('Error fetching CSRF token internally (axios-instance):', error);

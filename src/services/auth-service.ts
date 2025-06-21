@@ -7,17 +7,23 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 export const authenticateUser = async (credentials: LoginCredentials): Promise<LoginResponse> => {
   try {
     const loginData = await loginUser(credentials);
-    Cookies.set(ACCESS_TOKEN_KEY, loginData.accessToken, { 
-      sameSite: 'Lax' 
+    Cookies.set(ACCESS_TOKEN_KEY, loginData.accessToken, {
+      // sameSite: 'Lax',
+      sameSite: 'None',
+      secure: true,
+      domain: import.meta.env.VITE_COOKIE_DOMAIN
     });
-    Cookies.set(REFRESH_TOKEN_KEY, loginData.refreshToken, { 
-      sameSite: 'Lax' 
+    Cookies.set(REFRESH_TOKEN_KEY, loginData.refreshToken, {
+      // sameSite: 'Lax' 
+      sameSite: 'None',
+      secure: true,
+      domain: import.meta.env.VITE_COOKIE_DOMAIN
     });
 
     return loginData;
   } catch (error) {
     console.error('Authentication service error:', error);
-    throw error; 
+    throw error;
   }
 };
 
@@ -34,7 +40,7 @@ export const registerUser = async (credentials: RegisterCredentials): Promise<Re
 export const logoutUser = () => {
   Cookies.remove(ACCESS_TOKEN_KEY);
   Cookies.remove(REFRESH_TOKEN_KEY);
- 
+
 };
 
 
