@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Save, Camera, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
+import CookieSettingsCard from '@/components/ui/cookie-settings-card';
 
 const BASE_AVATAR_URL = `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`;
 
@@ -381,6 +382,9 @@ const ProfilePage: React.FC = () => {
             )}
           </CardFooter>
         </Card>
+
+        {/* Cookie Settings Card */}
+        <CookieSettingsCard />
 
         <Button 
           variant="ghost" 

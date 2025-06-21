@@ -5,3 +5,4 @@ export { default as useLiquify } from './use-liquify.ts';
 export { default as useBlur } from './use-blur.ts';
 export { default as useHand } from './use-hand';
 export { useProjectManager } from './use-project-manager';
+export { useCookieConsent } from './use-cookie-consent';

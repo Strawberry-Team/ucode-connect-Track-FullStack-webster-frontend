@@ -11,6 +11,7 @@ import ConfirmEmailPage from '@/components/auth/confirm-email-page';
 import ProfilePage from '@/components/profile/profile-page';
 import PropertiesPanel from '@/components/tool-controls/left-toolbar/properties-panel';
 import MainPage from '@/components/main/main-page';
+import CookieConsentBanner from '@/components/ui/cookie-consent-banner';
 
 const RedirectHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -114,6 +115,7 @@ const App: React.FC = () => {
           </Routes>
         </RedirectHandler>
         <Toaster position="top-center" />
+        <CookieConsentBanner />
       </ToolProvider>
     </Router>
   );
