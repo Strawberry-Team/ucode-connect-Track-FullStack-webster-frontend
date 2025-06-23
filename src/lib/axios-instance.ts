@@ -2,7 +2,14 @@ import axios from 'axios';
 import type { CsrfTokenResponse } from '@/types/auth';
 import Cookies from 'js-cookie'; 
 
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`;
+// Define the environment
+const isProduction = import.meta.env.NODE_ENV === 'production';
+
+// Configure the API URL based on the environment
+const API_BASE_URL = isProduction 
+  ? '/api' // For production, use relative path
+  : `${import.meta.env.VITE_API_BASE_URL}/api`; // For development
+
 const ACCESS_TOKEN_KEY = 'accessToken'; 
 
 let csrfTokenCache: string | null = null;
@@ -14,7 +21,12 @@ const apiClient = axios.create({
 
 const fetchCsrfTokenInternal = async (): Promise<string> => {
   try {
-    const response = await axios.get<CsrfTokenResponse>(`${API_BASE_URL}/auth/csrf-token`, { withCredentials: true });
+    // Form the URL for fetching the CSRF token based on the environment
+    const csrfUrl = isProduction 
+      ? '/api/auth/csrf-token' 
+      : `${import.meta.env.VITE_API_BASE_URL}/api/auth/csrf-token`;
+      
+    const response = await axios.get<CsrfTokenResponse>(csrfUrl, { withCredentials: true });
     console.log('CSRF token fetched internally (axios-instance):', response.data.csrfToken);
     return response.data.csrfToken;
   } catch (error) {
