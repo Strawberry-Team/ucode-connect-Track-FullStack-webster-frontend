@@ -11,13 +11,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { User } from '@/types/auth';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '@/lib/axios-instance';
 
 interface UserMenuDropdownProps {
   user: User;
   onLogout: () => void;
 }
 
-const BASE_AVATAR_URL = `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`;
+const BASE_AVATAR_URL = `${API_BASE_URL}/uploads/user-avatars/`;
 
 export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onLogout }) => {
   const navigate = useNavigate();
