@@ -9,6 +9,14 @@ interface LoginFormProps {
   onRegisterClick: () => void;
 }
 
+// Define the environment
+const isProduction = import.meta.env.PROD;
+
+// Configure the API URL based on the environment
+const BASE_AUTH_URL = isProduction 
+  ? '/api/auth/google/login' // For production, use relative path
+  : `${import.meta.env.VITE_API_BASE_URL}/api/auth/google/login`; // For development
+
 const LoginForm: React.FC<LoginFormProps> = ({ 
   onLogin, 
   onForgotPassword, 
@@ -28,7 +36,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/auth/google/login`;
+    window.location.href = `${BASE_AUTH_URL}`;
   };
 
   return (
