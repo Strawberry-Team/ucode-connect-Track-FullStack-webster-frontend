@@ -3,7 +3,7 @@ import type { CsrfTokenResponse } from '@/types/auth';
 import Cookies from 'js-cookie'; 
 
 // Define the environment
-const isProduction = import.meta.env.NODE_ENV === 'production';
+const isProduction = import.meta.env.PROD;
 
 // Configure the API URL based on the environment
 const API_BASE_URL = isProduction 
