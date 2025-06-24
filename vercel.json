@@ -5,6 +5,10 @@
         "destination": "https://flowy-photoshop.koyeb.app/api/$1"
       },
       {
+        "source": "/uploads/(.*)",
+        "destination": "https://flowy-photoshop.koyeb.app/uploads/$1"
+      },
+      {
         "source": "/(.*)",
         "destination": "/index.html"
       }

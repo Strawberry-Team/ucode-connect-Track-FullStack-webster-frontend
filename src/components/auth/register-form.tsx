@@ -8,6 +8,14 @@ interface RegisterFormProps {
   onLoginClick: () => void;
 }
 
+// Define the environment
+const isProduction = import.meta.env.PROD;
+
+// Configure the API URL based on the environment
+const BASE_AUTH_URL = isProduction 
+  ? '/api/auth/google/login' // For production, use relative path
+  : `${import.meta.env.VITE_API_BASE_URL}/api/auth/google/login`; // For development
+
 const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onLoginClick }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -25,7 +33,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onLoginClick })
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/auth/google/login`;
+    window.location.href = `${BASE_AUTH_URL}`;
   };
 
   return (

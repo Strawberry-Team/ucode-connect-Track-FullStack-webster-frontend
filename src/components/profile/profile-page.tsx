@@ -10,7 +10,13 @@ import { Save, Camera, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 
-const BASE_AVATAR_URL = `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`;
+// Define the environment
+const isProduction = import.meta.env.PROD;
+
+// Configure the API URL based on the environment
+const BASE_AVATAR_URL = isProduction 
+  ? '/uploads/user-avatars/' // For production, use relative path
+  : `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`; // For development
 
 const ProfilePage: React.FC = () => {
   const { loggedInUser, loginUserContext } = useUser();

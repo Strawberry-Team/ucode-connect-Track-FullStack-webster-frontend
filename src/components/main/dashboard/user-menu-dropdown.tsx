@@ -17,7 +17,13 @@ interface UserMenuDropdownProps {
   onLogout: () => void;
 }
 
-const BASE_AVATAR_URL = `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`;
+// Define the environment
+const isProduction = import.meta.env.PROD;
+
+// Configure the API URL based on the environment
+const BASE_AVATAR_URL = isProduction 
+  ? '/uploads/user-avatars/' // For production, use relative path
+  : `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`; // For development
 
 export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onLogout }) => {
   const navigate = useNavigate();
