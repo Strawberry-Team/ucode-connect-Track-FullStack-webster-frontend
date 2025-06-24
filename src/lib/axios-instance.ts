@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 const isProduction = import.meta.env.PROD;
 
 // Configure the API URL based on the environment
-export const API_BASE_URL = isProduction 
+const API_BASE_URL = isProduction 
   ? '/api' // For production, use relative path
   : `${import.meta.env.VITE_API_BASE_URL}/api`; // For development
 

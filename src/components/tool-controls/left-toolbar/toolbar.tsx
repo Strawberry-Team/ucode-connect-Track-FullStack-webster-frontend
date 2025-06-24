@@ -38,7 +38,14 @@ import AIImageGeneratorModal from "@/components/tool-controls/left-toolbar/ai-im
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useUser } from "@/context/user-context"
 import { useShare } from "@/hooks/use-share"
-import { API_BASE_URL } from "@/lib/axios-instance"
+
+// Define the environment
+const isProduction = import.meta.env.PROD;
+
+// Configure the API URL based on the environment
+const BASE_AVATAR_URL = isProduction 
+  ? '/uploads/user-avatars/' // For production, use relative path
+  : `${import.meta.env.VITE_API_BASE_URL}/uploads/user-avatars/`; // For development
 
 // Define known shape types for checking activeElement.type
 const knownShapeTypes: string[] = [
@@ -504,7 +511,7 @@ const Toolbar: React.FC = () => {
                         <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
                             <img
                                 src={loggedInUser.profilePictureName
-                                    ? `${API_BASE_URL}/uploads/user-avatars/${loggedInUser.profilePictureName}`
+                                    ? `${BASE_AVATAR_URL}${loggedInUser.profilePictureName}`
                                     : undefined}
                                 alt="User avatar"
                                 className="h-full w-full object-cover"
