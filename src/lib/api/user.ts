@@ -42,6 +42,9 @@ export const uploadUserAvatar = async (userId: number, file: File): Promise<Uplo
     const formData = new FormData();
     formData.append('file', file);
     
+console.log("apiClient " + apiClient);
+
+
     const response = await apiClient.post<{ server_filename: string }>(
       `/users/${userId}/upload-avatar`, 
       formData,
@@ -51,6 +54,7 @@ export const uploadUserAvatar = async (userId: number, file: File): Promise<Uplo
         },
       }
     );
+    console.log("response " + response);
     
     return {
       success: true,
