@@ -54,7 +54,7 @@ console.log("apiClient " + apiClient);
         },
       }
     );
-    console.log("response " + response);
+    console.log("response " + response.data);
     
     return {
       success: true,
