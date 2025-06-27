@@ -2,11 +2,11 @@
     "rewrites": [
       {
         "source": "/api/(.*)",
-        "destination": "https://flowy-photoshop.koyeb.app/api/$1"
+        "destination": "https://flowy-photoshop.up.railway.app/api/$1"
       },
       {
         "source": "/uploads/(.*)",
-        "destination": "https://flowy-photoshop.koyeb.app/uploads/$1"
+        "destination": "https://flowy-photoshop.up.railway.app/uploads/$1"
       },
       {
         "source": "/(.*)",
