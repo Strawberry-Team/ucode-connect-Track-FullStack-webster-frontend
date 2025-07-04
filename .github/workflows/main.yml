@@ -1,0 +1,20 @@
+name: Deploy to Vercel
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+      url: https://flowy-photoshop.vercel.app
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy
+        if: github.ref == 'refs/heads/main'
+        env:
+          deploy_url: ${{ secrets.VERSEL_DEPLOY_HOOK_URL }}
+        run: |
+          curl curl -X POST "$deploy_url"
