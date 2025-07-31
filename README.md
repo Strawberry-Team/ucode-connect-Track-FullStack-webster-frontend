@@ -60,6 +60,12 @@
   - [🌐 External Service Integration](#-external-service-integration)
   - [🔔 Sharing & Distribution](#-sharing--distribution)
 - [🚀 Get started](#-get-started)
+- [🧶 Use case diagram](#-use-case-diagram)
+- [🧲 Activity diagram](#-activity-diagram)
+  - [👤 User Registaion](#-user-registaion)
+  - [🎞 Action History System](#-action-history-system)
+  - [📁 File Export](#-file-export)
+- [🚚 Deployment Diagram](#-deployment-diagram)
 
 
 
@@ -78,22 +84,27 @@ Here is a [link](https://docs.google.com/presentation/d/1bVpLPwLnU-Q78mZlx9RJoXG
 ![Horizontal Tablet View](https://github.com/user-attachments/assets/ac377e60-f274-4335-9ac9-e0f611650683)
 ![Vertical Tablet View](https://github.com/user-attachments/assets/578fdbf0-f824-42da-838a-ea5a887e9471)
 
+
+
 # 🧑‍💻 Team
 <div>
     <ul>
+	<li>
+            <p>👩🏼‍💻 <a href="https://github.com/InessaRepeshko">Inessa Repeshko</a></p>
+        </li>
         <li>
             <p>🧑🏼‍💻 <a href="https://github.com/laskevych">Andrew Laskevych</a></p>
         </li>
-        <li>
-            <p>👩🏼‍💻 <a href="https://github.com/InessaRepeshko">Inessa Repeshko</a></p>
-        </li>
+
         <li>
             <p>🧑🏻‍💻 <a href="https://github.com/vzharyi">Vadym Zharyi</a></p>
         </li>
     </ul>
 </div>
 
-![Team]()
+![Team](https://github.com/user-attachments/assets/c1397c4b-7986-4926-abd2-357b1e324eb8)
+
+
 
 # 🌊 About "Flowy" Frontend
 Flowy is a comprehensive web-based graphic design platform inspired by industry-standard design tools like Photoshop and Canva. Built using React, TypeScript, Konva, and Tailwind CSS, it features a highly responsive and intuitive interface optimized for creative workflows.
@@ -107,6 +118,8 @@ Frontend technologies:
 * Tailwind CSS + Radix UI create an effective styling system with a “utility first” approach and accessible UI components.
 
 Built with React Konva for canvas rendering, the application provides smooth performance for complex graphic operations while maintaining cross-platform compatibility and accessibility.
+
+
 
 # 🎯 Features and Functionality
 **Flowy** is a comprehensive web-based graphic design platform that provides the following features:
@@ -337,6 +350,31 @@ Built with React Konva for canvas rendering, the application provides smooth per
   - PNG, JPG, WEBP, SVG, PDF export
   - Custom resolution and quality settings
   - Professional output options
+
+
+
+# 🧶 Use case diagram
+![Use case diagram](https://github.com/user-attachments/assets/2b4985d7-2b67-44b7-bb2d-6ee24aec5120)
+
+
+
+# 🧲 Activity diagram
+
+### 👤 User Registaion
+![Activity diagram - User Registaion](https://github.com/user-attachments/assets/208d8322-0c4a-49fa-8f1b-6dd7024b2357)
+
+### 🎞 Action History System
+![Activity diagram - Action History System](https://github.com/user-attachments/assets/1c396bf0-5619-4cb4-9b83-c748d3d1dfaf)
+
+### 📁 File Export 
+![Activity diagram - File Export](https://github.com/user-attachments/assets/30c6ae64-f19b-4bbd-a0bd-1881108e9b02)
+
+
+
+# 🚚 Deployment Diagram
+![Deployment diagram](https://github.com/user-attachments/assets/851a2b61-1eba-4285-9748-30402830bd04)
+
+
 
 # 🚀 Get started
 1. Run the [flowy-backend](https://github.com/Strawberry-Team/ucode-connect-Track-FullStack-webster-Flowy-backend) project.
