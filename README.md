@@ -44,7 +44,7 @@
 
 
 # 📑 Table of Contents
-- [🎨 About "Flowy" App](#-about-flowy-app)
+- [🎨 About "Flowy" Platform](#-about-flowy-platform)
 - [🧑‍💻 Team](#-team)
 - [🌊 About "Flowy" Frontend](#-about-flowy-frontend)
 - [🎯 Features and Functionality](#-features-and-functionality)
@@ -69,7 +69,7 @@
 
 
 
-# 🎨 About "Flowy" App
+# 🎨 About "Flowy" Platform
 **Flowy** is a web-based graphic design platform that provides professional-grade tools for creative design and image editing.
 
 Create stunning visuals with canvas-based drawing tools, advanced image manipulation, layer management, and seamless project workflows in your browser.
