@@ -59,13 +59,13 @@
   - [📂 Project Management](#-project-management)
   - [🌐 External Service Integration](#-external-service-integration)
   - [🔔 Sharing & Distribution](#-sharing--distribution)
-- [🚀 Get started](#-get-started)
 - [🧶 Use case diagram](#-use-case-diagram)
 - [🧲 Activity diagram](#-activity-diagram)
   - [👤 User Registaion](#-user-registaion)
   - [🎞 Action History System](#-action-history-system)
   - [📁 File Export](#-file-export)
 - [🚚 Deployment Diagram](#-deployment-diagram)
+- [🚀 Get started](#-get-started)
 
 
 
