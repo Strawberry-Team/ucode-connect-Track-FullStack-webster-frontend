@@ -95,7 +95,6 @@ Here is a [link](https://docs.google.com/presentation/d/1bVpLPwLnU-Q78mZlx9RJoXG
         <li>
             <p>🧑🏼‍💻 <a href="https://github.com/laskevych">Andrew Laskevych</a></p>
         </li>
-
         <li>
             <p>🧑🏻‍💻 <a href="https://github.com/vzharyi">Vadym Zharyi</a></p>
         </li>
