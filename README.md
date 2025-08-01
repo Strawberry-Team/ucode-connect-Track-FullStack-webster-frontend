@@ -79,6 +79,8 @@ Built with modern web technologies, Flowy delivers a comprehensive design experi
 Here is a [link](https://docs.google.com/presentation/d/1bVpLPwLnU-Q78mZlx9RJoXGA6eXgI3dE/edit?usp=sharing&ouid=109902939512595211399&rtpof=true&sd=true) to the presentation file.</p>
 
 ![Description](https://github.com/user-attachments/assets/3ff0913a-3693-4e24-a695-58422583221b)
+![Powerful Features](https://github.com/user-attachments/assets/40376653-2a0c-4f0e-81c5-e3d2c067c8ae)
+![Compare possibilities](https://github.com/user-attachments/assets/ef2eaef7-b977-4d2c-997d-711b7df57f6a)
 ![Desktop View](https://github.com/user-attachments/assets/75e530bc-46e1-404a-9421-e5204752a5f1)
 ![Mobile and Tablet View](https://github.com/user-attachments/assets/8c4cd376-9df6-4aff-8ebd-161f438b4f31)
 ![Horizontal Tablet View](https://github.com/user-attachments/assets/ac377e60-f274-4335-9ac9-e0f611650683)
@@ -101,7 +103,7 @@ Here is a [link](https://docs.google.com/presentation/d/1bVpLPwLnU-Q78mZlx9RJoXG
     </ul>
 </div>
 
-![Team](https://github.com/user-attachments/assets/c1397c4b-7986-4926-abd2-357b1e324eb8)
+![Team](https://github.com/user-attachments/assets/ab5e213e-237b-4761-81ef-69572d779ba7)
 
 
 
